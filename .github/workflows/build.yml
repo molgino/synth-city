@@ -52,6 +52,36 @@ jobs:
           make -j4 SAN=1
           SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy ASAN_OPTIONS=detect_leaks=0 ./groovebox --selftest 60
 
+  # Handy-App (WebAssembly, offline-faehig) -> GitHub Pages (Branch gh-pages): main unter /, ui-*-Branches unter /<branch>/
+  webapp:
+    runs-on: ubuntu-24.04
+    concurrency: { group: gh-pages, cancel-in-progress: false }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: mymindstorm/setup-emsdk@v14
+        with: { version: 3.1.74 }
+      - name: Web-App bauen
+        run: python3 tools/webapp/build.py --out dist/webapp
+      - uses: actions/upload-artifact@v4
+        with: { name: synthcity-webapp, path: dist/webapp }
+      - name: Auf GitHub Pages veroeffentlichen
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/ui-'))
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git ls-remote --exit-code --heads origin gh-pages >/dev/null; then
+            git fetch --depth 1 origin gh-pages && git worktree add -B gh-pages pages origin/gh-pages
+          else
+            git worktree add --orphan -b gh-pages pages
+          fi
+          if [ "$GITHUB_REF_NAME" = main ]; then
+            find pages -maxdepth 1 -type f -delete; cp -r dist/webapp/. pages/
+          else
+            rm -rf "pages/$GITHUB_REF_NAME"; mkdir -p "pages/$GITHUB_REF_NAME"; cp -r dist/webapp/. "pages/$GITHUB_REF_NAME/"
+          fi
+          touch pages/.nojekyll
+          cd pages && git add -A && (git diff --cached --quiet || git commit -q -m "Web-App ${GITHUB_REF_NAME} ($(git -C .. rev-parse --short HEAD))") && git push origin gh-pages
+
   build:
     needs: [os-app, tests]
     runs-on: ubuntu-24.04

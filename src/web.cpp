@@ -30,11 +30,21 @@ static volatile Uint32 g_changedAt = 0;
 static char g_last[96];
 static volatile int g_lastSeq = 0;
 static volatile int g_updateReady = 0;
+static SDL_mutex* g_projMx = SDL_CreateMutex();
+static char g_projUp[200] = "";   // zuletzt hochgeladenes Projekt (Name ohne .gbx), vom Hauptthread abgeholt
+bool webTakeProjectUpload(char* name, int n) {
+    SDL_LockMutex(g_projMx);
+    bool has = g_projUp[0] != 0;
+    if (has) { snprintf(name, n, "%s", g_projUp); g_projUp[0] = 0; }
+    SDL_UnlockMutex(g_projMx);
+    return has;
+}
 static bool isOS() { struct stat st; return stat("/etc/groovebox-os", &st) == 0; }
 bool webUpdateReady() { return g_updateReady != 0; }
 
 extern const char WEB_PAGE[];
 extern const char WEB_SCREEN[];
+extern const char WEB_SYNC[];
 extern const unsigned char WEB_ICON180[], WEB_ICON192[], WEB_ICON512[];
 extern const size_t WEB_ICON180_LEN, WEB_ICON192_LEN, WEB_ICON512_LEN;
 // Web-App: auf dem Homescreen installierbar, startet die Fernbedienung im Vollbild (Querformat)
@@ -127,7 +137,7 @@ static bool hasExt(const char* p, const char* ext) {
 }
 // root: "samples" oder "projects"
 static bool rootDir(const char* root, char* out, int n) {
-    if (strcmp(root, "samples") && strcmp(root, "projects")) return false;
+    if (strcmp(root, "samples") && strcmp(root, "projects") && strcmp(root, "presets")) return false;
     snprintf(out, n, "%s%s", g_base, root);
     return true;
 }
@@ -242,6 +252,28 @@ static void searchDir(Buf& b, const char* dir, const char* sub, const char* q, i
         if (!strcasestr(rel, q)) continue;
         if (hits < 400) { if (hits) bstr(b, ","); bjson(b, rel); }
         hits++;
+    }
+    closedir(d);
+}
+// Sync-Liste: alle Dateien einer Wurzel (rekursiv bis maxDepth), Aufnahmen (samples/rec) nur auf Wunsch
+static void manifestDir(Buf& b, const char* root, const char* dir, const char* sub, const char* ext, int maxDepth, int depth, bool withRec, bool& first) {
+    char path[1200]; snprintf(path, sizeof path, "%s%s%s", dir, sub[0] ? "/" : "", sub);
+    DIR* d = opendir(path); if (!d) return;
+    struct dirent* e;
+    while ((e = readdir(d))) {
+        if (e->d_name[0] == '.') continue;
+        char rel[600], full[1900]; snprintf(rel, sizeof rel, "%s%s%s", sub, sub[0] ? "/" : "", e->d_name);
+        snprintf(full, sizeof full, "%s/%s", dir, rel);
+        struct stat st; if (stat(full, &st)) continue;
+        if (S_ISDIR(st.st_mode)) {
+            if (depth < maxDepth && (withRec || depth > 0 || strcmp(root, "samples") || strcmp(e->d_name, "rec"))) manifestDir(b, root, dir, rel, ext, maxDepth, depth + 1, withRec, first);
+            continue;
+        }
+        if (!hasExt(e->d_name, ext)) continue;
+        if (!first) bstr(b, ",");
+        first = false;
+        bstr(b, "{\"r\":\""); bstr(b, root); bstr(b, "\",\"p\":"); bjson(b, rel);
+        char num[80]; snprintf(num, sizeof num, ",\"s\":%lld,\"t\":%lld}", (long long)st.st_size, (long long)st.st_mtime); bstr(b, num);
     }
     closedir(d);
 }
@@ -449,12 +481,28 @@ static bool handle(int fd) {   // true = Verbindung wurde uebernommen (WebSocket
         return false;
     }
 
+    if (!strcmp(method, "GET") && !strcmp(target, "/sync")) { reply(fd, 200, "text/html; charset=utf-8", WEB_SYNC, strlen(WEB_SYNC)); return false; }
+    if (!strcmp(method, "GET") && !strcmp(target, "/api/manifest")) {   // alle Projekte, Sounds, Samples mit Groesse + Zeit (Sync der Handy-App)
+        char rec[4] = ""; if (q) queryGet(q, "rec", rec, sizeof rec);
+        Buf b = {nullptr, 0, 0};
+        bstr(b, "{\"files\":[");
+        bool first = true;
+        static const char* const roots[3] = {"projects", "presets", "samples"};
+        static const char* const exts[3] = {".gbx", ".gbp", ".wav"};
+        static const int deps[3] = {0, 1, SAMPLE_DEPTH};
+        for (int k = 0; k < 3; k++) { char rd[700]; rootDir(roots[k], rd, sizeof rd); manifestDir(b, roots[k], rd, "", exts[k], deps[k], 0, rec[0] == '1', first); }
+        bstr(b, "]}");
+        reply(fd, 200, "application/json", b.p, b.n);
+        free(b.p);
+        return false;
+    }
     if (!rootDir(root, dir, sizeof dir)) { replyText(fd, 400, "root?"); return false; }
-    bool isS = !strcmp(root, "samples");
-    const char* ext = isS ? ".wav" : ".gbx";
+    bool isS = !strcmp(root, "samples"), isP = !strcmp(root, "presets");
+    const char* ext = isS ? ".wav" : (isP ? ".gbp" : ".gbx");
+    const int dep = isS ? SAMPLE_DEPTH : (isP ? 1 : 0);   // Unterordner: Samples beliebig, Presets einer (Engine), Projekte keiner
     snprintf(full, sizeof full, "%s/%s", dir, rel);
 
-    bool relOk = rel[0] == 0 || safeRel(rel, isS ? SAMPLE_DEPTH : 0);   // leer = Wurzel
+    bool relOk = rel[0] == 0 || safeRel(rel, dep);   // leer = Wurzel
     if (!strcmp(method, "GET") && !strcmp(target, "/api/dir")) {
         if (!relOk || !isS) { replyText(fd, 400, "Pfad?"); return false; }
         handleDir(fd, dir, rel, ext);
@@ -496,10 +544,10 @@ static bool handle(int fd) {   // true = Verbindung wurde uebernommen (WebSocket
     if (!strcmp(method, "POST") && !strcmp(target, "/api/move")) {   // Datei oder Ordner verschieben/umbenennen
         char to[400] = "", tfull[1200]; struct stat st;
         if (q) queryGet(q, "to", to, sizeof to);
-        if (!rel[0] || !relOk || !to[0] || !safeRel(to, isS ? SAMPLE_DEPTH : 0) || stat(full, &st)) { replyText(fd, 400, "Pfad?"); return false; }
+        if (!rel[0] || !relOk || !to[0] || !safeRel(to, dep) || stat(full, &st)) { replyText(fd, 400, "Pfad?"); return false; }
         bool isDir = S_ISDIR(st.st_mode);
         if (!isS && isDir) { replyText(fd, 400, "Pfad?"); return false; }
-        if (!isDir && !hasExt(to, ext)) { replyText(fd, 400, isS ? "Ziel muss auf .wav enden" : "Ziel muss auf .gbx enden"); return false; }
+        if (!isDir && !hasExt(to, ext)) { replyText(fd, 400, "Ziel braucht dieselbe Endung"); return false; }
         size_t rl = strlen(rel);
         if (isDir && !strncmp(to, rel, rl) && (to[rl] == '/' || !to[rl])) { replyText(fd, 400, "Ordner kann nicht in sich selbst"); return false; }
         snprintf(tfull, sizeof tfull, "%s/%s", dir, to);
@@ -513,7 +561,7 @@ static bool handle(int fd) {   // true = Verbindung wurde uebernommen (WebSocket
     }
 
     if (!strcmp(method, "GET") && !strcmp(target, "/api/file")) {
-        if (!safeRel(rel, isS ? SAMPLE_DEPTH : 0) || !hasExt(rel, ext)) { replyText(fd, 400, "Pfad?"); return false; }
+        if (!safeRel(rel, dep) || !hasExt(rel, ext)) { replyText(fd, 400, "Pfad?"); return false; }
         FILE* f = fopen(full, "rb");
         if (!f) { replyText(fd, 404, "nicht gefunden"); return false; }
         fseek(f, 0, SEEK_END); long n = ftell(f); fseek(f, 0, SEEK_SET);
@@ -528,7 +576,7 @@ static bool handle(int fd) {   // true = Verbindung wurde uebernommen (WebSocket
         return false;
     }
     if (!strcmp(method, "PUT") && !strcmp(target, "/api/upload")) {
-        if (!safeRel(rel, isS ? SAMPLE_DEPTH : 0) || !hasExt(rel, ext)) { replyText(fd, 400, "Ungueltiger Dateiname"); return false; }
+        if (!safeRel(rel, dep) || !hasExt(rel, ext)) { replyText(fd, 400, "Ungueltiger Dateiname"); return false; }
         if (clen <= 0 || clen > 200LL * 1024 * 1024) { replyText(fd, 413, "Datei zu gross (max. 200 MB)"); return false; }
         mkParents(dir, rel);
         char tmp[1300];
@@ -551,12 +599,13 @@ static bool handle(int fd) {   // true = Verbindung wurde uebernommen (WebSocket
         sync();
         if (rename(tmp, full)) { unlink(tmp); replyText(fd, 400, "Umbenennen fehlgeschlagen"); return false; }
         if (isS) { g_changedAt = SDL_GetTicks(); g_changed = 1; }
-        note(isS ? "SAMPLE: %.60s" : (g_lang ? "PROJECT: %.60s" : "PROJEKT: %.60s"), rel);
+        if (!isS && !isP) { SDL_LockMutex(g_projMx); snprintf(g_projUp, sizeof g_projUp, "%.*s", (int)(strlen(rel) - 4), rel); SDL_UnlockMutex(g_projMx); }
+        note(isS ? "SAMPLE: %.60s" : (isP ? "SOUND: %.60s" : (g_lang ? "PROJECT: %.60s" : "PROJEKT: %.60s")), rel);
         replyText(fd, 200, "ok");
         return false;
     }
     if (!strcmp(method, "POST") && !strcmp(target, "/api/delete")) {
-        if (!safeRel(rel, isS ? SAMPLE_DEPTH : 0) || !hasExt(rel, ext)) { replyText(fd, 400, "Pfad?"); return false; }
+        if (!safeRel(rel, dep) || !hasExt(rel, ext)) { replyText(fd, 400, "Pfad?"); return false; }
         if (unlink(full)) { replyText(fd, 404, "nicht gefunden"); return false; }
         sync();   // Ordner bleibt stehen (der Explorer zeigt ihn leer; loeschen ueber /api/rmdir)
         if (isS) { g_changedAt = SDL_GetTicks(); g_changed = 1; }

@@ -469,6 +469,33 @@ Es wird mit `tools/gensamples.py` erzeugt.
 * Ohne LOOP läuft ein Sample als One-Shot bis zum Ende. Mit LOOP gilt die Trig-Länge (LEN) bzw. die Haltedauer der MIDI-Taste.
 * Das Projekt merkt sich die Samples per **Name**. Dateien darfst du beliebig hinzufügen und Ordner anlegen. Benennst du eine benutzte Datei um oder verschiebst sie, findet das Projekt sie nicht mehr – dann im Explorer neu wählen.
 
+## Handy-App (offline, iPhone und Android)
+
+SYNTH CITY läuft auch komplett auf dem Handy: dieselbe Groovebox (Engine und Oberfläche), nur ohne R36S. Sie funktioniert ohne Internet, Projekte, Sounds und Samples liegen auf dem Handy.
+
+**Installieren** (einmal, mit Internet):
+1. **https://molgino.github.io/synth-city/** öffnen (Testversion eines Branches: `…/synth-city/<branch>/`, z. B. `ui-mobile`).
+2. iPhone: in **Safari** auf **Teilen → Zum Home-Bildschirm**. Android: Chrome-Menü → **App installieren**.
+3. Ab jetzt über das Symbol starten – auch im Flugmodus. Neue Versionen lädt die App beim nächsten Start mit Internet im Hintergrund.
+
+**Bedienung** wie die Fernbedienung im Browser: Steuerkreuz, Tasten, Touch aufs Bild (Spur, Seite, Kachel, Steps), Vollbild, Zoom, Tastatur und Gamepad. Der Ton startet mit der ersten Berührung; auf dem iPhone spielt er auch bei eingeschaltetem Stummschalter. Im Querformat liegt die Bedienung links und rechts vom Bild.
+
+Was es nur am Gerät gibt: USB-Audio, MIDI, USB-Modus, Akku, Bild-Versatz. Diese Einstellungen blendet SET in der App aus. Der Sampler nimmt in der App Master und einzelne Spuren auf, nicht USB.
+
+**Sync mit dem R36S** (Taste **⇅ Sync** oben rechts):
+1. R36S per USB anschließen (SET → USB-Modus = PC) oder ins selbe WLAN; die Adresse des Geräts steht in SET (Standard 192.168.77.1).
+2. Richtung wählen:
+   * **Handy → Gerät**: das Gerät bekommt alle Stände vom Handy.
+   * **Gerät → Handy**: umgekehrt.
+   * **Beides abgleichen**: Neues und Geändertes wird in beide Richtungen kopiert. Wurde eine Datei auf beiden Seiten geändert, bleiben beide erhalten – der Handy-Stand heißt dann „Name (Handy)“.
+3. Es öffnet sich ein zweites Fenster vom Gerät: dort **Erlauben** tippen. Hält das Handy eines der Fenster an, einfach zwischen beiden hin- und herwechseln; der Abgleich läuft in wenigen großen Schritten weiter.
+
+Gelöscht wird beim Sync nichts. Samples lassen sich abwählen, Aufnahmen (samples/rec) sind nur auf Wunsch dabei. Ist auf dem Gerät gerade das Projekt offen, das vom Handy kommt, lädt es das Gerät neu – außer es spielt oder hat ungespeicherte Änderungen (dann ein Hinweis, neu laden über PRJ).
+
+**Ohne Verbindung (ZIP)**: In der App „Als ZIP sichern“ (Teilen → Dateien, AirDrop …) und „ZIP einspielen“. Am Gerät gibt es dasselbe im Browser unter **http://192.168.77.1/sync**: alles als ZIP herunterladen oder ein ZIP einspielen. So kommen Daten auch dann hin und her, wenn das zweite Fenster nicht geht.
+
+Wichtig: Die App-Daten liegen im Speicher des Browsers. Wer die App vom Home-Bildschirm löscht oder die Website-Daten leert, löscht sie mit – vorher syncen oder als ZIP sichern.
+
 ## USB-Audio
 
 Auf der SYS-Seite wählst du unter **OUT** den Ausgang. STD ist der eingebaute Lautsprecher bzw. die Kopfhörerbuchse, darüber hinaus wird jedes erkannte Gerät angeboten, zum Beispiel ein USB-DAC oder ein Audio-Interface.

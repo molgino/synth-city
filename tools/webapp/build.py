@@ -47,7 +47,7 @@ def main():
            "-sALLOW_MEMORY_GROWTH", "-sINITIAL_MEMORY=96MB", "-sSTACK_SIZE=1MB", "-sENVIRONMENT=web",
            "-lidbfs.js", "-sFORCE_FILESYSTEM",
            "-sEXPORTED_FUNCTIONS=_main,_malloc,_free",
-           "-sEXPORTED_RUNTIME_METHODS=FS,IDBFS,stringToUTF8,UTF8ToString,HEAPU8,HEAPU32,addRunDependency,removeRunDependency",
+           "-sEXPORTED_RUNTIME_METHODS=FS,IDBFS,ccall,stringToUTF8,UTF8ToString,HEAPU8,HEAPU32,addRunDependency,removeRunDependency",
            "-o", os.path.join(out, "synthcity.js")]
     print("emcc ...")
     r = subprocess.run(cmd, cwd=ROOT)

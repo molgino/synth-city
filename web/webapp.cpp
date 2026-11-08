@@ -143,3 +143,4 @@ extern "C" int pthread_setschedparam(pthread_t, int, const struct sched_param*) 
 // direkt speichert) - deshalb hier ohne Wirkung.
 extern "C" int fsync(int) { return 0; }
 extern "C" void sync(void) {}
+bool webTakeProjectUpload(char*, int) { return false; }

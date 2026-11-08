@@ -5662,6 +5662,13 @@ int main(int argc, char** argv) {
             int sq = webLastEvent(wm, sizeof wm);
             if (sq != webSeq) { webSeq = sq; toast("%s", wm); }
             if (expState != 1 && webTakeChange(now, 1500)) { reloadSamples(); toast(TR("%d SAMPLES GELADEN", "%d SAMPLES LOADED"), sampleCount()); }
+            {   // offenes Projekt von aussen ersetzt (Sync der Handy-App, Upload): neu laden, wenn hier nichts verloren geht
+                char up[200];
+                if (webTakeProjectUpload(up, sizeof up) && !strcmp(up, cfg.project)) {
+                    if (!eng.playing && !memcmp(&lastSaved, &eng.proj, sizeof(Project))) { reloadSamples(); doLoadProject(up); toast(TR("PROJEKT AKTUALISIERT: %s", "PROJECT UPDATED: %s"), up); }
+                    else { toast(TR("'%s' WURDE ERSETZT - NEU LADEN ÜBER PRJ", "'%s' WAS REPLACED - RELOAD VIA PRJ"), up); msgUntil = now + 5000; }
+                }
+            }
             static Uint32 updAt = 0;
             if (webUpdateReady() && !updAt) { updAt = now; toast(TR("UPDATE EMPFANGEN - NEUSTART ...", "UPDATE RECEIVED - RESTARTING ...")); msgUntil = now + 5000; saveProject(); }
             if (updAt && now - updAt > 1500) quitReq = true;   // Dienst startet neu, groovebox-run installiert

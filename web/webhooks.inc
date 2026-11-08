@@ -2,8 +2,9 @@
 #include <emscripten.h>
 
 // Projekt + Einstellungen jetzt schreiben (vor dem Sync, beim Wechsel in den Hintergrund)
-extern "C" EMSCRIPTEN_KEEPALIVE int gbSaveNow() {
-    bool ok = saveProject();
+extern "C" EMSCRIPTEN_KEEPALIVE int gbSaveNow() {   // nur bei Aenderungen (sonst wuerde jede Speicherung als "geaendert" gelten)
+    bool ok = true;
+    if (memcmp(&lastSaved, &eng.proj, sizeof(Project)) || !fileExists(projPath)) ok = saveProject();
     saveSettings();
     return ok ? 1 : 0;
 }

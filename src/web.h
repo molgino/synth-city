@@ -5,4 +5,5 @@ bool webStart(const char* basePath);           // basePath endet mit '/'
 int webPort();                                 // 0 = laeuft nicht
 bool webTakeChange(Uint32 now, Uint32 quietMs); // true, wenn Samples geaendert wurden und es seit quietMs ruhig ist
 int webLastEvent(char* out, int n);
+bool webTakeProjectUpload(char* name, int n);   // Projekt per Browser/Sync hochgeladen (Name ohne .gbx)
 bool webUpdateReady();                         // Groovebox-OS: Update hochgeladen -> Neustart            // laufende Nummer + Text des letzten Uploads
