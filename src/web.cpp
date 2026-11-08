@@ -18,7 +18,10 @@
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <arpa/inet.h>
+#include <poll.h>
+#include <pthread.h>
 
 static char g_base[600];
 static int g_port = 0;
@@ -565,18 +568,56 @@ static bool handle(int fd) {   // true = Verbindung wurde uebernommen (WebSocket
     return false;
 }
 
-static int webThread(void* arg) {
-    int ls = (int)(intptr_t)arg;
-    for (;;) {
-        int fd = accept(ls, nullptr, nullptr);
-        if (fd < 0) { if (errno == EINTR) continue; SDL_Delay(200); continue; }
-        if (handle(fd)) continue;   // WebSocket: eigener Thread hat fd uebernommen
+// Jede Verbindung in einem eigenen Thread: Browser oeffnen (gerade nach einem Neuverbinden) gern Verbindungen
+// "auf Vorrat", ohne etwas zu schicken - frueher wartete der einzige Server-Thread darauf bis zu 15 s und alle
+// anderen Anfragen hingen. Jetzt wartet nur dieser Thread (max. 10 s auf die erste Anfrage); die eigentliche
+// Bearbeitung laeuft weiter nacheinander unter einer Sperre (statische Puffer in handle()).
+static pthread_mutex_t g_reqMx = PTHREAD_MUTEX_INITIALIZER;
+static volatile int g_conns = 0;
+static void* connThread(void* arg) {
+    int fd = (int)(intptr_t)arg;
+    struct pollfd pf = {fd, POLLIN, 0};
+    bool req = poll(&pf, 1, 10000) > 0 && !(pf.revents & (POLLERR | POLLHUP | POLLNVAL));
+    bool kept = false;
+    if (req) {
+        pthread_mutex_lock(&g_reqMx);
+        kept = handle(fd);   // true: WebSocket-Thread hat fd uebernommen
+        pthread_mutex_unlock(&g_reqMx);
+    }
+    if (!kept) {
         shutdown(fd, SHUT_WR);
         char d[256];
         struct timeval tv = {1, 0};
         setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof tv);
         while (recv(fd, d, sizeof d, 0) > 0) {}
         close(fd);
+    }
+    __sync_fetch_and_sub(&g_conns, 1);
+    return nullptr;
+}
+static int webThread(void* arg) {
+    int ls = (int)(intptr_t)arg;
+    for (;;) {
+        int fd = accept(ls, nullptr, nullptr);
+        if (fd < 0) { if (errno == EINTR) continue; SDL_Delay(200); continue; }
+        // tote Gegenstelle (Kabel gezogen) nach spaetestens ~10 s erkennen statt nach Minuten
+        int ka = 1, idle = 5, intv = 2, cnt = 3; unsigned uto = 10000;
+        setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, &ka, sizeof ka);
+        setsockopt(fd, IPPROTO_TCP, TCP_KEEPIDLE, &idle, sizeof idle);
+        setsockopt(fd, IPPROTO_TCP, TCP_KEEPINTVL, &intv, sizeof intv);
+        setsockopt(fd, IPPROTO_TCP, TCP_KEEPCNT, &cnt, sizeof cnt);
+        setsockopt(fd, IPPROTO_TCP, TCP_USER_TIMEOUT, &uto, sizeof uto);
+        if (g_conns >= 24) { close(fd); continue; }   // Schutz: nicht unbegrenzt Threads
+        __sync_fetch_and_add(&g_conns, 1);
+        pthread_attr_t at; pthread_attr_init(&at);
+        pthread_attr_setstacksize(&at, 128 * 1024);   // klein (mlockall sperrt den Stack)
+        pthread_attr_setdetachstate(&at, PTHREAD_CREATE_DETACHED);
+        pthread_t th;
+        if (pthread_create(&th, &at, connThread, (void*)(intptr_t)fd)) {   // kein Thread: wie frueher direkt bearbeiten
+            __sync_fetch_and_add(&g_conns, 1);
+            connThread((void*)(intptr_t)fd);
+        }
+        pthread_attr_destroy(&at);
     }
     return 0;
 }
@@ -594,7 +635,7 @@ bool webStart(const char* basePath) {
         a.sin_family = AF_INET;
         a.sin_port = htons((uint16_t)ports[i]);
         a.sin_addr.s_addr = htonl(INADDR_ANY);
-        if (bind(s, (struct sockaddr*)&a, sizeof a) == 0 && listen(s, 4) == 0) {
+        if (bind(s, (struct sockaddr*)&a, sizeof a) == 0 && listen(s, 32) == 0) {
             g_port = ports[i];
             SDL_Thread* t = SDL_CreateThread(webThread, "web", (void*)(intptr_t)s);
             if (t) SDL_DetachThread(t);
