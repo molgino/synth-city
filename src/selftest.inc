@@ -46,7 +46,7 @@ static void cpuInfo(char* b, int n) {
 
 // ---------------------------------------------------------------- Audio-Last
 
-static Engine benchEng;   // eigene Engine: die laufende Wiedergabe bleibt unberuehrt
+static Engine* benchEngP = nullptr;   // eigene Engine: die laufende Wiedergabe bleibt unberuehrt
 struct BenchRes { double load, peak; float lvl; bool bad; double voices; };
 static BenchRes benchRender(Engine& E, double secs) {
     static float blk[256 * 2];
@@ -106,7 +106,8 @@ static void benchSetupWorst(Engine& E) {
     E.proj.mst[MS_SWNG] = 10;
 }
 static void benchAudio() {
-    Engine& E = benchEng;
+    if (!benchEngP) benchEngP = newEngine();
+    Engine& E = *benchEngP;
     E.init(44100);
     bout("\nAUDIO (44,1 kHz, Bloecke zu 256 Frames = %.1f ms Budget)\n", 256000.0 / 44100);
     bout("  %-26s %8s %10s %7s %8s %10s\n", "Szenario", "Last", "Spitze", "Pegel", "Stimmen", "je Stimme");
@@ -418,7 +419,7 @@ static void uiScenarios() {
 
     uiCase = "Song-Export";
     {
-        static Project keep; memcpy(&keep, &eng.proj, sizeof(Project));
+        static Project* keepP = (Project*)malloc(sizeof(Project)); Project& keep = *keepP; memcpy(&keep, &eng.proj, sizeof(Project));
         simReset();
         lockA(); buildDemo(eng); unlockA();
         expFrom = 1; expTo = 1;   // nur Zeile 2 (Groove, 4 Durchlaeufe)
@@ -560,9 +561,10 @@ static void uiScenarios() {
     {
         char tmp[720]; snprintf(tmp, sizeof tmp, "%s.tmp", projPath);
         struct stat st;
-        UCHECK(stat(projPath, &st) == 0 && st.st_size >= (long)sizeof(Project) + 6, "Projektdatei fehlt oder hat falsche Groesse (ohne Sample-Liste?)");
+        UCHECK(stat(projPath, &st) == 0 && st.st_size > 20 + PROJECT_TAIL_SIZE + 8 && st.st_size < 2000000, "Projektdatei fehlt oder hat falsche Groesse (%ld)", (long)st.st_size);
+        { static char nm[MAX_SAMPLES][96]; UCHECK(readPoolTrailer(projPath, nm), "Sample-Liste hinter den Projektdaten fehlt"); }
         UCHECK(stat(tmp, &st) != 0, "Temp-Datei bleibt liegen");
-        static Engine chk; chk.audioThreads = 1;
+        static Engine* chkP = newEngine(); Engine& chk = *chkP; chk.audioThreads = 1;
         UCHECK(chk.load(projPath) && chk.proj.pat[eng.curPat].s[6][9].lock[P_VEL] == 77, "gespeichertes Projekt nicht korrekt ladbar");
     }
     curP().s[6][9].on = 0; curP().s[6][9].lock[P_VEL] = NO_LOCK;
@@ -799,10 +801,11 @@ static void uiScenarios() {
                 char pp[700]; projectPath("PoolTest", pp, sizeof pp);
                 FILE* f = fopen(pp, "rb"); long n = 0; uint8_t* buf = nullptr;
                 if (f) { fseek(f, 0, SEEK_END); n = ftell(f); fseek(f, 0, SEEK_SET); buf = (uint8_t*)malloc(n); if (fread(buf, 1, n, f) != (size_t)n) n = 0; fclose(f); }
-                if (buf && n > (long)sizeof(Project)) {   // altes Layout (96 Parameter) nachbauen, Namensliste von der v13-Datei
+                long de = -1; { FILE* g = fopen(pp, "rb"); if (g) { de = projectDataEnd(g); fclose(g); } }
+                if (buf && de > 0 && n > de) {   // altes Layout (96 Parameter) nachbauen, Namensliste von der aktuellen Datei
                     uint8_t* ob = (uint8_t*)calloc(1, PROJECT_V11_SIZE);
                     memcpy(ob, buf, 20); uint32_t v11 = 11; memcpy(ob + 4, &v11, 4);
-                    for (int pi = 0; pi < NPATTERNS; pi++) {
+                    for (int pi = 0; pi < OLD_NPAT; pi++) {
                         const Pattern& Q = eng.proj.pat[pi];
                         uint8_t* q = ob + 20 + (long)pi * OLD_PAT_SIZE;
                         memcpy(q, Q.machine, 8); memcpy(q + 8, Q.len, 8); memcpy(q + 16, Q.speed, 8);
@@ -813,7 +816,7 @@ static void uiScenarios() {
                         }
                     }
                     f = fopen(pp, "wb");
-                    fwrite(ob, 1, PROJECT_V11_SIZE, f); fwrite(buf + sizeof(Project), 1, n - sizeof(Project), f); fclose(f);
+                    fwrite(ob, 1, PROJECT_V11_SIZE, f); fwrite(buf + de, 1, n - de, f); fclose(f);
                     free(ob);
                     poolSetSlot(s2, "");
                     doLoadProject("PoolTest");
@@ -841,7 +844,7 @@ static void uiScenarios() {
             for (int k = 0; k < 2; k++) {   // songNN = Zeit der 1-Ebenen-Liste, benannte Projekte = 250er-Liste
                 const char* nm = k ? "PoolAlt" : "song99";
                 char lp[700]; projectPath(nm, lp, sizeof lp);
-                FILE* f = fopen(lp, "wb"); if (f) { fwrite(&eng.proj, sizeof(Project), 1, f); fclose(f); }
+                FILE* f = fopen(lp, "wb"); if (f) { projectWrite(f, eng.proj, nullptr); fclose(f); }   // ohne Namensliste
                 doLoadProject(nm);
                 const char* want = k ? l2[1] : l1[1];
                 int s4 = curP().p[7][P_S0];

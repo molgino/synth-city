@@ -1,19 +1,21 @@
-// PRJ-Seite: drei Bereiche untereinander - PROJEKT (Laden/Speichern ...), PATTERN (16 Felder, Kopieren/Einfuegen/
+// PRJ-Seite: drei Bereiche untereinander - PROJEKT (Laden/Speichern ...), PATTERN (Bank A-H + 16 Felder der Bank, Kopieren/Einfuegen/
 // Leeren/Mutieren, Laenge aller Spuren, Wechsel-Laenge CHG) und SOUND (Klang der gewaehlten Spur).
 // Bedienung: Steuerkreuz waehlt das Feld (2D), A fuehrt aus, X/Y aendern Werte (halten = 16er-Schritte), L1/R1 = +-16.
 // Pattern kopieren: A auf ein Pattern-Feld (waehlt + spielt es) -> KOPIEREN, A auf das Ziel-Feld -> EINFUEGEN.
 // Das mit A gewaehlte Pattern ist das Ziel fuer Kopieren/Einfuegen/Leeren/Mutieren/Laenge/Wechsel (nicht das Feld unter dem Cursor).
-enum { PI_LOAD, PI_SAVE, PI_SAVEAS, PI_NEW, PI_DEMO, PI_PAT0, PI_COPY = PI_PAT0 + NPATTERNS, PI_PASTE, PI_CLEAR, PI_MUTATE,
+enum { PI_LOAD, PI_SAVE, PI_SAVEAS, PI_NEW, PI_DEMO, PI_BANK0, PI_PAT0 = PI_BANK0 + NBANKS, PI_COPY = PI_PAT0 + 16, PI_PASTE, PI_CLEAR, PI_MUTATE,
        PI_LEN, PI_CHG, PI_TRACK, PI_SLOAD, PI_SSAVE, PI_SINIT, PI_COUNT };
 struct PrjBox { int x, y, w, h; };
 static int prjSel = PI_PAT0, prjPat = -1, clipFrom = -1;
+static int prjBankNow() { if (prjBank < 0 || prjBank >= NBANKS) prjBank = curPi() / 16; return prjBank; }
 
 static PrjBox prjBox(int i) {
     if (i <= PI_DEMO) return {10 + i * 124, 84, 116, 34};
-    if (i < PI_COPY) { int k = i - PI_PAT0; return {10 + (k % 8) * 78, 162 + (k / 8) * 36, 72, 30}; }
-    if (i <= PI_MUTATE) return {10 + (i - PI_COPY) * 155, 238, 150, 34};
-    if (i == PI_LEN) return {10, 280, 305, 46};
-    if (i == PI_CHG) return {325, 280, 305, 46};
+    if (i < PI_PAT0) return {10 + (i - PI_BANK0) * 78, 158, 72, 22};
+    if (i < PI_COPY) { int k = i - PI_PAT0; return {10 + (k % 8) * 78, 184 + (k / 8) * 32, 72, 28}; }
+    if (i <= PI_MUTATE) return {10 + (i - PI_COPY) * 155, 250, 150, 28};
+    if (i == PI_LEN) return {10, 284, 305, 44};
+    if (i == PI_CHG) return {325, 284, 305, 44};
     if (i == PI_TRACK) return {10, 376, 210, 52};
     return {230 + (i - PI_SLOAD) * 135, 376, 128, 52};
 }
@@ -49,22 +51,23 @@ static void prjActivate(int i) {
     int tp = prjTarget();
     if (i <= PI_NEW) { prjTrigger(i); return; }
     if (i == PI_DEMO) { prjTrigger(7); return; }
+    if (i >= PI_BANK0 && i < PI_PAT0) { prjBank = i - PI_BANK0; toast(TR("BANK %c", "BANK %c"), 'A' + prjBank); return; }
     if (i >= PI_PAT0 && i < PI_COPY) {
-        prjPat = i - PI_PAT0;
+        prjPat = prjBankNow() * 16 + i - PI_PAT0;
         bool later = eng.playing && prjPat != curPi();
         switchPattern(prjPat);
-        toast(later ? TR("PATTERN %02d KOMMT AM PATTERN-ENDE", "PATTERN %02d COMES AT THE PATTERN END") : "PATTERN %02d", prjPat + 1);
+        toast(later ? TR("PATTERN %s KOMMT AM PATTERN-ENDE", "PATTERN %s COMES AT THE PATTERN END") : "PATTERN %s", PN(prjPat));
         return;
     }
     switch (i) {
     case PI_COPY: clip = eng.proj.pat[tp]; haveClip = true; clipFrom = tp;
-        toast(TR("PATTERN %02d KOPIERT - ZIEL WÄHLEN, EINFÜGEN", "PATTERN %02d COPIED - PICK TARGET, PASTE"), tp + 1); break;
+        toast(TR("PATTERN %s KOPIERT - ZIEL WÄHLEN, EINFÜGEN", "PATTERN %s COPIED - PICK TARGET, PASTE"), PN(tp)); break;
     case PI_PASTE:
         if (!haveClip) { toast(TR("ERST EIN PATTERN KOPIEREN", "COPY A PATTERN FIRST")); break; }
-        if (patEmpty(eng.proj.pat[tp])) { lockA(); eng.proj.pat[tp] = clip; unlockA(); toast(TR("PATTERN %02d EINGEFÜGT", "PATTERN %02d PASTED"), tp + 1); }
-        else askConfirm(ACT_PASTE, tp, TR("PATTERN %02d ÜBERSCHREIBEN?", "OVERWRITE PATTERN %02d?"), tp + 1);
+        if (patEmpty(eng.proj.pat[tp])) { lockA(); eng.proj.pat[tp] = clip; eng.proj.pat[tp].used = 1; unlockA(); toast(TR("PATTERN %s EINGEFÜGT", "PATTERN %s PASTED"), PN(tp)); }
+        else askConfirm(ACT_PASTE, tp, TR("PATTERN %s ÜBERSCHREIBEN?", "OVERWRITE PATTERN %s?"), PN(tp));
         break;
-    case PI_CLEAR: askConfirm(ACT_CLEARPAT, tp, TR("ALLE STEPS VON PATTERN %02d LÖSCHEN?", "CLEAR ALL STEPS OF PATTERN %02d?"), tp + 1); break;
+    case PI_CLEAR: askConfirm(ACT_CLEARPAT, tp, TR("ALLE STEPS VON PATTERN %s LÖSCHEN?", "CLEAR ALL STEPS OF PATTERN %s?"), PN(tp)); break;
     case PI_MUTATE: mutatePattern(tp); break;
     case PI_SLOAD: prjTrigger(4); break;
     case PI_SSAVE: prjTrigger(5); break;
@@ -105,7 +108,7 @@ static void prjInput(Input& I, Uint32 now) {
         if (big && I.repeat(BT_R1, now, 300, 120)) prjValue(prjSel, 16);
         if (big && I.repeat(BT_L1, now, 300, 120)) prjValue(prjSel, -16);
     }
-    if (I.pressed(BT_B) && prjSel != PI_PAT0 + prjTarget()) { prjSel = PI_PAT0 + prjTarget(); }   // B: zurueck zum Pattern
+    if (I.pressed(BT_B) && (prjSel != PI_PAT0 + prjTarget() % 16 || prjBankNow() != prjTarget() / 16)) { prjBank = prjTarget() / 16; prjSel = PI_PAT0 + prjTarget() % 16; }   // B: zurueck zum Pattern
     if (I.pressed(BT_L2)) gotoPage(-1);
     if (I.pressed(BT_R2)) gotoPage(1);
     if (startTap(I, now)) startStop();
@@ -147,7 +150,7 @@ static void drawPrj() {
     int tp = prjTarget();
     // ---- Projekt
     prjCard(46, 84, TR("PROJEKT", "PROJECT"));
-    bool dirty = memcmp(&lastSaved, &eng.proj, sizeof(Project)) != 0;
+    bool dirty = projDirtyCached();
     snprintf(b, sizeof b, "%.28s", cfg.project);
     text(110, 50, b, C_TEXT, 2);
     const char* st = dirty ? TR("UNGESPEICHERT", "UNSAVED") : TR("GESPEICHERT", "SAVED");
@@ -160,24 +163,37 @@ static void drawPrj() {
     // ---- Pattern
     prjCard(134, 200, "PATTERN");
     int playing = eng.songActive() ? -1 : curPi();
-    snprintf(b, sizeof b, TR("ZIEL P%02d", "TARGET P%02d"), tp + 1);
+    snprintf(b, sizeof b, TR("ZIEL %s", "TARGET %s"), PN(tp));
     text(110, 140, b, C_CYAN);
-    if (eng.nextPat >= 0) { snprintf(b, sizeof b, TR("NÄCHSTES: P%02d", "NEXT: P%02d"), eng.nextPat + 1); text(250, 140, b, (SDL_GetTicks() / 300) % 2 ? C_PLAY : C_DIM); }
-    if (haveClip && clipFrom >= 0) { snprintf(b, sizeof b, TR("ABLAGE: P%02d", "CLIPBOARD: P%02d"), clipFrom + 1); text(626 - textW(b), 140, b, C_DIM); }
-    for (int k = 0; k < NPATTERNS; k++) {
-        int i = PI_PAT0 + k; PrjBox bx = prjBox(i);
+    if (eng.nextPat >= 0) { snprintf(b, sizeof b, TR("NÄCHSTES: %s", "NEXT: %s"), PN(eng.nextPat)); text(250, 140, b, (SDL_GetTicks() / 300) % 2 ? C_PLAY : C_DIM); }
+    if (haveClip && clipFrom >= 0) { snprintf(b, sizeof b, TR("ABLAGE: %s", "CLIPBOARD: %s"), PN(clipFrom)); text(626 - textW(b), 140, b, C_DIM); }
+    int bank = prjBankNow();
+    for (int k = 0; k < NBANKS; k++) {   // Bank-Reihe A-H: Punkt = Bank hat belegte Patterns
+        int i = PI_BANK0 + k; PrjBox bx = prjBox(i);
+        bool sel = i == prjSel, cur = k == bank, any = false;
+        for (int j = 0; j < 16 && !any; j++) any = eng.proj.pat[k * 16 + j].used || !patEmpty(eng.proj.pat[k * 16 + j]);
+        rrect(bx.x, bx.y, bx.w, bx.h, 6, sel ? C_SEL : (cur ? C_OFF2 : C_BG));
+        if (cur) rrect(bx.x, bx.y + bx.h - 2, bx.w, 2, 1, C_ACC);
+        snprintf(b, sizeof b, TR("BANK %c", "BANK %c"), 'A' + k);
+        text(bx.x + 8, bx.y + 3, b, sel ? C_ACC : (cur ? C_TEXT : C_DIM));
+        if (any) fill(bx.x + bx.w - 12, bx.y + 9, 5, 5, playing >= 0 && playing / 16 == k ? C_PLAY : C_TEXT);
+        hitAdd(bx.x, bx.y, bx.w, bx.h, HK_PRJ, i, 0);
+    }
+    for (int kk = 0; kk < 16; kk++) {
+        int k = bank * 16 + kk;
+        int i = PI_PAT0 + kk; PrjBox bx = prjBox(i);
         const Pattern& P = eng.proj.pat[k];
-        bool sel = i == prjSel, isTgt = k == tp, isPlay = k == playing, isNext = k == eng.nextPat, empty = patEmpty(P);
+        bool sel = i == prjSel, isTgt = k == tp, isPlay = k == playing, isNext = k == eng.nextPat, empty = patEmpty(P) && !P.used;
         Col bg = sel ? C_SEL : C_BG;
         rrect(bx.x, bx.y, bx.w, bx.h, 6, bg);
         if (isTgt) rrect(bx.x, bx.y + bx.h - 3, bx.w, 3, 1, C_CYAN);
         if (isPlay) { rrect(bx.x, bx.y, 4, bx.h, 1, eng.playing ? C_PLAY : C_GREEN); }
         if (isNext && (SDL_GetTicks() / 300) % 2) rrect(bx.x, bx.y, 4, bx.h, 1, C_PLAY);
-        snprintf(b, sizeof b, "P%02d", k + 1);
-        text(bx.x + 9, bx.y + 7, b, empty ? C_DIM : (sel ? C_ACC : C_TEXT));
+        snprintf(b, sizeof b, "%s", PN(k));
+        text(bx.x + 9, bx.y + 6, b, empty ? C_DIM : (sel ? C_ACC : C_TEXT));
         for (int t = 0; t < NTRACKS; t++) {   // je Spur ein Punkt, wenn sie Trigs hat
             bool any = false; for (int s = 0; s < P.len[t] && !any; s++) any = P.s[t][s].on == 1;
-            fill(bx.x + 44 + (t % 4) * 6, bx.y + 8 + (t / 4) * 8, 4, 4, any ? TCOL[t] : C_OFF2);
+            fill(bx.x + 44 + (t % 4) * 6, bx.y + 7 + (t / 4) * 8, 4, 4, any ? TCOL[t] : C_OFF2);
         }
         hitAdd(bx.x, bx.y, bx.w, bx.h, HK_PRJ, i, 0);
     }
@@ -209,7 +225,8 @@ static void drawPrj() {
     prjButton(PI_SINIT, "INIT", TR("zurücksetzen", "reset"));
     // ---- Hinweis
     const char* h;
-    if (prjSel >= PI_PAT0 && prjSel < PI_COPY) h = TR("[A]PATTERN WÄHLEN (SPIELT + ZIEL FÜR KOPIEREN/EINFÜGEN) [L2/R2]SEITE", "[A]PICK PATTERN (PLAYS + TARGET FOR COPY/PASTE) [L2/R2]PAGE");
+    if (prjSel >= PI_BANK0 && prjSel < PI_PAT0) h = TR("[A]BANK ZEIGEN (A01-H16, JE 16 PATTERNS) [<>^v]FELD [L2/R2]SEITE", "[A]SHOW BANK (A01-H16, 16 PATTERNS EACH) [<>^v]FIELD [L2/R2]PAGE");
+    else if (prjSel >= PI_PAT0 && prjSel < PI_COPY) h = TR("[A]PATTERN WÄHLEN (SPIELT + ZIEL FÜR KOPIEREN/EINFÜGEN) [L2/R2]SEITE", "[A]PICK PATTERN (PLAYS + TARGET FOR COPY/PASTE) [L2/R2]PAGE");
     else if (prjSel == PI_LEN || prjSel == PI_CHG) h = TR("[X/Y]+-1 (HALTEN +-16) [L1/R1]+-16 [<>^v]FELD [B]ZUM PATTERN", "[X/Y]+-1 (HOLD +-16) [L1/R1]+-16 [<>^v]FIELD [B]TO PATTERN");
     else if (prjSel == PI_TRACK) h = TR("[X/Y]SPUR [<>^v]FELD [L2/R2]SEITE [SEL]KARTE", "[X/Y]TRACK [<>^v]FIELD [L2/R2]PAGE [SEL]MAP");
     else if (prjSel == PI_MUTATE) h = TR("[A]MUTIEREN [X/Y]STÄRKE [<>^v]FELD [B]ZUM PATTERN", "[A]MUTATE [X/Y]AMOUNT [<>^v]FIELD [B]TO PATTERN");

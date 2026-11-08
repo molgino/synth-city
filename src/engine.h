@@ -4,6 +4,7 @@
 #include "samples.h"
 #include "fxbus.h"
 #include <stdint.h>
+#include <stdio.h>
 #include <pthread.h>
 #include <semaphore.h>
 
@@ -21,7 +22,8 @@ struct Pattern {
     uint8_t p[NTRACKS][NPARAMS];
     Step s[NTRACKS][NSTEPS];
     uint8_t chg;                 // ab v15: Pattern-Wechsel nach chg Steps (16tel), 0 = AUTO (laengste Spur)
-    uint8_t chgPad[7];
+    uint8_t used;                // ab v16: 1 = belegt (wird gespeichert); unbelegt + leer = bekommt beim Wechsel die Sounds des aktuellen Patterns
+    uint8_t chgPad[6];
 };
 
 struct Project {
@@ -38,22 +40,33 @@ struct Project {
     uint8_t patMute[NPATTERNS];   // Mutes je Pattern (Bit je Spur)
     struct SongRow { uint8_t pat[NTRACKS]; uint8_t rep, mute, pad[2]; } row[64];   // Song als Clip-Matrix; pat = SONG_EMPTY: Spur schweigt
 };
-enum { PROJECT_VERSION = 15, SONG_MAX = 64, SONG_EMPTY = 255 };
+enum { PROJECT_VERSION = 16, SONG_MAX = 64, SONG_EMPTY = 255 };
 // Groessen der Formate v9-v12 (96 Parameter je Spur): danach steht ggf. die Sample-Namensliste
 enum { OLD_PAT_SIZE = 24 + 8 * OLD_NPARAMS + NTRACKS * NSTEPS * (1 + OLD_NPARAMS),
-       PROJECT_V11_SIZE = 20 + NPATTERNS * OLD_PAT_SIZE + 8 + 8 + 128 + 4,
-       PROJECT_V12_SIZE = PROJECT_V11_SIZE + NPATTERNS + 64 * 12 };
+       PROJECT_V11_SIZE = 20 + OLD_NPAT * OLD_PAT_SIZE + 8 + 8 + 128 + 4,
+       PROJECT_V12_SIZE = PROJECT_V11_SIZE + OLD_NPAT + 64 * 12 };
 // v13: 128 Parameter je Spur (danach ab v14 168)
 enum { V13_PAT_SIZE = 24 + 8 * V13_NPARAMS + NTRACKS * NSTEPS * (1 + V13_NPARAMS),
-       PROJECT_V13_SIZE = 20 + NPATTERNS * V13_PAT_SIZE + 8 + NBUS * 8 + 4 + NPATTERNS + 64 * 12 };
+       PROJECT_V13_SIZE = 20 + OLD_NPAT * V13_PAT_SIZE + 8 + NBUS * 8 + 4 + OLD_NPAT + 64 * 12 };
 static_assert(PROJECT_V11_SIZE == 1602088, "Layout v11 veraendert");
 static_assert(PROJECT_V13_SIZE == 2131144, "Layout v13 veraendert");
 // v14: wie v15, aber ohne chg je Pattern
 enum { V14_PAT_SIZE = 24 + 8 * NPARAMS + NTRACKS * NSTEPS * (1 + NPARAMS),
-       PROJECT_V14_SIZE = 20 + NPATTERNS * V14_PAT_SIZE + 8 + NBUS * 8 + 4 + NPATTERNS + 64 * 12 };
+       PROJECT_V14_SIZE = 20 + OLD_NPAT * V14_PAT_SIZE + 8 + NBUS * 8 + 4 + OLD_NPAT + 64 * 12 };
 static_assert(sizeof(Pattern) == V14_PAT_SIZE + 8, "Pattern-Layout veraendert");
-static_assert(sizeof(Project) == PROJECT_V14_SIZE + NPATTERNS * 8, "Projekt-Layout veraendert");
-inline long projectDataSize(uint32_t ver) { return ver >= 15 ? (long)sizeof(Project) : (ver == 14 ? (long)PROJECT_V14_SIZE : (ver == 13 ? (long)PROJECT_V13_SIZE : (ver == 12 ? (long)PROJECT_V12_SIZE : (long)PROJECT_V11_SIZE))); }
+// v15: 16 Patterns roh (wie v14 + chg je Pattern); v16: Kopf + Rest roh, dann nur belegte Patterns komprimiert (projectWrite)
+enum { PROJECT_V15_SIZE = PROJECT_V14_SIZE + OLD_NPAT * 8,
+       PROJECT_TAIL_SIZE = 8 + NBUS * 8 + 4 + NPATTERNS + 64 * 12 };   // cmp .. row (v16)
+static_assert(sizeof(Project) == 20 + NPATTERNS * sizeof(Pattern) + PROJECT_TAIL_SIZE, "Projekt-Layout veraendert");
+inline long projectDataSize(uint32_t ver) { return ver >= 15 ? (long)PROJECT_V15_SIZE : (ver == 14 ? (long)PROJECT_V14_SIZE : (ver == 13 ? (long)PROJECT_V13_SIZE : (ver == 12 ? (long)PROJECT_V12_SIZE : (long)PROJECT_V11_SIZE))); }
+
+// Projektdatei v16 schreiben (ohne Sample-Trailer). lockFn(true/false) schuetzt das Kopieren je Pattern (nullptr = ohne)
+bool projectWrite(FILE* f, const Project& P, void (*lockFn)(bool));
+// Ende der Projektdaten in der Datei (dort beginnt ggf. der Sample-Trailer), -1 = unbekannt
+long projectDataEnd(FILE* f);
+// Pattern belegt? (Flag oder irgendein Step mit Trig/Lock)
+bool patternUsed(const Pattern& P);
+uint64_t projectHash(const Project& P);
 
 struct Rng {
     uint32_t s = 0x9E3779B9u;
@@ -291,7 +304,7 @@ public:
     void setRate(int sampleRate);
     void midiIn(uint8_t st, uint8_t d1, uint8_t d2);
     void defaultProject(bool demo = true);
-    void initPattern(Pattern& p);
+    static void initPattern(Pattern& p);
     static void setMachine(Pattern& p, int t, int m);
     static void initTrack(Pattern& p, int t, int m);   // Klang einer Spur auf Grundwerte der Engine
     void start();

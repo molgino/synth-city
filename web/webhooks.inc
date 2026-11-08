@@ -4,7 +4,7 @@
 // Projekt + Einstellungen jetzt schreiben (vor dem Sync, beim Wechsel in den Hintergrund)
 extern "C" EMSCRIPTEN_KEEPALIVE int gbSaveNow() {   // nur bei Aenderungen (sonst wuerde jede Speicherung als "geaendert" gelten)
     bool ok = true;
-    if (memcmp(&lastSaved, &eng.proj, sizeof(Project)) || !fileExists(projPath)) ok = saveProject();
+    if (projDirty() || !fileExists(projPath)) ok = saveProject();
     saveSettings();
     return ok ? 1 : 0;
 }
@@ -16,7 +16,7 @@ extern "C" EMSCRIPTEN_KEEPALIVE const char* gbProjectName() { return cfg.project
 extern "C" EMSCRIPTEN_KEEPALIVE int gbReloadProject() {
     reloadSamples();
     lockA(); eng.stop(); bool ok = eng.load(projPath); unlockA();
-    if (ok) { poolLoadForProject(projPath); memcpy(&lastSaved, &eng.proj, sizeof(Project)); }
+    if (ok) { poolLoadForProject(projPath); markSaved(); }
     return ok ? 1 : 0;
 }
 

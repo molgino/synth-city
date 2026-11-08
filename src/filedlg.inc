@@ -67,7 +67,7 @@ static void doLoadProject(const char* name) {
     lockA(); eng.stop(); bool ok = eng.load(p); unlockA();
     if (!ok) { toast(TR("LADEN FEHLGESCHLAGEN", "LOADING FAILED")); return; }
     poolLoadForProject(p);
-    memcpy(&lastSaved, &eng.proj, sizeof(Project));
+    markSaved();
     setCurrentProject(name);
     toast(TR("GELADEN: %s", "LOADED: %s"), name);
 }
@@ -110,7 +110,7 @@ static void kbSubmit() {
         break;
     case KB_NEW:
         if (projectExists(name)) askConfirm(ACT_NEWNAME, 0, TR("'%s' GIBT ES SCHON - ÜBERSCHREIBEN?", "'%s' EXISTS - OVERWRITE?"), name);
-        else if (memcmp(&lastSaved, &eng.proj, sizeof(Project))) askConfirm(ACT_NEWNAME, 0, TR("NEUES PROJEKT? UNGESPEICHERTES GEHT VERLOREN", "NEW PROJECT? UNSAVED CHANGES WILL BE LOST"));
+        else if (projDirty()) askConfirm(ACT_NEWNAME, 0, TR("NEUES PROJEKT? UNGESPEICHERTES GEHT VERLOREN", "NEW PROJECT? UNSAVED CHANGES WILL BE LOST"));
         else doNewProject(name);
         break;
     case KB_PSAVE: {
@@ -467,7 +467,7 @@ static void fbPick() {
     case FB_PROJECT:
         snprintf(pendingName, sizeof pendingName, "%s", e.name);
         fbOpen = false;
-        if (memcmp(&lastSaved, &eng.proj, sizeof(Project))) askConfirm(ACT_LOADNAME, 0, TR("'%s' LADEN? UNGESPEICHERTES GEHT VERLOREN", "LOAD '%s'? UNSAVED CHANGES WILL BE LOST"), e.name);
+        if (projDirty()) askConfirm(ACT_LOADNAME, 0, TR("'%s' LADEN? UNGESPEICHERTES GEHT VERLOREN", "LOAD '%s'? UNSAVED CHANGES WILL BE LOST"), e.name);
         else doLoadProject(e.name);
         break;
     case FB_PRESET:

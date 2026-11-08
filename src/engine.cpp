@@ -1331,6 +1331,7 @@ void Engine::defaultProject(bool demo) {
     for (int i = 0; i < 8; i++) proj.cmp[i] = CMP_DEFS[i].def;
     for (int b = 0; b < NBUS; b++) setBusType(proj, b, b == 0 ? BF_DELAY : (b == 1 ? BF_REVERB : BF_CHORUS));
     for (int i = 0; i < NPATTERNS; i++) initPattern(proj.pat[i]);
+    proj.pat[0].used = 1;
     if (!demo) return;   // neues Projekt: leere Init-Patterns
     // Demo-Beat in Pattern 1
     Pattern& p = proj.pat[0];
@@ -1960,8 +1961,8 @@ void Engine::processBlock(float* out, int n) {
 bool Engine::save(const char* path) {
     FILE* f = fopen(path, "wb");
     if (!f) return false;
-    bool ok = fwrite(&proj, sizeof(proj), 1, f) == 1;
-    fclose(f);
+    bool ok = projectWrite(f, proj, nullptr);
+    ok = fclose(f) == 0 && ok;
     return ok;
 }
 
@@ -2052,6 +2053,109 @@ void Engine::migrateTrack13(int m, const uint8_t* o, uint8_t* out, bool lock) {
     }
 }
 
+
+// ---- Projektdatei v16: Kopf (20) + Rest (cmp .. row) roh, u16 Anzahl, je Pattern u8 Index + u32 Laenge + RLE
+// RLE: 0xFF n = (n+1) mal 0xFF (fast alle Locks sind NO_LOCK), andere Bytes direkt
+static const long TAIL_OFS = 20 + (long)NPATTERNS * (long)sizeof(Pattern);
+static size_t rleEnc(const uint8_t* in, size_t n, uint8_t* out) {
+    size_t o = 0;
+    for (size_t i = 0; i < n;) {
+        if (in[i] != 0xFF) { out[o++] = in[i++]; continue; }
+        size_t r = 1; while (i + r < n && in[i + r] == 0xFF && r < 256) r++;
+        out[o++] = 0xFF; out[o++] = (uint8_t)(r - 1); i += r;
+    }
+    return o;
+}
+static bool rleDec(const uint8_t* in, size_t n, uint8_t* out, size_t want) {
+    size_t o = 0;
+    for (size_t i = 0; i < n;) {
+        if (in[i] != 0xFF) { if (o >= want) return false; out[o++] = in[i++]; continue; }
+        if (i + 1 >= n) return false;
+        size_t r = (size_t)in[i + 1] + 1; i += 2;
+        if (o + r > want) return false;
+        memset(out + o, 0xFF, r); o += r;
+    }
+    return o == want;
+}
+bool patternUsed(const Pattern& P) {
+    if (P.used) return true;
+    for (int t = 0; t < NTRACKS; t++) for (int s = 0; s < NSTEPS; s++) {
+        const Step& st = P.s[t][s];
+        if (st.on) return true;
+        for (int i = 0; i < NPARAMS; i++) if (st.lock[i] != NO_LOCK) return true;
+    }
+    return false;
+}
+uint64_t projectHash(const Project& P) {   // schneller Vergleich "geaendert seit dem Speichern" (statt 22 MB Kopie)
+    const uint8_t* b = (const uint8_t*)&P;
+    size_t n = sizeof(Project), w = n / 8;
+    uint64_t h = 0x9E3779B97F4A7C15ull, v;
+    for (size_t i = 0; i < w; i++) { memcpy(&v, b + i * 8, 8); h = (h ^ v) * 0x100000001B3ull; h ^= h >> 29; }
+    for (size_t i = w * 8; i < n; i++) h = (h ^ b[i]) * 0x100000001B3ull;
+    return h;
+}
+bool projectWrite(FILE* f, const Project& P, void (*lockFn)(bool)) {
+    static Pattern tmp;
+    static uint8_t enc[sizeof(Pattern) * 2 + 16];
+    static uint8_t head[20 + PROJECT_TAIL_SIZE];
+    if (lockFn) lockFn(true);
+    memcpy(head, &P, 20); memcpy(head + 20, (const uint8_t*)&P + TAIL_OFS, PROJECT_TAIL_SIZE);
+    if (lockFn) lockFn(false);
+    uint32_t ver = PROJECT_VERSION; memcpy(head + 4, &ver, 4);
+    bool ok = fwrite(head, sizeof head, 1, f) == 1;
+    uint8_t idx[NPATTERNS]; uint16_t cnt = 0;
+    for (int pi = 0; pi < NPATTERNS; pi++) if (patternUsed(P.pat[pi])) idx[cnt++] = (uint8_t)pi;
+    ok = ok && fwrite(&cnt, 2, 1, f) == 1;
+    for (int k = 0; k < cnt && ok; k++) {
+        int pi = idx[k];
+        if (lockFn) lockFn(true);
+        memcpy(&tmp, &P.pat[pi], sizeof(Pattern));
+        if (lockFn) lockFn(false);
+        tmp.used = 1;
+        uint32_t n = (uint32_t)rleEnc((const uint8_t*)&tmp, sizeof(Pattern), enc);
+        uint8_t ix = (uint8_t)pi;
+        ok = fwrite(&ix, 1, 1, f) == 1 && fwrite(&n, 4, 1, f) == 1 && fwrite(enc, 1, n, f) == n;
+    }
+    return ok;
+}
+long projectDataEnd(FILE* f) {
+    uint32_t ver = 0;
+    if (fseek(f, 4, SEEK_SET) || fread(&ver, 4, 1, f) != 1) return -1;
+    if (ver < 16) return projectDataSize(ver);
+    long at = 20 + PROJECT_TAIL_SIZE;
+    uint16_t cnt = 0;
+    if (fseek(f, at, SEEK_SET) || fread(&cnt, 2, 1, f) != 1) return -1;
+    at += 2;
+    for (int k = 0; k < cnt; k++) {
+        uint8_t ix; uint32_t n;
+        if (fseek(f, at, SEEK_SET) || fread(&ix, 1, 1, f) != 1 || fread(&n, 4, 1, f) != 1) return -1;
+        at += 5 + (long)n;
+    }
+    return at;
+}
+// alter Rest (cmp .. row mit 16 Pattern-Mutes, v13-v15)
+static void readOldTail(Project& P, const uint8_t* r) {
+    memcpy(P.cmp, r, 8); memcpy(P.bus, r + 8, NBUS * 8); P.songLen = r[8 + NBUS * 8];
+    memcpy(P.patMute, r + 12 + NBUS * 8, OLD_NPAT); memcpy(P.row, r + 12 + NBUS * 8 + OLD_NPAT, sizeof P.row);
+}
+
+static bool decodeV16(Project& P, const uint8_t* buf, long size) {
+    memcpy(&P, buf, 20);
+    memcpy((uint8_t*)&P + TAIL_OFS, buf + 20, PROJECT_TAIL_SIZE);
+    for (int pi = 0; pi < NPATTERNS; pi++) Engine::initPattern(P.pat[pi]);
+    long at = 20 + PROJECT_TAIL_SIZE;
+    uint16_t cnt; memcpy(&cnt, buf + at, 2); at += 2;
+    for (int k = 0; k < cnt; k++) {
+        if (at + 5 > size) return false;
+        uint8_t ix = buf[at]; uint32_t n; memcpy(&n, buf + at + 1, 4); at += 5;
+        if (ix >= NPATTERNS || at + (long)n > size) return false;
+        if (!rleDec(buf + at, n, (uint8_t*)&P.pat[ix], sizeof(Pattern))) return false;
+        P.pat[ix].used = 1;
+        at += n;
+    }
+    return true;
+}
+
 bool Engine::load(const char* path) {
     FILE* f = fopen(path, "rb");
     if (!f) return false;
@@ -2066,32 +2170,45 @@ bool Engine::load(const char* path) {
     if (ok) memcpy(&ver, buf + 4, 4);
     ok = ok && memcmp(buf, "GBX1", 4) == 0;
     uint8_t oldFx[8]; for (int i = 0; i < 8; i++) oldFx[i] = FX_DEFS[i].def;   // bis v12: Delay/Reverb
-    Project::SongRow oldRows[64]; uint8_t oldMute[NPATTERNS]; bool haveRows = false;
+    Project::SongRow oldRows[64]; uint8_t oldMute[OLD_NPAT]; bool haveRows = false;
     struct OldSong { uint8_t pat, rep; } oldSong[64]; memset(oldSong, 0, sizeof oldSong);
     // alte Formate: v1/v2 = 40 Parameter, v3 = 48, v4 = 56; immer 16 Steps; Pattern ab Offset 20
     long oldNp = ver <= 2 ? 40 : (ver == 3 ? 48 : 56);
     long oldPat = 16 + 8 * oldNp + NTRACKS * 16 * (1 + oldNp);
-    long expect = 20 + NPATTERNS * oldPat + (ver >= 2 ? 16 : 0);
+    long expect = 20 + OLD_NPAT * oldPat + (ver >= 2 ? 16 : 0);
     // v5..v12: 72/80/88/96 Parameter, 128 Steps, speed-Feld
     long nNp = ver == 5 ? 72 : (ver <= 7 ? 80 : (ver == 8 ? 88 : OLD_NPARAMS));
-    long nPat = 24 + 8 * nNp + NTRACKS * 128 * (1 + nNp), nBase = 20 + NPATTERNS * nPat;
+    long nPat = 24 + 8 * nNp + NTRACKS * 128 * (1 + nNp), nBase = 20 + OLD_NPAT * nPat;
     long nSize = ver <= 8 ? nBase + 16 : projectDataSize(ver);
     Project* np = nullptr;
-    if (ok && ver == PROJECT_VERSION && size >= (long)sizeof(Project)) {   // dahinter evtl. Sample-Namensliste
-        memcpy(&proj, buf, sizeof(Project));
+    if (ok && ver == PROJECT_VERSION) {   // v16: Kopf, Rest, dann belegte Patterns (RLE); dahinter evtl. Sample-Namensliste
+        ok = size >= 20 + PROJECT_TAIL_SIZE + 2;
+        if (ok) {
+            np = (Project*)malloc(sizeof(Project));
+            ok = np && decodeV16(*np, buf, size);
+            if (ok) memcpy(&proj, np, sizeof(Project));
+            free(np); np = nullptr;
+        }
+    } else if (ok && ver == 15 && size >= (long)PROJECT_V15_SIZE) {   // v15: 16 Patterns roh
+        np = (Project*)calloc(1, sizeof(Project));
+        memcpy(np, buf, 20);
+        for (int pi = 0; pi < OLD_NPAT; pi++) memcpy(&np->pat[pi], buf + 20 + (long)pi * sizeof(Pattern), sizeof(Pattern));
+        readOldTail(*np, buf + 20 + (long)OLD_NPAT * sizeof(Pattern));
+        np->version = PROJECT_VERSION;
+        memcpy(&proj, np, sizeof(Project));
+        free(np); np = nullptr;
     } else if (ok && ver == 14 && size >= (long)PROJECT_V14_SIZE) {   // v14: Patterns ohne chg (Wechsel-Laenge) -> AUTO
         np = (Project*)calloc(1, sizeof(Project));
         memcpy(np, buf, 20);
-        for (int pi = 0; pi < NPATTERNS; pi++) memcpy(&np->pat[pi], buf + 20 + (long)pi * V14_PAT_SIZE, V14_PAT_SIZE);
-        const uint8_t* r = buf + 20 + (long)NPATTERNS * V14_PAT_SIZE;
-        memcpy(np->cmp, r, (size_t)(PROJECT_V14_SIZE - (r - buf)));
+        for (int pi = 0; pi < OLD_NPAT; pi++) memcpy(&np->pat[pi], buf + 20 + (long)pi * V14_PAT_SIZE, V14_PAT_SIZE);
+        readOldTail(*np, buf + 20 + (long)OLD_NPAT * V14_PAT_SIZE);
         np->version = PROJECT_VERSION;
         memcpy(&proj, np, sizeof(Project));
         free(np); np = nullptr;
     } else if (ok && ver == 13 && size >= (long)PROJECT_V13_SIZE) {   // v13: 128 Parameter -> 168 (Huellkurven, LFO-Ziele)
         np = (Project*)calloc(1, sizeof(Project));
         memcpy(np, buf, 20);
-        for (int pi = 0; pi < NPATTERNS; pi++) {
+        for (int pi = 0; pi < OLD_NPAT; pi++) {
             const uint8_t* q = buf + 20 + (long)pi * V13_PAT_SIZE;
             Pattern& P = np->pat[pi];
             memcpy(P.machine, q, 8); memcpy(P.len, q + 8, 8); memcpy(P.speed, q + 16, 8);
@@ -2106,9 +2223,9 @@ bool Engine::load(const char* path) {
                 }
             }
         }
-        const uint8_t* r = buf + 20 + (long)NPATTERNS * V13_PAT_SIZE;
+        const uint8_t* r = buf + 20 + (long)OLD_NPAT * V13_PAT_SIZE;
         memcpy(np->cmp, r, 8); memcpy(np->bus, r + 8, NBUS * 8); np->songLen = r[8 + NBUS * 8];
-        memcpy(np->patMute, r + 12 + NBUS * 8, NPATTERNS); memcpy(np->row, r + 12 + NBUS * 8 + NPATTERNS, sizeof np->row);
+        memcpy(np->patMute, r + 12 + NBUS * 8, OLD_NPAT); memcpy(np->row, r + 12 + NBUS * 8 + OLD_NPAT, sizeof np->row);
         np->version = PROJECT_VERSION;
         memcpy(&proj, np, sizeof(Project));
         free(np); np = nullptr;
@@ -2116,7 +2233,7 @@ bool Engine::load(const char* path) {
     } else if (ok && ver >= 5 && ver <= 12 && (ver <= 8 ? size == nSize : size >= nSize)) {
         np = (Project*)calloc(1, sizeof(Project));
         memcpy(np, buf, 20);
-        for (int pi = 0; pi < NPATTERNS; pi++) {
+        for (int pi = 0; pi < OLD_NPAT; pi++) {
             const uint8_t* q = buf + 20 + pi * nPat;
             Pattern& P = np->pat[pi];
             memcpy(P.machine, q, 8); memcpy(P.len, q + 8, 8); memcpy(P.speed, q + 16, 8);
@@ -2136,14 +2253,14 @@ bool Engine::load(const char* path) {
         memcpy(np->cmp, buf + nBase, 8);
         memcpy(oldFx, buf + nBase + 8, 8);
         if (ver >= 9) { memcpy(oldSong, buf + nBase + 16, 128); np->songLen = buf[nBase + 144]; }
-        if (ver == 12) { memcpy(oldMute, buf + nBase + 148, NPATTERNS); memcpy(oldRows, buf + nBase + 148 + NPATTERNS, sizeof oldRows); haveRows = true; }
+        if (ver == 12) { memcpy(oldMute, buf + nBase + 148, OLD_NPAT); memcpy(oldRows, buf + nBase + 148 + OLD_NPAT, sizeof oldRows); haveRows = true; }
     } else if (ok && ver >= 1 && ver <= 4 && size == expect) {
         np = (Project*)calloc(1, sizeof(Project));
         memcpy(np->magic, "GBX1", 4);
         memcpy(&np->bpm, buf + 8, 2);
         memcpy(np->mst, buf + 10, 8);
         int scaleFromV3 = 0;
-        for (int pi = 0; pi < NPATTERNS; pi++) {
+        for (int pi = 0; pi < OLD_NPAT; pi++) {
             const uint8_t* q = buf + 20 + pi * oldPat;
             Pattern& P = np->pat[pi];
             memcpy(P.machine, q, 8);
@@ -2167,8 +2284,8 @@ bool Engine::load(const char* path) {
             }
         }
         if (ver >= 2) {
-            memcpy(np->cmp, buf + 20 + NPATTERNS * oldPat, 8);
-            memcpy(oldFx, buf + 20 + NPATTERNS * oldPat + 8, 8);
+            memcpy(np->cmp, buf + 20 + OLD_NPAT * oldPat, 8);
+            memcpy(oldFx, buf + 20 + OLD_NPAT * oldPat + 8, 8);
         } else {   // Version 1: Effekte lagen in mst
             uint8_t old[8];
             memcpy(old, np->mst, 8);   // BPM SWNG DTIM DFBK DTON RSIZ RDMP VOL
@@ -2186,7 +2303,7 @@ bool Engine::load(const char* path) {
     }
     if (ok && np) {   // altes Layout (96 Parameter) -> v13
         static uint8_t o[OLD_NPARAMS];
-        for (int pi = 0; pi < NPATTERNS; pi++) for (int t = 0; t < NTRACKS; t++) {
+        for (int pi = 0; pi < OLD_NPAT; pi++) for (int t = 0; t < NTRACKS; t++) {
             Pattern& P = np->pat[pi];
             int m = P.machine[t] % M_COUNT;
             memcpy(o, P.p[t], OLD_NPARAMS); migrateTrack13(m, o, P.p[t], false);
@@ -2198,10 +2315,10 @@ bool Engine::load(const char* path) {
         np->bus[0][BX_P5] = 0;
         np->bus[1][BX_P1] = oldFx[FX_RSIZ]; np->bus[1][BX_P2] = oldFx[FX_RDMP]; np->bus[1][BX_P3] = oldFx[FX_RPRE]; np->bus[1][BX_P4] = oldFx[FX_RWID];
         np->bus[1][BX_P5] = 0;
-        if (haveRows) { memcpy(np->patMute, oldMute, NPATTERNS); memcpy(np->row, oldRows, sizeof oldRows); }
+        if (haveRows) { memcpy(np->patMute, oldMute, OLD_NPAT); memcpy(np->row, oldRows, sizeof oldRows); }
         else {   // bis v11: Song war eine Pattern-Kette -> Zeilen mit demselben Pattern auf allen Spuren
             if (np->songLen > SONG_MAX) np->songLen = 0;
-            for (int i = 0; i < SONG_MAX; i++) { rowFromPattern(*np, np->row[i], oldSong[i].pat % NPATTERNS); np->row[i].rep = oldSong[i].rep < 1 ? 1 : oldSong[i].rep; }
+            for (int i = 0; i < SONG_MAX; i++) { rowFromPattern(*np, np->row[i], oldSong[i].pat % OLD_NPAT); np->row[i].rep = oldSong[i].rep < 1 ? 1 : oldSong[i].rep; }
         }
         np->version = PROJECT_VERSION;
         memcpy(&proj, np, sizeof(Project));
@@ -2209,7 +2326,7 @@ bool Engine::load(const char* path) {
         printf("Projekt von Version %u auf %d umgestellt\n", ver, PROJECT_VERSION);
     }
     if (ok && ver < 10) {   // bis v9: SYNTH/WTBL spielten den Tiefpass mit 24 dB -> Typ LP24
-        for (int pi = 0; pi < NPATTERNS; pi++) for (int t = 0; t < NTRACKS; t++) {
+        for (int pi = 0; pi < OLD_NPAT; pi++) for (int t = 0; t < NTRACKS; t++) {
             Pattern& P = proj.pat[pi];
             int m = P.machine[t];
             if (m != M_SYNTH && m != M_WTBL) continue;
@@ -2218,11 +2335,16 @@ bool Engine::load(const char* path) {
         }
     }
     if (ok && ver < 11) {   // bis v10: Huellkurvenform neu (F.KRV/A.KRV) -> neutral
-        for (int pi = 0; pi < NPATTERNS; pi++) for (int t = 0; t < NTRACKS; t++) {
+        for (int pi = 0; pi < OLD_NPAT; pi++) for (int t = 0; t < NTRACKS; t++) {
             Pattern& P = proj.pat[pi];
             P.p[t][P_FCRV] = 64; P.p[t][P_ACRV] = 64;
             for (int st = 0; st < NSTEPS; st++) { P.s[t][st].lock[P_FCRV] = NO_LOCK; P.s[t][st].lock[P_ACRV] = NO_LOCK; }
         }
+    }
+    if (ok && ver < 16) {   // bis v15: 16 Patterns (= Bank A, alle belegt), B-H frisch und unbelegt
+        for (int pi = 0; pi < OLD_NPAT; pi++) { proj.pat[pi].used = 1; memset(proj.pat[pi].chgPad, 0, sizeof proj.pat[pi].chgPad); }
+        for (int pi = OLD_NPAT; pi < NPATTERNS; pi++) { initPattern(proj.pat[pi]); proj.patMute[pi] = 0; }
+        proj.version = PROJECT_VERSION;
     }
     if (ok) {   // Grundton getrennt merken (aeltere Projekte hatten ihn nur in SCALE)
         if (proj.mst[MS_SCALE] > 120) proj.mst[MS_SCALE] = 0;

@@ -9,7 +9,7 @@
 extern int g_lang;
 #define TR(de, en) (g_lang ? (en) : (de))
 
-enum { NTRACKS = 8, NSTEPS = 128, NPATTERNS = 16, NPAGES = 21, NPARAMS = NPAGES * 8, NLFO = 3, NBUS = 3 };
+enum { NTRACKS = 8, NSTEPS = 128, NPATTERNS = 128, NBANKS = 8, OLD_NPAT = 16, NPAGES = 21, NPARAMS = NPAGES * 8, NLFO = 3, NBUS = 3 };
 enum { OLD_NPARAMS = 96, V13_NPARAMS = 128 };   // bis Projektformat v12: 12 Seiten, v13: 16 Seiten
 enum { NENV = 3, NMODT = 3 };   // Huellkurven je Spur, Ziele je Huellkurve/LFO
 // Oberflaechen-Seiten (Reihenfolge = Navigation). Spurseiten zuerst.

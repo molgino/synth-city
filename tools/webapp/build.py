@@ -45,7 +45,7 @@ def main():
            "-fno-exceptions", "-fno-rtti", "-fno-math-errno", "-DWITH_MIDI", "-Wno-unused-command-line-argument",
            "-sASYNCIFY", "-sASYNCIFY_IGNORE_INDIRECT", "-sASYNCIFY_STACK_SIZE=65536",
            "-sMODULARIZE", "-sEXPORT_NAME=createSynthCity",   # nichts Globales: Emscripten haette sonst z. B. out() der Seite ueberschrieben
-           "-sALLOW_MEMORY_GROWTH", "-sINITIAL_MEMORY=96MB", "-sSTACK_SIZE=1MB", "-sENVIRONMENT=web",
+           "-sALLOW_MEMORY_GROWTH", "-sINITIAL_MEMORY=128MB", "-sSTACK_SIZE=1MB", "-sENVIRONMENT=web",
            "-lidbfs.js", "-sFORCE_FILESYSTEM",
            "-sEXPORTED_FUNCTIONS=_main,_malloc,_free",
            "-sEXPORTED_RUNTIME_METHODS=FS,IDBFS,ccall,stringToUTF8,UTF8ToString,HEAPU8,HEAPU32,addRunDependency,removeRunDependency",

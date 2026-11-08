@@ -44,6 +44,10 @@ static SDL_Texture* fontTex = nullptr;
 static Uint8 textAlpha = 255;
 static SDL_AudioDeviceID audioDev = 0;
 static Engine eng;
+// Weitere Engines (Export, Leistungstest, Pruefungen) erst bei Bedarf auf dem Heap: je 22 MB Projekt
+struct EngNewTag {};
+inline void* operator new(size_t, void* p, EngNewTag) noexcept { return p; }
+static Engine* newEngine() { void* m = calloc(1, sizeof(Engine)); return m ? new (m, EngNewTag()) Engine() : nullptr; }
 static Input in;
 
 // UI-Zustand
@@ -83,7 +87,12 @@ static volatile int audLate = 0, audLateTotal = 0;     // verspaetete/zu lange A
 static char basePath[512] = "./", cfgPath[600], projPath[600];
 int g_lang = 0;                    // Sprache (settings.cfg language: 0 de, 1 en)
 static bool selfTesting = false;   // --selftest/--bench: keine Systemaktionen (USB, Lernmodus, Audio-Geraet)
-static Project lastSaved;
+// Stand beim letzten Speichern/Laden als Pruefsumme (128 Patterns = 22 MB: keine zweite Kopie mehr)
+static uint64_t lastSavedHash = 0;
+static Uint32 dirtyAt = 0; static bool dirtyVal = false;
+static void markSaved();
+static bool projDirty();                // genau (rechnet die Pruefsumme, ~10 ms auf dem R36S)
+static bool projDirtyCached();          // fuer die Anzeige: hoechstens alle 0,5 s neu
 
 // System-Einstellungen (settings.cfg)
 struct Settings { char dev[128]; int buf, midiIn, notesOut, clk, chm, usb, song, dispOff, usbAudio, hwVol, pcIn, usbVol, intUsb, cores, lang, usbNet, uac, uacSendOnly, usbCh, hostMc, usbBint, usbNetOn; signed char usbRoute[NTRACKS + NBUS]; char project[64]; int recPages, newPage, recThr; };   // usbRoute: 0 Auto, 1 nur Master, 2+k Paar k (USB 3-4 ...)   // usbNet 0 NCM / 1 RNDIS, uac 2 / 1
@@ -137,19 +146,32 @@ static int poolAssign(const char* name);
 static void poolLoadForProject(const char* path, int force = -1);
 static int poolLegacy = -1;   // altes Projekt ohne Namensliste: 0 = Liste 1 Ordner-Ebene (bis 128), 1 = alle Ebenen (bis 250); -1 = Namen
 static void poolDefaults();
-static Project saveSnap;
+static void lockFnA(bool on) { if (on) lockA(); else unlockA(); }
 static bool saveProject() {
     if (driveOn) return false;
-    lockA(); memcpy(&saveSnap, &eng.proj, sizeof(Project)); unlockA();
+    uint64_t h = projectHash(eng.proj);   // Stand vor dem Schreiben (Aenderungen waehrenddessen bleiben "ungespeichert")
     char tmp[700]; snprintf(tmp, sizeof tmp, "%s.tmp", projPath);
     FILE* f = fopen(tmp, "wb");
-    bool ok = f && fwrite(&saveSnap, sizeof(Project), 1, f) == 1;
-    if (ok) writePoolTrailer(f, saveSnap);
+    bool ok = f && projectWrite(f, eng.proj, lockFnA);   // je Pattern kurz unter der Audio-Sperre kopiert, belegte Patterns komprimiert
+    if (ok) writePoolTrailer(f, eng.proj);
     if (f) { ok = fflush(f) == 0 && ok; ok = fsync(fileno(f)) == 0 && ok; fclose(f); }
     ok = ok && rename(tmp, projPath) == 0;
-    if (ok) { memcpy(&lastSaved, &saveSnap, sizeof(Project)); poolLegacy = -1; }   // jetzt mit Sample-Namen gespeichert
+    if (ok) { lastSavedHash = h; dirtyAt = 0; poolLegacy = -1; }   // jetzt mit Sample-Namen gespeichert
     else remove(tmp);
     return ok;
+}
+static void markSaved() { lastSavedHash = projectHash(eng.proj); dirtyAt = 0; dirtyVal = false; }
+static bool projDirty() { return projectHash(eng.proj) != lastSavedHash; }
+static bool projDirtyCached() {
+    Uint32 now = SDL_GetTicks();
+    if (!dirtyAt || now - dirtyAt > 500) { dirtyVal = projDirty(); dirtyAt = now ? now : 1; }
+    return dirtyVal;
+}
+// Pattern-Name A01 .. H16 (Bank A-H je 16 Patterns); mehrere Aufrufe pro Ausdruck moeglich (8 Puffer)
+static const char* PN(int i) {
+    static char b[8][8]; static int k = 0; char* o = b[k++ & 7];
+    if (i < 0 || i >= NPATTERNS) snprintf(o, 8, "---"); else snprintf(o, 8, "%c%02d", 'A' + i / 16, i % 16 + 1);
+    return o;
 }
 static int clampi(int x, int a, int b) { return x < a ? a : (x > b ? b : x); }
 
@@ -734,14 +756,29 @@ static void toast(const char* fmt, ...);
 static void lockA();
 static void unlockA();
 // Pattern wechseln (am Pattern-Ende, falls es laeuft). Im Song-Modus: Song aus, dann wechseln
+static int prjBank = -1;   // PRJ-Seite: angezeigte Bank (0-7 = A-H), folgt Pattern-Wechseln
+// Unbelegtes, leeres Pattern bekommt beim ersten Besuch die Sounds (Engines, Parameter, Laengen, Tempo, Wechsel)
+// des Patterns, von dem man kommt; Steps bleiben leer. Belegt wird es erst, wenn man darin etwas aendert.
+static void patEnsure(int to, int from) {
+    if (to < 0 || to >= NPATTERNS || from < 0 || from >= NPATTERNS || to == from) return;
+    Pattern& D = eng.proj.pat[to];
+    if (patternUsed(D)) return;
+    const Pattern& S = eng.proj.pat[from];
+    lockA();
+    memcpy(D.machine, S.machine, sizeof D.machine); memcpy(D.len, S.len, sizeof D.len); memcpy(D.speed, S.speed, sizeof D.speed);
+    memcpy(D.p, S.p, sizeof D.p); D.chg = S.chg;
+    unlockA();
+}
 static void switchPattern(int to) {
     to = (to % NPATTERNS + NPATTERNS) % NPATTERNS;
+    patEnsure(to, curPi());
+    prjBank = to / 16;
     lockA();
     bool wasSong = eng.songActive();
     if (wasSong) { eng.songOn = false; eng.curPat = eng.trkPat[0]; }
     if (eng.playing) eng.nextPat = to; else { eng.curPat = to; eng.nextPat = -1; }
     unlockA();
-    if (wasSong) toast(TR("SONG AUS - PATTERN %02d", "SONG OFF - PATTERN %02d"), to + 1);
+    if (wasSong) toast(TR("SONG AUS - PATTERN %s", "SONG OFF - PATTERN %s"), PN(to));
 }
 // Spurlaenge setzen. Waechst sie, bekommen neue Steps je nach cfg.newPage eine Kopie des Steps 16 davor
 // (nur leere Steps; force = PAGE ANHAENGEN: neue Steps immer Kopie bzw. leer)
@@ -774,8 +811,12 @@ static bool undoDirty = false;
 static Uint32 undoLastChange = 0;
 static void undoTrack(Uint32 now) {   // einmal pro Bild nach der Eingabe
     const Pattern& P = curP();
-    if (curPi() != undoShadowPat) { undoShadow = P; undoShadowPat = curPi(); undoDirty = false; return; }
+    if (curPi() != undoShadowPat) {   // anderes Pattern (auch per MIDI/Song): ggf. Sounds uebernehmen
+        patEnsure(curPi(), undoShadowPat);
+        undoShadow = P; undoShadowPat = curPi(); undoDirty = false; return;
+    }
     if (memcmp(&P, &undoShadow, sizeof(Pattern))) {
+        if (!P.used) { lockA(); eng.proj.pat[curPi()].used = 1; unlockA(); }   // geaendert = belegt (wird gespeichert)
         if (!undoDirty) {   // erster Schritt einer Aenderung: Stand davor sichern
             undoBuf[undoTop] = undoShadow; undoPat[undoTop] = undoShadowPat;
             undoTop = (undoTop + 1) % UNDO_N; if (undoCnt < UNDO_N) undoCnt++;
@@ -793,7 +834,7 @@ static void undoStep() {
     lockA(); eng.proj.pat[pi] = undoBuf[undoTop]; unlockA();
     if (pi == curPi()) undoShadow = undoBuf[undoTop];
     undoDirty = false;
-    toast(TR("RÜCKGÄNGIG: PATTERN %02d (%d WEITERE)", "UNDO: PATTERN %02d (%d MORE)"), pi + 1, undoCnt);
+    toast(TR("RÜCKGÄNGIG: PATTERN %s (%d WEITERE)", "UNDO: PATTERN %s (%d MORE)"), PN(pi), undoCnt);
 }
 
 // WAV-Aufnahme der Summe (LIVE-Seite, R1): Puffer im Speicher, beim Stoppen in samples/rec/ schreiben (Thread)
@@ -852,7 +893,7 @@ static void recToggle() {
 static void redoStep() {
     if (redoPat < 0) { toast(TR("NICHTS ZU WIEDERHOLEN", "NOTHING TO REDO")); return; }
     lockA(); eng.proj.pat[redoPat] = redoBuf; unlockA();
-    toast(TR("WIEDERHOLT: PATTERN %02d", "REDONE: PATTERN %02d"), redoPat + 1);
+    toast(TR("WIEDERHOLT: PATTERN %s", "REDONE: PATTERN %s"), PN(redoPat));
     redoPat = -1;
 }
 
@@ -977,10 +1018,10 @@ static void drawHeader() {
         fill(x, 41, 8, 1, c, (Uint8)(30 + 110 * beatPulse));
         fill(x, 42, 8, 1, c, (Uint8)(10 + 40 * beatPulse));
     }
-    snprintf(b, sizeof b, "P%02d", curPi() + 1);
+    snprintf(b, sizeof b, "%s", PN(curPi()));
     text(8, 4, b, C_TEXT, 2);
     if (eng.nextPat >= 0) {
-        if ((SDL_GetTicks() / 250) % 2) { snprintf(b, sizeof b, ">%02d", eng.nextPat + 1); text(58, 4, b, C_ACC); }
+        if ((SDL_GetTicks() / 250) % 2) { snprintf(b, sizeof b, ">%s", PN(eng.nextPat)); text(58, 4, b, C_ACC); }
         int l0 = curP().len[0] < 1 ? 1 : curP().len[0];
         int prog = eng.playing ? (eng.playedStep[0] + 1) * 48 / l0 : 0;
         fill(8, 36, 48, 2, C_OFF); fill(8, 36, prog, 2, C_ACC);
@@ -2542,7 +2583,7 @@ static void drawMenu() {
     char b[64];
     textC(320, 40, TR("SEITEN", "PAGES"), C_ACC, 2);
     Col tc = TCOL[track];
-    snprintf(b, sizeof b, TR("SPUR %d - %s - P%02d", "TRACK %d - %s - P%02d"), track + 1, MACHINE_NAMES[curP().machine[track] % M_COUNT], curPi() + 1);
+    snprintf(b, sizeof b, TR("SPUR %d - %s - %s", "TRACK %d - %s - %s"), track + 1, MACHINE_NAMES[curP().machine[track] % M_COUNT], PN(curPi()));
     text(26, 46, b, tc);
     static const char* const RL_DE[MAP_NR] = {"SEQUENZ", "MODULATION: HÜLLKURVEN + LFOS", "QUELLE", "KLANGWEG", "LIVE, MIX & EFFEKT-BUSSE", "PROJEKT"};
     static const char* const RL_EN[MAP_NR] = {"SEQUENCE", "MODULATION: ENVELOPES + LFOS", "SOURCE", "SOUND PATH", "LIVE, MIX & EFFECT BUSES", "PROJECT"};
@@ -2910,7 +2951,7 @@ static void drawSteps() {
     const char* h;
     if (lockLatch) h = TR("LOCK [X/Y]WERT [L1/R1]REGLER [L2/R2]SEITE [</>]STEP [B]WEG [SEL+L1/R1]KOPIE [A]OK", "LOCK [X/Y]VALUE [L1/R1]CONTROL [L2/R2]PAGE [</>]STEP [B]CLEAR [SEL+L1/R1]COPY [A]OK");
     else if (aHeld) h = TR("[X/Y]LOCK [L1/R1]REGLER [L2/R2]SEITE [B]LÖSCHEN [SEL+L1/R1]KOPIE  LANG = LOCK-MODUS", "[X/Y]LOCK [L1/R1]CONTROL [L2/R2]PAGE [B]CLEAR [SEL+L1/R1]COPY  LONG = LOCK MODE");
-    else if (in.down[BT_SELECT]) h = TR("[</>]PATTERN [^]REC [v]TAP [A]MUTE [B]UNDO [X/Y]ENGINE [L1/R1]4 STEPS [L2/R2]16 STEPS", "[</>]PATTERN [^]REC [v]TAP [A]MUTE [B]UNDO [X/Y]ENGINE [L1/R1]4 STEPS [L2/R2]16 STEPS");
+    else if (in.down[BT_SELECT]) h = page == PG_TRG ? TR("[</>]PATTERN [^]REC [v]TAP [A]MUTE [B]UNDO [X/Y]ENGINE [L1/R1]PAGE-MENÜ [L2/R2]16 STEPS", "[</>]PATTERN [^]REC [v]TAP [A]MUTE [B]UNDO [X/Y]ENGINE [L1/R1]PAGE MENU [L2/R2]16 STEPS") : TR("[</>]PATTERN [^]REC [v]TAP [A]MUTE [B]UNDO [X/Y]ENGINE [L1/R1]4 STEPS [L2/R2]16 STEPS", "[</>]PATTERN [^]REC [v]TAP [A]MUTE [B]UNDO [X/Y]ENGINE [L1/R1]4 STEPS [L2/R2]16 STEPS");
     else if (page == PG_MIX) h = TR("[</>]KANAL [^v]ZEILE [X/Y]WERT [A]MUTE [B]SOLO [L2/R2]SEITE [SEL]KARTE", "[</>]CHANNEL [^v]ROW [X/Y]VALUE [A]MUTE [B]SOLO [L2/R2]PAGE [SEL]MAP");
     else if (page == PG_PRJ) h = TR("[</>]FELD [^v]SPUR [A]AUSFÜHREN [X/Y]WERT [L2/R2]SEITE [SEL]KARTE", "[</>]FIELD [^v]TRACK [A]RUN [X/Y]VALUE [L2/R2]PAGE [SEL]MAP");
     else if (!trackPage(page)) h = TR("[STEUERKREUZ/L1/R1]REGLER [X/Y]WERT [L2/R2]SEITE [SEL]KARTE", "[D-PAD/L1/R1]CONTROL [X/Y]VALUE [L2/R2]PAGE [SEL]MAP");
@@ -3223,7 +3264,7 @@ static void drawSigB() {
     const char* h;
     if (lockLatch) h = TR("LOCK [X/Y]WERT [L1/R1]REGLER [L2/R2]SEITE [</>]STEP [B]WEG [SEL+L1/R1]KOPIE [A]OK", "LOCK [X/Y]VALUE [L1/R1]CONTROL [L2/R2]PAGE [</>]STEP [B]CLEAR [SEL+L1/R1]COPY [A]OK");
     else if (aHeld) h = TR("[X/Y]LOCK [L1/R1]REGLER [L2/R2]SEITE [B]LÖSCHEN [SEL+L1/R1]KOPIE  LANG = LOCK-MODUS", "[X/Y]LOCK [L1/R1]CONTROL [L2/R2]PAGE [B]CLEAR [SEL+L1/R1]COPY  LONG = LOCK MODE");
-    else if (in.down[BT_SELECT]) h = TR("[</>]PATTERN [^]REC [v]TAP [A]MUTE [B]UNDO [X/Y]ENGINE [L1/R1]4 STEPS [L2/R2]16 STEPS", "[</>]PATTERN [^]REC [v]TAP [A]MUTE [B]UNDO [X/Y]ENGINE [L1/R1]4 STEPS [L2/R2]16 STEPS");
+    else if (in.down[BT_SELECT]) h = page == PG_TRG ? TR("[</>]PATTERN [^]REC [v]TAP [A]MUTE [B]UNDO [X/Y]ENGINE [L1/R1]PAGE-MENÜ [L2/R2]16 STEPS", "[</>]PATTERN [^]REC [v]TAP [A]MUTE [B]UNDO [X/Y]ENGINE [L1/R1]PAGE MENU [L2/R2]16 STEPS") : TR("[</>]PATTERN [^]REC [v]TAP [A]MUTE [B]UNDO [X/Y]ENGINE [L1/R1]4 STEPS [L2/R2]16 STEPS", "[</>]PATTERN [^]REC [v]TAP [A]MUTE [B]UNDO [X/Y]ENGINE [L1/R1]4 STEPS [L2/R2]16 STEPS");
     else h = TR("[^v]SPUR [</>]STEP [L1/R1]REGLER [X/Y]WERT [L2/R2]SEITE [SEL]KARTE", "[^v]TRACK [</>]STEP [L1/R1]CONTROL [X/Y]VALUE [L2/R2]PAGE [SEL]MAP");
     hint(6, 452, h, C_ACC, C_DIM);
 }
@@ -3238,9 +3279,9 @@ static void drawLive() {
     char b[48];
     liveArt();   // Spektrum oben, Takt-Ringe in der Mitte
     text(10, 48, "LIVE", C_ACC, 2);
-    snprintf(b, sizeof b, "PATTERN %02d", curPi() + 1);
+    snprintf(b, sizeof b, "PATTERN %s", PN(curPi()));
     text(120, 50, b, C_TEXT);
-    if (eng.nextPat >= 0) { snprintf(b, sizeof b, "> %02d", eng.nextPat + 1); text(120 + textW("PATTERN 00 "), 50, b, (SDL_GetTicks() / 250) % 2 ? C_ACC : C_DIM); }
+    if (eng.nextPat >= 0) { snprintf(b, sizeof b, "> %s", PN(eng.nextPat)); text(120 + textW("PATTERN A00 "), 50, b, (SDL_GetTicks() / 250) % 2 ? C_ACC : C_DIM); }
     snprintf(b, sizeof b, "%d BPM", eng.proj.bpm);
     text(630 - textW(b, 2), 48, b, C_TEXT, 2);
     static const int OX[4] = {0, 1, 0, -1}, OY[4] = {-1, 0, 1, 0};
@@ -3670,7 +3711,7 @@ static void runAction(int act, int arg) {
         doSaveProjectAs(nm);
         toast(TR("DEMO '%s' GELADEN - START DRÜCKEN", "DEMO '%s' LOADED - PRESS START"), nm);
     } break;
-    case ACT_PASTE: lockA(); eng.proj.pat[arg % NPATTERNS] = clip; unlockA(); toast(TR("PATTERN %02d EINGEFÜGT", "PATTERN %02d PASTED"), arg % NPATTERNS + 1); break;
+    case ACT_PASTE: lockA(); eng.proj.pat[arg % NPATTERNS] = clip; eng.proj.pat[arg % NPATTERNS].used = 1; unlockA(); toast(TR("PATTERN %s EINGEFÜGT", "PATTERN %s PASTED"), PN(arg % NPATTERNS)); break;
     case ACT_CLEARTRK:
         lockA();
         for (int st = 0; st < NSTEPS; st++) { curP().s[arg][st].on = 0; memset(curP().s[arg][st].lock, NO_LOCK, NPARAMS); }
@@ -3682,7 +3723,7 @@ static void runAction(int act, int arg) {
         { Pattern& CP = eng.proj.pat[arg % NPATTERNS];
           for (int t = 0; t < NTRACKS; t++) for (int st = 0; st < NSTEPS; st++) { CP.s[t][st].on = 0; memset(CP.s[t][st].lock, NO_LOCK, NPARAMS); } }
         unlockA();
-        toast(TR("PATTERN %02d GELEERT", "PATTERN %02d CLEARED"), arg % NPATTERNS + 1);
+        toast(TR("PATTERN %s GELEERT", "PATTERN %s CLEARED"), PN(arg % NPATTERNS));
         break;
     case ACT_QUIT: quitReq = true; break;
     case ACT_INIT: {
@@ -3844,7 +3885,7 @@ static void setLabel(int i, char* l, int ln, char* v, int vn) {
     case SI_H_PAT: snprintf(l, ln, "PATTERN"); break;
     case SI_H_TRK: snprintf(l, ln, TR("SPUR %d", "TRACK %d"), track + 1); break;
     case SI_H_SMP: snprintf(l, ln, "SAMPLES"); break;
-    case SI_PATTERN: snprintf(l, ln, "Pattern"); snprintf(v, vn, "P%02d%s", curPi() + 1, eng.nextPat >= 0 ? " >" : ""); break;
+    case SI_PATTERN: snprintf(l, ln, "Pattern"); snprintf(v, vn, "%s%s", PN(curPi()), eng.nextPat >= 0 ? " >" : ""); break;
     case SI_LEN: snprintf(l, ln, TR("Länge", "Length")); snprintf(v, vn, "%d Steps", P.len[track]); break;
     case SI_LENALL: snprintf(l, ln, TR("Länge alle Spuren", "Length all tracks")); snprintf(v, vn, "%d Steps", P.len[track]); break;
     case SI_SPEED: snprintf(l, ln, TR("Tempo-Faktor", "Tempo factor")); snprintf(v, vn, "%s", SPEED_NAMES[P.speed[track] % 7]); break;
@@ -4103,7 +4144,7 @@ static void mutatePattern(int pi = -1) {
     }
     unlockA();
     const char* const AM[3] = {TR("LEICHT", "LIGHT"), TR("MITTEL", "MEDIUM"), TR("STARK", "STRONG")};
-    toast(TR("PATTERN %02d MUTIERT (%s)", "PATTERN %02d MUTATED (%s)"), pi % NPATTERNS + 1, AM[mutAmt % 3]);
+    toast(TR("PATTERN %s MUTIERT (%s)", "PATTERN %s MUTATED (%s)"), PN(pi % NPATTERNS), AM[mutAmt % 3]);
 }
 #include "prjpage.inc"   // PRJ-Seite (Projekt, Pattern, Sound)
 
@@ -4189,12 +4230,12 @@ static void drawDrive() {
 
 static void setAction(int i) {
     switch (i) {
-    case SI_COPY: clip = curP(); haveClip = true; toast(TR("PATTERN %02d KOPIERT", "PATTERN %02d COPIED"), curPi() + 1); break;
+    case SI_COPY: clip = curP(); haveClip = true; toast(TR("PATTERN %s KOPIERT", "PATTERN %s COPIED"), PN(curPi())); break;
     case SI_PASTE:
-        if (haveClip) askConfirm(ACT_PASTE, curPi(), TR("PATTERN %02d MIT KOPIE ÜBERSCHREIBEN?", "OVERWRITE PATTERN %02d WITH COPY?"), curPi() + 1);
+        if (haveClip) askConfirm(ACT_PASTE, curPi(), TR("PATTERN %s MIT KOPIE ÜBERSCHREIBEN?", "OVERWRITE PATTERN %s WITH COPY?"), PN(curPi()));
         else toast(TR("ZWISCHENABLAGE LEER", "CLIPBOARD EMPTY"));
         break;
-    case SI_CLEAR: askConfirm(ACT_CLEARPAT, curPi(), TR("ALLE STEPS VON PATTERN %02d LÖSCHEN?", "CLEAR ALL STEPS OF PATTERN %02d?"), curPi() + 1); break;
+    case SI_CLEAR: askConfirm(ACT_CLEARPAT, curPi(), TR("ALLE STEPS VON PATTERN %s LÖSCHEN?", "CLEAR ALL STEPS OF PATTERN %s?"), PN(curPi())); break;
     case SI_CLRTRK: askConfirm(ACT_CLEARTRK, track, TR("ALLE STEPS VON SPUR %d LÖSCHEN?", "CLEAR ALL STEPS OF TRACK %d?"), track + 1); break;
     case SI_TMPL: applyRhythm(tmplSel); break;
     case SI_UNDO: undoStep(); break;
@@ -4270,7 +4311,8 @@ static void settingsInput(Input& I, Uint32 now, float dt) {
 }
 
 // ---------------------------------------------------------------- Song-Export (WAV): Zeilen von..bis offline in einer zweiten Engine rendern
-static Engine renderEng;                      // eigene Instanz, laeuft im Export-Thread (die Wiedergabe-Engine bleibt unberuehrt)
+static Engine* renderEngP = nullptr;          // eigene Instanz, laeuft im Export-Thread (die Wiedergabe-Engine bleibt unberuehrt)
+#define renderEng (*renderEngP)
 static volatile int expState = 0;             // 0 aus, 1 laeuft, 2 fertig, 3 Fehler, 4 abgebrochen
 static volatile float expProg = 0;
 static volatile bool expCancel = false;
@@ -4355,6 +4397,8 @@ static void startExport() {
         snprintf(expPath, sizeof expPath, "%s/%s", dir, expName);
         if (stat(expPath, &st)) break;
     }
+    if (!renderEngP) renderEngP = newEngine();
+    if (!renderEngP) { toast(TR("KEIN SPEICHER", "OUT OF MEMORY")); return; }
     lockA();
     if (eng.playing) eng.stop();
     renderEng.init(eng.sr);
@@ -4443,7 +4487,7 @@ static void drawSong() {
         snprintf(b, sizeof b, "%02d", i + 1); text(20, y + 6, b, play ? C_PLAY : C_DIM);
         // ALLE
         int ap = rowAllPat(r);
-        if (ap >= 0) snprintf(b, sizeof b, "P%02d", ap + 1); else snprintf(b, sizeof b, "MIX");
+        if (ap >= 0) snprintf(b, sizeof b, "%s", PN(ap)); else snprintf(b, sizeof b, "MIX");
         Col ac = ap >= 0 ? TCOL[ap % NTRACKS] : C_DIM;
         rrect(xAll, y + 2, wAll, rowH - 8, 5, play ? ac : dimC(ac, 0.3f));
         textC(xAll + wAll / 2, y + 6, b, play ? C_BG : C_TEXT);
@@ -4458,7 +4502,7 @@ static void drawSong() {
                 Col bg = mu ? C_BG : (play ? tc : dimC(tc, 0.35f));
                 rrect(x + 2, y + 2, wT - 4, rowH - 8, 5, bg);
                 if (mu) { rrect(x + 2, y + 2, wT - 4, 2, 1, dimC(tc, 0.5f)); }
-                snprintf(b, sizeof b, "%02d", r.pat[t] % NPATTERNS + 1);
+                snprintf(b, sizeof b, "%s", PN(r.pat[t] % NPATTERNS));
                 textC(x + wT / 2 - (mu ? 6 : 0), y + 6, b, mu ? C_DIM : (play ? C_BG : C_TEXT));
                 if (mu) text(x + wT - 15, y + 6, "M", C_TRIG);
             }
@@ -4506,8 +4550,8 @@ static void drawSong() {
         }
     }
     if (songExp) hint(6, 452, TR("[</>]FELD [X/Y]ZEILE [A]EXPORT STARTEN [^]ZUR MATRIX [START]PLAY", "[</>]FIELD [X/Y]ROW [A]START EXPORT [^]BACK TO MATRIX [START]PLAY"), C_ACC, C_DIM);
-    else hint(6, 452, TR("[^v<>]ZELLE [X/Y]PATTERN/WDH [A]MUTE [L1]NEU [B]LÖSCHEN [R1]SONG [START]AB HIER",
-                    "[^v<>]CELL [X/Y]PATTERN/REP [A]MUTE [L1]NEW [B]DELETE [R1]SONG [START]FROM HERE"), C_ACC, C_DIM);
+    else hint(6, 452, TR("[^v<>]ZELLE [X/Y]PATTERN/WDH (HALTEN=BANK) [A]MUTE [L1]NEU [B]LÖSCHEN [R1]SONG [START]AB HIER",
+                    "[^v<>]CELL [X/Y]PATTERN/REP (HOLD=BANK) [A]MUTE [L1]NEW [B]DELETE [R1]SONG [START]FROM HERE"), C_ACC, C_DIM);
 }
 
 // Zelle aendern: Pattern einer Spur (mit "leer" unterhalb von 01), alle Spuren gemeinsam oder Wiederholungen
@@ -4559,6 +4603,7 @@ static void songInput(Input& I, Uint32 now) {
     int dx = (I.repeat(BT_RIGHT, now) ? 1 : 0) - (I.repeat(BT_LEFT, now) ? 1 : 0) + flick(I.lx, flLX, flLXt, now);
     if (dx) songCol = clampi(songCol + dx, 0, SC_N - 1);
     int dv = (I.repeat(BT_X, now) ? 1 : 0) - (I.repeat(BT_Y, now) ? 1 : 0);
+    if (dv && songCol != SC_REP && (I.heldMs(BT_X, now) > 900 || I.heldMs(BT_Y, now) > 900)) dv *= 16;   // halten: ganze Bank (A01 -> B01 ...)
     if (dv && J.songLen) { lockA(); songEditCell(J, songSel, songCol, dv); unlockA(); }
     if (I.pressed(BT_A) && J.songLen) {
         Project::SongRow& r = J.row[songSel];
@@ -4821,7 +4866,7 @@ static void handleInput(Uint32 now, float dt) {
             int to = ((eng.nextPat >= 0 ? eng.nextPat : curPi()) + d + NPATTERNS) % NPATTERNS;
             bool wasSong = eng.songActive();
             switchPattern(to);
-            if (!wasSong) toast("PATTERN %02d", to + 1);
+            if (!wasSong) toast("PATTERN %s", PN(to));
         }
         if (I.pressed(BT_UP)) {
             funcUsed = true;
@@ -5343,8 +5388,8 @@ static bool readPoolTrailer(const char* path, char (*names)[96]) {
     bool ok = false;
     char mg[4]; uint16_t n = 0;
     uint32_t ver = 0;   // Namensliste steht direkt hinter den Projektdaten (Groesse je nach Format)
-    long at = (fseek(f, 4, SEEK_SET) == 0 && fread(&ver, 4, 1, f) == 1) ? projectDataSize(ver) : (long)sizeof(Project);
-    if (fseek(f, at, SEEK_SET) == 0 && fread(mg, 1, 4, f) == 4 && !memcmp(mg, "SPL1", 4) && fread(&n, 2, 1, f) == 1) {
+    (void)ver; long at = projectDataEnd(f);
+    if (at > 0 && fseek(f, at, SEEK_SET) == 0 && fread(mg, 1, 4, f) == 4 && !memcmp(mg, "SPL1", 4) && fread(&n, 2, 1, f) == 1) {
         ok = true;
         for (int k = 0; k < n; k++) {
             uint8_t hdr[2];
@@ -5672,7 +5717,7 @@ int main(int argc, char** argv) {
     if (eng.load(projPath)) { printf("Projekt geladen: %s\n", projPath); poolLoadForProject(projPath); }
     else if (firstRun) { buildDemo(eng); eng.songOn = true; eng.songStart(0); poolDefaults(); printf("Erster Start: Demo-Song angelegt\n"); }
     else poolDefaults();
-    memcpy(&lastSaved, &eng.proj, sizeof(Project));
+    markSaved();
     applyMidiSettings();
     eng.midiOut = midiOutHook;
     midiStart();
@@ -5722,7 +5767,7 @@ int main(int argc, char** argv) {
             {   // offenes Projekt von aussen ersetzt (Sync der Handy-App, Upload): neu laden, wenn hier nichts verloren geht
                 char up[200];
                 if (webTakeProjectUpload(up, sizeof up) && !strcmp(up, cfg.project)) {
-                    if (!eng.playing && !memcmp(&lastSaved, &eng.proj, sizeof(Project))) { reloadSamples(); doLoadProject(up); toast(TR("PROJEKT AKTUALISIERT: %s", "PROJECT UPDATED: %s"), up); }
+                    if (!eng.playing && !projDirty()) { reloadSamples(); doLoadProject(up); toast(TR("PROJEKT AKTUALISIERT: %s", "PROJECT UPDATED: %s"), up); }
                     else { toast(TR("'%s' WURDE ERSETZT - NEU LADEN ÜBER PRJ", "'%s' WAS REPLACED - RELOAD VIA PRJ"), up); msgUntil = now + 5000; }
                 }
             }
@@ -5732,7 +5777,7 @@ int main(int argc, char** argv) {
         }
         if (now - lastAuto > 120000) {   // Autosave alle 2 Minuten bei Aenderungen
             lastAuto = now;
-            if (memcmp(&lastSaved, &eng.proj, sizeof(Project))) saveProject();
+            if (projDirty()) saveProject();
         }
         bool help = in.down[BT_SELECT] && !funcUsed && in.heldMs(BT_SELECT, now) > 700;
         Uint64 tq0 = SDL_GetPerformanceCounter();

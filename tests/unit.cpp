@@ -320,7 +320,7 @@ struct OldProj {
         b = (uint8_t*)calloc(1, size);
         memcpy(b, "GBX1", 4); memcpy(b + 4, &ver, 4); uint16_t bpm = 120; memcpy(b + 8, &bpm, 2);
         for (int i = 0; i < 8; i++) b[10 + i] = MST_DEFS[i].def;
-        for (int pi = 0; pi < NPATTERNS; pi++) for (int t = 0; t < NTRACKS; t++) {
+        for (int pi = 0; pi < OLD_NPAT; pi++) for (int t = 0; t < NTRACKS; t++) {
             machine(pi, t, M_KICK); pat(pi)[8 + t] = 16; pat(pi)[16 + t] = SPEED_1X;
             for (int st = 0; st < NSTEPS; st++) memset(lock(pi, t, st), NO_LOCK, OLD_NPARAMS);
         }
@@ -334,12 +334,12 @@ struct OldProj {
     }
     uint8_t* p(int pi, int t) { return pat(pi) + 24 + t * OLD_NPARAMS; }
     uint8_t* lock(int pi, int t, int st) { return pat(pi) + 24 + 8 * OLD_NPARAMS + (t * NSTEPS + st) * (1 + OLD_NPARAMS) + 1; }
-    uint8_t* tail() { return b + 20 + (long)NPATTERNS * OLD_PAT_SIZE; }
+    uint8_t* tail() { return b + 20 + (long)OLD_NPAT * OLD_PAT_SIZE; }
     uint8_t* fx() { return tail() + 8; }
     uint8_t* song(int i) { return tail() + 16 + i * 2; }
     uint8_t& songLen() { return tail()[144]; }
     uint8_t* patMute() { return tail() + 148; }
-    uint8_t* row(int i) { return tail() + 148 + NPATTERNS + i * 12; }
+    uint8_t* row(int i) { return tail() + 148 + OLD_NPAT + i * 12; }
     bool write(const char* path, bool trailer = false) {
         if (ver == 12) for (int i = 0; i < 64; i++) { uint8_t* r = row(i); if (!r[NTRACKS]) r[NTRACKS] = 1; }
         FILE* g = fopen(path, "wb"); if (!g) return false;
@@ -399,6 +399,7 @@ static void testSaveLoad() {
     Pattern& P = E.proj.pat[2];
     P.s[5][77].on = 2; P.s[5][77].lock[P_FREQ] = 42; P.len[5] = 99; P.speed[5] = 6;
     E.proj.songLen = 3; Engine::rowFromPattern(E.proj, E.proj.row[1], 7); E.proj.row[1].pat[2] = SONG_EMPTY; E.proj.row[1].mute = 0x30; E.proj.patMute[4] = 0x81;
+    for (int pi = 0; pi < NPATTERNS; pi++) E.proj.pat[pi].used = 1;   // alle belegt: alles muss genau zurueckkommen
     static Project ref;
     memcpy(&ref, &E.proj, sizeof(Project));
     const char* path = "/tmp/gb-unit-test.gbx";
@@ -406,6 +407,20 @@ static void testSaveLoad() {
     E.defaultProject(false);
     CHECK(E.load(path), "Laden fehlgeschlagen");
     CHECK(!memcmp(&ref, &E.proj, sizeof(Project)), "Projekt nach Laden verschieden");
+    {   // v16 sparsam: nur belegte Patterns in der Datei, unbelegte kommen frisch (Grundklaenge) zurueck
+        E.defaultProject(false);
+        E.proj.pat[100].s[3][5].on = 1; E.proj.pat[100].p[3][P_FREQ] = 11; E.proj.pat[7].p[2][P_FREQ] = 12;   // 7: unbelegt + ohne Steps
+        CHECK(E.save(path), "Speichern v16");
+        FILE* g = fopen(path, "rb"); fseek(g, 0, SEEK_END); long n = ftell(g); long de = projectDataEnd(g); fclose(g);
+        CHECK(n < 40000 && de == n, "v16-Datei zu gross oder Ende falsch (%ld / %ld)", n, de);
+        CHECK(E.load(path), "Laden v16");
+        CHECK(E.proj.pat[100].used && E.proj.pat[100].s[3][5].on == 1 && E.proj.pat[100].p[3][P_FREQ] == 11 && E.proj.pat[0].used, "v16: belegtes Pattern verloren");
+        static Pattern fr; Engine::initPattern(fr);
+        CHECK(!E.proj.pat[7].used && !memcmp(&E.proj.pat[7], &fr, sizeof(Pattern)), "v16: unbelegtes Pattern nicht frisch");
+        uint8_t garb[64]; memset(garb, 0xFF, sizeof garb);
+        g = fopen(path, "r+b"); fseek(g, 20 + PROJECT_TAIL_SIZE + 2 + 5, SEEK_SET); fwrite(garb, 1, sizeof garb, g); fclose(g);
+        E.load(path);   // kaputte Pattern-Daten: darf nicht abstuerzen
+    }
     // v9-Datei: SYNTH mit LP12 -> LP24
     {
         OldProj o(9);
@@ -466,7 +481,7 @@ static void testSaveLoad() {
         static uint8_t old[PROJECT_V13_SIZE];
         memset(old, 0, sizeof old);
         memcpy(old, &src, 20); uint32_t v13 = 13; memcpy(old + 4, &v13, 4);
-        for (int pi = 0; pi < NPATTERNS; pi++) {
+        for (int pi = 0; pi < OLD_NPAT; pi++) {
             uint8_t* q = old + 20 + (long)pi * V13_PAT_SIZE; const Pattern& S = src.pat[pi];
             memcpy(q, S.machine, 8); memcpy(q + 8, S.len, 8); memcpy(q + 16, S.speed, 8);
             for (int t = 0; t < NTRACKS; t++) {
@@ -474,9 +489,9 @@ static void testSaveLoad() {
                 for (int st = 0; st < NSTEPS; st++) { uint8_t* sp = q + 24 + 8 * V13_NPARAMS + (t * NSTEPS + st) * (1 + V13_NPARAMS); sp[0] = S.s[t][st].on; memcpy(sp + 1, S.s[t][st].lock, V13_NPARAMS); }
             }
         }
-        uint8_t* r = old + 20 + (long)NPATTERNS * V13_PAT_SIZE;
+        uint8_t* r = old + 20 + (long)OLD_NPAT * V13_PAT_SIZE;
         memcpy(r, src.cmp, 8); memcpy(r + 8, src.bus, NBUS * 8); r[8 + NBUS * 8] = src.songLen;
-        memcpy(r + 12 + NBUS * 8, src.patMute, NPATTERNS); memcpy(r + 12 + NBUS * 8 + NPATTERNS, src.row, sizeof src.row);
+        memcpy(r + 12 + NBUS * 8, src.patMute, OLD_NPAT); memcpy(r + 12 + NBUS * 8 + OLD_NPAT, src.row, sizeof src.row);
         FILE* f13 = fopen(path, "wb"); fwrite(old, 1, sizeof old, f13); fclose(f13);
         CHECK(E.load(path), "Laden v13");
         const Pattern& P = E.proj.pat[2];
@@ -492,13 +507,32 @@ static void testSaveLoad() {
         src.pat[3].len[2] = 77; src.pat[3].s[2][70].on = 1; src.pat[3].s[2][70].lock[P_E3D1] = 12; src.songLen = 7; src.row[6].rep = 3;
         static uint8_t old[PROJECT_V14_SIZE];
         memcpy(old, &src, 20); uint32_t v14 = 14; memcpy(old + 4, &v14, 4);
-        for (int pi = 0; pi < NPATTERNS; pi++) memcpy(old + 20 + (long)pi * V14_PAT_SIZE, &src.pat[pi], V14_PAT_SIZE);
-        memcpy(old + 20 + (long)NPATTERNS * V14_PAT_SIZE, src.cmp, PROJECT_V14_SIZE - 20 - (long)NPATTERNS * V14_PAT_SIZE);
+        for (int pi = 0; pi < OLD_NPAT; pi++) memcpy(old + 20 + (long)pi * V14_PAT_SIZE, &src.pat[pi], V14_PAT_SIZE);
+        { uint8_t* r = old + 20 + (long)OLD_NPAT * V14_PAT_SIZE;
+          memcpy(r, src.cmp, 8); memcpy(r + 8, src.bus, NBUS * 8); r[8 + NBUS * 8] = src.songLen;
+          memcpy(r + 12 + NBUS * 8, src.patMute, OLD_NPAT); memcpy(r + 12 + NBUS * 8 + OLD_NPAT, src.row, sizeof src.row); }
         FILE* f14 = fopen(path, "wb"); fwrite(old, 1, sizeof old, f14); fwrite("SPL1\0\0", 1, 6, f14); fclose(f14);
         E.proj.pat[3].chg = 9;
         CHECK(E.load(path), "Laden v14");
         CHECK(E.proj.version == PROJECT_VERSION && E.proj.pat[3].chg == 0, "v14: Version %u / chg %d", E.proj.version, E.proj.pat[3].chg);
         CHECK(E.proj.pat[3].len[2] == 77 && E.proj.pat[3].s[2][70].lock[P_E3D1] == 12 && E.proj.songLen == 7 && E.proj.row[6].rep == 3, "v14: Daten verloren");
+    }
+    // v15-Datei (16 Patterns roh): Bank A belegt, B-H frisch
+    {
+        static Project src; memcpy(&src, &ref, sizeof(Project));
+        src.pat[15].chg = 24; src.pat[15].s[1][9].on = 1; src.patMute[15] = 0x42; src.songLen = 4; src.row[3].pat[1] = 15;
+        static uint8_t old[PROJECT_V15_SIZE];
+        memcpy(old, &src, 20); uint32_t v15 = 15; memcpy(old + 4, &v15, 4);
+        for (int pi = 0; pi < OLD_NPAT; pi++) memcpy(old + 20 + (long)pi * sizeof(Pattern), &src.pat[pi], sizeof(Pattern));
+        uint8_t* r = old + 20 + (long)OLD_NPAT * sizeof(Pattern);
+        memcpy(r, src.cmp, 8); memcpy(r + 8, src.bus, NBUS * 8); r[8 + NBUS * 8] = src.songLen;
+        memcpy(r + 12 + NBUS * 8, src.patMute, OLD_NPAT); memcpy(r + 12 + NBUS * 8 + OLD_NPAT, src.row, sizeof src.row);
+        FILE* f15 = fopen(path, "wb"); fwrite(old, 1, sizeof old, f15); fwrite("SPL1\0\0", 1, 6, f15); fclose(f15);
+        CHECK(E.load(path), "Laden v15");
+        CHECK(E.proj.version == PROJECT_VERSION && E.proj.pat[15].chg == 24 && E.proj.pat[15].s[1][9].on == 1 && E.proj.patMute[15] == 0x42 && E.proj.row[3].pat[1] == 15, "v15: Daten verloren");
+        CHECK(E.proj.pat[3].used && E.proj.pat[15].used && !E.proj.pat[16].used && E.proj.patMute[16] == 0, "v15: Belegung falsch");
+        FILE* g = fopen(path, "rb"); long de = projectDataEnd(g); fclose(g);
+        CHECK(de == (long)PROJECT_V15_SIZE, "v15: Datenende %ld", de);
     }
     // kaputte Datei darf nicht geladen werden
     FILE* f = fopen(path, "wb"); fwrite("GBX1xxxx", 1, 8, f); fclose(f);
