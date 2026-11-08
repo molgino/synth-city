@@ -10,6 +10,7 @@ window.GB_LOCAL = (function () {
     printErr: t => console.warn(t),
     preRun: [() => {   // M ist das Modul selbst (MODULARIZE: createSynthCity(M) fuellt dieses Objekt)
       M.canvas = document.getElementById('gbsdl');
+      const c = audioCtx(); if (c) { M.SDL2 = M.SDL2 || {}; M.SDL2.audioContext = c; }   // SDL nimmt diesen Kontext
       M.FS.mkdir('/data');
       M.FS.mount(M.FS.filesystems.IDBFS, {}, '/data');
       M.addRunDependency('gb-idb');
@@ -47,13 +48,42 @@ window.GB_LOCAL = (function () {
     M._gbMsg(msgPtr);
   }
 
-  // Ton: Browser starten Audio erst nach einer Beruehrung; iPhone: auch bei Stummschalter abspielen
-  function unlockAudio() {
-    try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {}
-    const sdl = M.SDL2 || window.SDL2;
-    if (sdl && sdl.audioContext && sdl.audioContext.state !== 'running') sdl.audioContext.resume();
+  // Ton: eigener AudioContext, den SDL uebernimmt (Module.SDL2.audioContext). iOS laesst Ton nur zu, wenn er
+  // innerhalb einer Beruehrung startet - SDL versucht es bei Safari aber spaeter per Timer (navigator.userActivation),
+  // das blockiert iOS. Deshalb hier: bei jeder Beruehrung resume() + ein stiller Puffer, bis der Kontext laeuft.
+  // Stummschalter: audioSession 'playback' (iOS 17+), sonst ein stilles <audio> in Schleife (schaltet iOS auf Wiedergabe).
+  let actx = null, silentEl = null;
+  function audioCtx() {
+    if (!actx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (AC) { try { actx = new AC({ latencyHint: 'playback' }); } catch (e) { actx = new AC(); } }
+      if (actx) actx.onstatechange = () => { if (actx.state !== 'running') armUnlock(); };
+    }
+    return actx;
   }
-  ['pointerdown', 'keydown', 'touchend'].forEach(t => document.addEventListener(t, unlockAudio, true));
+  function silentWav() {   // 0,5 s Stille, 8 kHz Mono 8 Bit
+    const n = 4000, b = new Uint8Array(44 + n), v = new DataView(b.buffer), w = (o, t) => { for (let i = 0; i < 4; i++) b[o + i] = t.charCodeAt(i); };
+    w(0, 'RIFF'); v.setUint32(4, 36 + n, true); w(8, 'WAVE'); w(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+    v.setUint32(24, 8000, true); v.setUint32(28, 8000, true); v.setUint16(32, 1, true); v.setUint16(34, 8, true); w(36, 'data'); v.setUint32(40, n, true); b.fill(128, 44);
+    let s = ''; for (let i = 0; i < b.length; i++) s += String.fromCharCode(b[i]);
+    return 'data:audio/wav;base64,' + btoa(s);
+  }
+  function unlockAudio() {
+    const c = audioCtx(); if (!c) return;
+    try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {}
+    if (!navigator.audioSession && !silentEl) {
+      silentEl = document.createElement('audio'); silentEl.src = silentWav(); silentEl.loop = true; silentEl.setAttribute('playsinline', '');
+      silentEl.play().catch(() => { silentEl = null; });
+    }
+    if (c.state !== 'running') { c.resume().catch(() => {}); }
+    try { const b = c.createBuffer(1, 1, c.sampleRate), src = c.createBufferSource(); src.buffer = b; src.connect(c.destination); src.start(0); } catch (e) {}
+    if (c.state === 'running') disarmUnlock();
+  }
+  const UNLOCK = ['touchend', 'pointerup', 'click', 'keydown', 'pointerdown'];
+  function armUnlock() { UNLOCK.forEach(t => document.addEventListener(t, unlockAudio, true)); }
+  function disarmUnlock() { UNLOCK.forEach(t => document.removeEventListener(t, unlockAudio, true)); }
+  armUnlock();
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && actx && actx.state !== 'running') { actx.resume().catch(() => {}); armUnlock(); } });
 
   function setStatus(t) { const el = document.getElementById('gbload'); if (el) { el.textContent = t; el.style.display = t ? 'flex' : 'none'; } }
 
