@@ -102,9 +102,12 @@ addEventListener('message',async e=>{
   else if(m.t==='plan'){const n=(m.put||[]).length+(m.get||[]).length;let i=0;$('prB').hidden=false;
    for(const f of m.put||[]){await putFile(f.r,f.p,f.data);$('prB').value=++i/n;}
    if((m.put||[]).length)log('logB',m.put.length+' Dateien aufs Gerät');
-   const got=[],tr=[];for(const f of m.get||[]){const d=await getFile(f.r,f.p);got.push({r:f.r,p:f.p,data:d});tr.push(d);$('prB').value=++i/n;}
-   if(got.length)log('logB',got.length+' Dateien vom Gerät');
-   send({t:'result',got,files:await manifest(m.rec)},tr);log('logB','Zurück zur App …');}
+   // geholte Dateien in Haeppchen (~8 MB) schicken: grosse Bibliotheken sprengen sonst den Speicher (iPhone)
+   let got=[],tr=[],sz=0,cnt=0;
+   for(const f of m.get||[]){const d=await getFile(f.r,f.p);got.push({r:f.r,p:f.p,data:d});tr.push(d);sz+=d.byteLength;cnt++;$('prB').value=++i/n;
+    if(sz>=8e6){send({t:'chunk',got,done:i,total:n},tr);got=[];tr=[];sz=0;}}
+   if(cnt)log('logB',cnt+' Dateien vom Gerät');
+   send({t:'result',got,files:await manifest(m.rec)},tr);if(m.last!==false)log('logB','Zurück zur App …');}
   else if(m.t==='done'){log('logB',m.text||'Fertig','ok');$('prB').value=1;setTimeout(()=>{try{window.close();}catch(x){}},2500);}
  }catch(err){log('logB','Fehler: '+err.message,'bad');send({t:'error',text:err.message});}
 });

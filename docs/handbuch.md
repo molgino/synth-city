@@ -490,7 +490,7 @@ Was es nur am Gerät gibt: USB-Audio, MIDI, USB-Modus, Akku, Bild-Versatz. Diese
    * **Beides abgleichen**: Neues und Geändertes wird in beide Richtungen kopiert. Wurde eine Datei auf beiden Seiten geändert, bleiben beide erhalten – der Handy-Stand heißt dann „Name (Handy)“.
 3. Es öffnet sich ein zweites Fenster vom Gerät: dort **Erlauben** tippen. Hält das Handy eines der Fenster an, einfach zwischen beiden hin- und herwechseln; der Abgleich läuft in wenigen großen Schritten weiter.
 
-Gelöscht wird beim Sync nichts. Samples lassen sich abwählen, Aufnahmen (samples/rec) sind nur auf Wunsch dabei. Ist auf dem Gerät gerade das Projekt offen, das vom Handy kommt, lädt es das Gerät neu – außer es spielt oder hat ungespeicherte Änderungen (dann ein Hinweis, neu laden über PRJ).
+Gelöscht wird beim Sync nichts. Erst kommen Projekte und Sounds, dann die Samples – Standard **„nur benutzte“**: nur die Samples, die in den Projekten und Sounds vorkommen (die ganze Bibliothek wäre fürs Handy oft zu groß). Wählbar sind auch „alle“ oder „keine“. Große Mengen gehen in Häppchen, der Balken zeigt den Fortschritt. Aufnahmen (samples/rec) sind nur auf Wunsch dabei. Ist auf dem Gerät gerade das Projekt offen, das vom Handy kommt, lädt es das Gerät neu – außer es spielt oder hat ungespeicherte Änderungen (dann ein Hinweis, neu laden über PRJ).
 
 **Ohne Verbindung (ZIP)**: In der App „Als ZIP sichern“ (Teilen → Dateien, AirDrop …) und „ZIP einspielen“. Am Gerät gibt es dasselbe im Browser unter **http://192.168.77.1/sync**: alles als ZIP herunterladen oder ein ZIP einspielen. So kommen Daten auch dann hin und her, wenn das zweite Fenster nicht geht.
 
