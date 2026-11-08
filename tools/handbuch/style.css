@@ -1,0 +1,57 @@
+/* SYNTH CITY Handbuch: helle, druckbare Innenseiten mit Neon-Akzenten, dunkle Titelseite */
+:root { --ink: #1b1630; --dim: #6b6488; --acc: #e0257a; --cy: #0aa7c4; --line: #e4e0f0; --panel: #f6f4fb; --dark: #0b0716; }
+@page { size: A4; margin: 18mm 17mm 20mm 17mm;
+  @bottom-center { content: counter(page); font: 9pt "DejaVu Sans", sans-serif; color: #8a83a8; }
+  @top-right { content: "SYNTH CITY · Handbuch"; font: 8pt "DejaVu Sans", sans-serif; color: #b0aac8; } }
+@page cover { margin: 0; @bottom-center { content: none; } @top-right { content: none; } }
+@page toc { @top-right { content: none; } }
+* { box-sizing: border-box; }
+html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+body { margin: 0; color: var(--ink); font: 10pt/1.5 "DejaVu Sans", "Liberation Sans", Arial, sans-serif; }
+
+/* Titelseite */
+.cover { page: cover; height: 297mm; width: 210mm; background: radial-gradient(ellipse at 50% 30%, #2a0f45 0%, #120a26 55%, #07040f 100%);
+  color: #fff; display: flex; flex-direction: column; justify-content: space-between; padding: 30mm 20mm 18mm; break-after: page; }
+.kicker { letter-spacing: .35em; font-size: 10pt; color: #7fe8ff; }
+.cover-title { font-size: 54pt; letter-spacing: .12em; margin: 6mm 0 2mm; font-weight: 800;
+  text-shadow: -3px 0 #ff2e88, 3px 0 #00e0ff, 0 0 18px rgba(255, 46, 136, .55); }
+.cover-sub { font-size: 20pt; letter-spacing: .3em; color: #ffb3d6; }
+.cover-img { width: 100%; border-radius: 6px; box-shadow: 0 0 0 2px #000, 0 0 40px rgba(255, 46, 136, .45); image-rendering: pixelated; }
+.cover-meta { color: #a89fd0; font-size: 9pt; letter-spacing: .1em; }
+
+/* Inhaltsverzeichnis */
+.toc { page: toc; break-after: page; }
+.toc-title { margin-top: 0; }
+.toc ol { columns: 2; column-gap: 10mm; padding-left: 6mm; margin: 0; font-size: 9.5pt; }
+.toc li { margin: 0 0 1.6mm; break-inside: avoid; }
+.toc a { color: var(--ink); text-decoration: none; }
+.toc li::marker { color: var(--acc); font-weight: 700; }
+
+/* Ueberschriften */
+h2 { font-size: 16pt; margin: 9mm 0 3mm; padding-bottom: 1.5mm; break-after: avoid; color: var(--ink);
+  border-bottom: 2px solid transparent; border-image: linear-gradient(90deg, var(--acc), var(--cy)) 1; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: var(--acc); break-after: avoid; }
+main > h2:first-child { margin-top: 0; }
+p { margin: 0 0 2.5mm; }
+strong { color: #000; }
+a { color: var(--cy); }
+ul, ol { margin: 0 0 3mm; padding-left: 5.5mm; }
+li { margin: 0 0 1mm; }
+li::marker { color: var(--acc); }
+code { font: 8.6pt "DejaVu Sans Mono", monospace; background: var(--panel); border: 1px solid var(--line); border-radius: 3px; padding: 0 1mm; }
+pre { background: var(--dark); color: #d6eeff; border-radius: 4px; padding: 3mm 4mm; overflow: hidden; break-inside: avoid; }
+pre code { background: none; border: 0; color: inherit; padding: 0; white-space: pre-wrap; }
+
+/* Tabellen */
+table { width: 100%; border-collapse: collapse; margin: 2mm 0 4mm; font-size: 9pt; break-inside: auto; }
+th { background: var(--dark); color: #fff; text-align: left; padding: 1.6mm 2.4mm; font-weight: 700; }
+td { padding: 1.4mm 2.4mm; border-bottom: 1px solid var(--line); vertical-align: top; }
+tr:nth-child(even) td { background: var(--panel); }
+tr { break-inside: avoid; }
+td:first-child { font-weight: 700; white-space: nowrap; }
+
+/* Screenshots */
+figure { display: block; margin: 4mm auto 5mm; text-align: center; break-inside: avoid; page-break-inside: avoid; }
+figure img { display: block; margin: 0 auto; width: 128mm; max-width: 100%; border: 1.5px solid #000; border-radius: 4px; image-rendering: pixelated; }
+figcaption { margin-top: 2mm; font-size: 8.5pt; color: var(--dim); }
+figcaption::before { content: "▲ "; color: var(--acc); }

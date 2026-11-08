@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Baut das ArkOS-Paket dist/r36s-groovebox-arkos.zip aus arkos/ + groovebox-aarch64 + README.
+# Baut das ArkOS-Paket dist/r36s-groovebox-arkos.zip aus arkos/ + groovebox-aarch64 + Handbuch (PDF, sonst Markdown).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 [ -f groovebox-aarch64 ] || ./tools/cross-build.sh
@@ -8,7 +8,7 @@ cp -r arkos/. "$STAGE/"
 cp groovebox-aarch64 "$STAGE/groovebox/groovebox"
 chmod +x "$STAGE/groovebox/groovebox" "$STAGE"/*.sh "$STAGE/groovebox/pc-modus.sh"
 mkdir -p "$STAGE/groovebox/projects"
-cp README.md "$STAGE/groovebox/LIESMICH.md"
+if [ -f dist/SYNTH-CITY-Handbuch.pdf ]; then cp dist/SYNTH-CITY-Handbuch.pdf "$STAGE/groovebox/"; else cp docs/handbuch.md "$STAGE/groovebox/HANDBUCH.md"; fi
 git rev-parse --short HEAD > "$STAGE/groovebox/VERSION" 2>/dev/null || echo dev > "$STAGE/groovebox/VERSION"
 mkdir -p dist
 rm -f dist/r36s-groovebox-arkos.zip

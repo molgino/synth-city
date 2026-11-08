@@ -79,5 +79,5 @@ jobs:
           gh release delete os-nightly --yes --cleanup-tag || true
           gh release create os-nightly os/out/r36s-groovebox-os.img.xz --prerelease \
             --title "SYNTH CITY OS (Test, $(git rev-parse --short HEAD))" \
-            --notes "Eigenes SD-Karten-Image fuer den R36S. Mit balenaEtcher oder Raspberry Pi Imager auf eine ZWEITE microSD-Karte schreiben. Anleitung im README (Abschnitt Groovebox-OS)." \
+            --notes "Eigenes SD-Karten-Image fuer den R36S. Mit balenaEtcher oder Raspberry Pi Imager auf eine ZWEITE microSD-Karte schreiben. Anleitung im Handbuch (SYNTH-CITY-Handbuch.pdf im Release nightly, Abschnitt Groovebox-OS)." \
             --target "$GITHUB_SHA"

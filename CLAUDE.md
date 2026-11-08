@@ -1,7 +1,7 @@
 # SYNTH CITY (R36S-Groovebox) – Projektkontext
 
 Name **SYNTH CITY** (Repo `molgino/synth-city`, vorher R36s-Groovebox; interne Pfade/Binary/Dienst heißen weiter `groovebox`). Neo-Noir-/Synthwave-Optik (eigene Gestaltung, keine geschützten Film-Namen/Logos): Palette `C_*` + Neon-`TCOL`, Kopfzeilen-Linie Magenta→Cyan, Scanlines in `drawAll`, Splashscreen `drawSplash/runSplash` (Shot-Seite 40, `GB_SPLASH_T`, abschaltbar `GB_NOSPLASH`). Elektron-artige Groovebox (C++/SDL2, ALSA) für den Handheld **R36S** (RK3326, ArkOS 2.0, Kernel 4.4.189, glibc 2.30).
-Sprache mit dem Nutzer: **Deutsch**. Anleitung für Nutzer: `README.md`.
+Sprache mit dem Nutzer: **Deutsch**. Anleitung für Nutzer: **`docs/handbuch.md`** (Quelle des PDF-Handbuchs; neue Funktionen dort beschreiben, Bilder per `![Unterschrift](shot:N)` mit N wie bei `--shot`). `tools/handbuch/build.py` (+ `style.css`) erzeugt `dist/SYNTH-CITY-Handbuch.pdf` (python-markdown, Pillow, Chrome headless; `--html` behält HTML), CI-Schritt im Build-Job, Asset in allen Releases, im ArkOS-Paket. `README.md` ist nur noch Kurzüberblick + Entwickler-Teil.
 
 ## Aufbau
 - `src/engine.*` Sequencer + 13 Engines (KICK SNARE HAT CLAP SYNTH FM SMPL TOM RIM SHKR WTBL CHOP GRAN – Enum-Werte nur hinten anfügen, Anzeige-Reihenfolge `MACHINE_ORDER`), Wavetables `buildWavetables`, Insert-FX, Effekt-Busse (`fxbus.cpp`), Kompressor mit Sidechain; Mikrotiming `P_MTIM` (`pend`/`preDone`, negative Werte werden einen Step früher geplant)
