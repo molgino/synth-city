@@ -80,6 +80,9 @@ jobs:
             rm -rf "pages/$GITHUB_REF_NAME"; mkdir -p "pages/$GITHUB_REF_NAME"; cp -r dist/webapp/. "pages/$GITHUB_REF_NAME/"
           fi
           touch pages/.nojekyll
+          if [ ! -f pages/synthcity.js ]; then   # noch keine Version von main: Startseite leitet auf die neueste Testversion
+            printf '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=%s/"><title>SYNTH CITY</title><a href="%s/">SYNTH CITY (%s)</a>\n' "$GITHUB_REF_NAME" "$GITHUB_REF_NAME" "$GITHUB_REF_NAME" > pages/index.html
+          fi
           cd pages && git add -A && (git diff --cached --quiet || git commit -q -m "Web-App ${GITHUB_REF_NAME} ($(git -C .. rev-parse --short HEAD))") && git push origin gh-pages
 
   build:
