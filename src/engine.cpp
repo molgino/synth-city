@@ -1475,6 +1475,27 @@ void Engine::songStart(int pos) {
 }
 
 // Trig-Bedingung pruefen (Digitone-II-Stil). Ergebnis wird fuer PRE/NEI gemerkt.
+long Engine::masterTicks() const {
+    if (!songActive() && proj.pat[curPat].chg) return (long)proj.pat[curPat].chg * 12;   // CHG: Wechsel nach festen Steps
+    const Project::SongRow* row = songRow();
+    long master = 0;
+    for (int t = 0; t < NTRACKS; t++) {
+        if (row && row->pat[t] == SONG_EMPTY) continue;   // leere Zelle bestimmt die Zeilenlaenge nicht
+        const Pattern& P = TP(t);
+        long l = (long)(P.len[t] < 1 ? 1 : P.len[t]) * SPEED_TPS[P.speed[t] % 7];
+        if (l > master) master = l;
+    }
+    return master > 0 ? master : 16 * 12;
+}
+bool Engine::lastPass(int t) const {
+    bool change;
+    if (songActive()) { int rep = proj.row[songPos % proj.songLen].rep; if (rep < 1) rep = 1; change = songRep + 1 >= rep; }
+    else change = nextPat >= 0;
+    if (!change) return false;
+    const Pattern& P = TP(t);
+    long loopLeft = (long)(P.len[t] < 1 ? 1 : P.len[t]) * SPEED_TPS[P.speed[t] % 7] - trackTick[t];
+    return masterTicks() - patTick <= loopLeft;   // der Wechsel faellt in diesen Durchlauf
+}
 bool Engine::condOk(int t, int c) {
     if (c <= CND_NONE || c >= CND_COUNT) return true;
     bool r;
@@ -1487,6 +1508,8 @@ bool Engine::condOk(int t, int c) {
     case CND_NNEI: r = t > 0 ? !lastCond[t - 1] : true; break;
     case CND_1ST: r = loopCount[t] == 0; break;
     case CND_N1ST: r = loopCount[t] != 0; break;
+    case CND_LAST: r = lastPass(t); break;
+    case CND_NLAST: r = !lastPass(t); break;
     default: {
         int a, b; bool ng; condDecode(c, a, b, ng);
         r = (loopCount[t] % b) == a - 1;
@@ -1638,8 +1661,7 @@ void Engine::doTick() {
             for (int t = 0; t < NTRACKS; t++) resetSeq(t);
         }
     }
-    const Project::SongRow* row = songRow();
-    long master = 0;
+    long master = masterTicks();
     for (int t = 0; t < NTRACKS; t++) {
         const Pattern& P = TP(t);
         int tps = SPEED_TPS[P.speed[t] % 7];
@@ -1647,11 +1669,7 @@ void Engine::doTick() {
         trackTick[t]++;
         int len = P.len[t] < 1 ? 1 : P.len[t];
         if (trackTick[t] >= len * tps) trackTick[t] = 0;
-        if (row && row->pat[t] == SONG_EMPTY) continue;   // leere Zelle bestimmt die Zeilenlaenge nicht
-        long l = (long)len * tps;
-        if (l > master) master = l;
     }
-    if (master <= 0) master = 16 * 12;
     if (++patTick >= master) {
         patTick = 0;
         if (songActive()) {   // Song: Wiederholungen zaehlen, dann naechste Zeile
@@ -2024,6 +2042,15 @@ bool Engine::load(const char* path) {
     Project* np = nullptr;
     if (ok && ver == PROJECT_VERSION && size >= (long)sizeof(Project)) {   // dahinter evtl. Sample-Namensliste
         memcpy(&proj, buf, sizeof(Project));
+    } else if (ok && ver == 14 && size >= (long)PROJECT_V14_SIZE) {   // v14: Patterns ohne chg (Wechsel-Laenge) -> AUTO
+        np = (Project*)calloc(1, sizeof(Project));
+        memcpy(np, buf, 20);
+        for (int pi = 0; pi < NPATTERNS; pi++) memcpy(&np->pat[pi], buf + 20 + (long)pi * V14_PAT_SIZE, V14_PAT_SIZE);
+        const uint8_t* r = buf + 20 + (long)NPATTERNS * V14_PAT_SIZE;
+        memcpy(np->cmp, r, (size_t)(PROJECT_V14_SIZE - (r - buf)));
+        np->version = PROJECT_VERSION;
+        memcpy(&proj, np, sizeof(Project));
+        free(np); np = nullptr;
     } else if (ok && ver == 13 && size >= (long)PROJECT_V13_SIZE) {   // v13: 128 Parameter -> 168 (Huellkurven, LFO-Ziele)
         np = (Project*)calloc(1, sizeof(Project));
         memcpy(np, buf, 20);

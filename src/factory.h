@@ -121,7 +121,7 @@ static inline int factoryByName(const char* nm) {
 }
 
 static inline int condAB(int a, int b) {   // Trig-Bedingung a:b (a-ter von b Durchlaeufen)
-    for (int v = CND_AB; v < CND_COUNT; v++) { int x, y; bool ng; condDecode(v, x, y, ng); if (x == a && y == b && !ng) return v; }
+    for (int v = CND_AB; v < CND_AB_END; v++) { int x, y; bool ng; condDecode(v, x, y, ng); if (x == a && y == b && !ng) return v; }
     return CND_NONE;
 }
 

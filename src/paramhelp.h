@@ -6,7 +6,7 @@ static const ParamHelp PARAM_HELP[] = {
     {"NOTE", "Tonhöhe des Steps", "Pitch of the step"}, {"VEL", "Anschlagstärke (Lautstärke des Trigs)", "Velocity (loudness of the trig)"}, {"LEN", "Notenlänge", "Note length"},
     {"PROB", "Wahrscheinlichkeit, dass der Trig spielt", "Probability that the trig plays"}, {"RTRG", "Wiederholungen innerhalb des Steps (Ratchet)", "Repeats within the step (ratchet)"},
     {"MTIM", "Mikrotiming: Trig etwas früher oder später", "Microtiming: trig slightly earlier or later"}, {"ENGINE", "Klangerzeuger der Spur", "Sound engine of the track"},
-    {"COND", "Bedingung: z. B. nur jeder 2. Durchlauf", "Condition, e.g. only every 2nd pass"},
+    {"COND", "Bedingung, z. B. 1:2 oder LAST (X = Liste)", "Condition, e.g. 1:2 or LAST (X = list)"},
     {"FREQ", "Grenzfrequenz: wie hell der Klang ist", "Cutoff: how bright the sound is"}, {"RESO", "Resonanz: betont die Grenzfrequenz", "Resonance: emphasises the cutoff"},
     {"TYPE", "Art des Filters bzw. Effekts", "Type of filter or effect"}, {"ENV", "wie stark die Hüllkurve das Filter öffnet", "How much the envelope opens the filter"},
     {"F.ATK", "Filter-Hüllkurve: Einschwingzeit", "Filter envelope: attack time"}, {"F.DEC", "Filter-Hüllkurve: Abklingzeit", "Filter envelope: decay time"},

@@ -73,7 +73,7 @@ static void touchDown(TouchPtr& t, int x, int y, Uint32 now) {
     case HK_BTN: t.emuBtn = true; t.btn = h->a; touchEmuDown(h->a); break;
     case HK_YES: remoteHit[BT_A] = true; break;
     case HK_NO: remoteHit[BT_B] = true; break;
-    case HK_PRJ: t.wasSel = slot == h->a; slot = h->a; break;
+    case HK_PRJ: t.wasSel = prjSel == h->a; prjSel = h->a; break;
     case HK_SET: t.wasSel = setSel == h->a && setIn; setSel = h->a; setIn = true; break;
     case HK_SONG: t.wasSel = songSel == h->a && songCol == h->b; songSel = h->a; songCol = h->b; break;
     case HK_BLOCK: if (menuOpen) menuOpen = false; break;   // neben die Karte getippt: schliessen
@@ -87,14 +87,14 @@ static void touchDown(TouchPtr& t, int x, int y, Uint32 now) {
 static void touchUp(TouchPtr& t, Uint32 now) {
     bool tap = !t.moved && now - t.t0 < 500;
     if (tap) {
-        if (t.kind == HK_PRJ) prjTrigger(t.a);
+        if (t.kind == HK_PRJ) { if (t.b) prjValue(t.a, t.b); else if (!prjIsValue(t.a) || t.a == PI_MUTATE) prjActivate(t.a); }   // +/- bzw. Feld antippen = ausfuehren
         if (t.kind == HK_FBROW && fbOpen && t.a < fbN) {   // Liste: nochmal antippen = waehlen/oeffnen, erstes Antippen bei Samples = vorhoeren
             if (t.wasSel) fbPick();
             else if (fbMode == FB_SAMPLE && !fbEnt[t.a].dir) fbPreview();
         }
         if (t.kind == HK_SLOT && t.wasSel && trackPage(page)) {   // nochmal antippen: Liste wie X (nur Sonderregler)
             ParamDef d; int v, bv; bool lk; char lb[24];
-            if (knobInfo(t.a, d, v, lk, bv, lb, sizeof lb) && (d.kind == K_SMPL || d.kind == K_LDEST || d.kind == K_EDEST || d.kind == K_MACH || d.kind == K_WDRAW)) remoteHit[BT_X] = true;
+            if (knobInfo(t.a, d, v, lk, bv, lb, sizeof lb) && (d.kind == K_SMPL || d.kind == K_LDEST || d.kind == K_EDEST || d.kind == K_MACH || d.kind == K_WDRAW || d.kind == K_COND)) remoteHit[BT_X] = true;
         }
         if ((t.kind == HK_SET && t.wasSel && setIsAction(t.a)) || (t.kind == HK_SONG && t.wasSel)) remoteHit[BT_A] = true;
     }

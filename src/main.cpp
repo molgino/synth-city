@@ -1972,7 +1972,7 @@ static void paramSymbol(const ParamDef& d, int val, float fr, int x, int y, int 
         return;
     }
     if (d.kind == K_COND) {   // Punkte: A von B
-        if (val >= CND_AB) {
+        if (condIsAB(val)) {
             int a, b; bool ng; condDecode(val, a, b, ng);
             int r = w / (b * 2 + 1); if (r > 6) r = 6;
             int cur2 = (int)(animTime * 3.f) % b; for (int i = 0; i < b; i++) { bool on = (i == a - 1) != ng; int px = x + (i * 2 + 1) * w / (b * 2); if (on) disc(px, cy, r, i == cur2 ? C_PLAY : c); else ring(px, cy, r, 1, i == cur2 ? C_TEXT : C_DIM); }
@@ -3280,6 +3280,7 @@ static void drawDrive();
 static bool isGrooveboxOS();
 static void runBench(const char* outPath, bool onDevice);
 static bool touchBlocked();
+static void drawPrj();
 static void drawAll(bool help) {
     nHits = 0; hitModalAt = 0;
     if (slot >= nSlots()) slot = nSlots() - 1;   // von einer Seite mit 12 Reglern gekommen
@@ -3290,6 +3291,7 @@ static void drawAll(bool help) {
     else if (page == PG_SONG) drawSong();
     else if (page == PG_LIVE) { drawLive(); drawOverlays(); }
     else if (page == PG_SMPR) { drawSampler(); drawOverlays(); }
+    else if (page == PG_PRJ) { drawPrj(); drawOverlays(); }
     else if (trackPage(page)) { drawSigB(); drawOverlays(); }
     else { drawKnobs(); drawGrid(); drawSteps(); }
     if (help) drawHelp();
@@ -3500,7 +3502,11 @@ static void editValue(int delta) {
         int ty = P.p[track][P_ITYP];
         if (ty <= 0 || ty >= INS_COUNT || (slot <= 3 && INS_PNAMES[ty][slot - 1][0] == '-')) return;
     }
-    if (d.kind == K_TLEN) { P.len[track] = (uint8_t)clampi(P.len[track] + delta, 1, NSTEPS); return; }
+    if (d.kind == K_TLEN) {   // |delta| >= 16: auf das naechste Vielfache von 16 (Taste halten)
+        int l = P.len[track];
+        int n = delta >= 16 ? (l / 16 + 1) * 16 : (delta <= -16 ? ((l - 1) / 16) * 16 : l + delta);
+        P.len[track] = (uint8_t)clampi(n, 1, NSTEPS); return;
+    }
     if (d.kind == K_TSPD) { P.speed[track] = (uint8_t)clampi(P.speed[track] + (delta > 0 ? 1 : -1), 0, 6); return; }
     if (d.kind == K_LDEST || d.kind == K_EDEST) {   // Ziel: naechster gueltiger Parameter (Huellkurve: nach "aus" kommt VCA)
         int cur = aHeld && holdS().lock[idx] != NO_LOCK ? holdS().lock[idx] : P.p[track][idx];
@@ -3635,7 +3641,7 @@ static void runAction(int act, int arg) {
         doSaveProjectAs(nm);
         toast(TR("DEMO '%s' GELADEN - START DRÜCKEN", "DEMO '%s' LOADED - PRESS START"), nm);
     } break;
-    case ACT_PASTE: lockA(); curP() = clip; unlockA(); toast(TR("PATTERN EINGEFÜGT", "PATTERN PASTED")); break;
+    case ACT_PASTE: lockA(); eng.proj.pat[arg % NPATTERNS] = clip; unlockA(); toast(TR("PATTERN %02d EINGEFÜGT", "PATTERN %02d PASTED"), arg % NPATTERNS + 1); break;
     case ACT_CLEARTRK:
         lockA();
         for (int st = 0; st < NSTEPS; st++) { curP().s[arg][st].on = 0; memset(curP().s[arg][st].lock, NO_LOCK, NPARAMS); }
@@ -3644,9 +3650,10 @@ static void runAction(int act, int arg) {
         break;
     case ACT_CLEARPAT:
         lockA();
-        for (int t = 0; t < NTRACKS; t++) for (int st = 0; st < NSTEPS; st++) { curP().s[t][st].on = 0; memset(curP().s[t][st].lock, NO_LOCK, NPARAMS); }
+        { Pattern& CP = eng.proj.pat[arg % NPATTERNS];
+          for (int t = 0; t < NTRACKS; t++) for (int st = 0; st < NSTEPS; st++) { CP.s[t][st].on = 0; memset(CP.s[t][st].lock, NO_LOCK, NPARAMS); } }
         unlockA();
-        toast(TR("PATTERN %02d GELEERT", "PATTERN %02d CLEARED"), curPi() + 1);
+        toast(TR("PATTERN %02d GELEERT", "PATTERN %02d CLEARED"), arg % NPATTERNS + 1);
         break;
     case ACT_QUIT: quitReq = true; break;
     case ACT_INIT: {
@@ -3724,6 +3731,7 @@ static int setCatOf(int i) { while (i > 0 && !setIsHeader(i)) i--; return i; }  
 static int setCatEnd(int h) { int e = h + 1; while (e < SI_COUNT && !setIsHeader(e)) e++; return e; }
 // Eintraege, die es auf dieser Plattform nicht gibt (Handy-App im Browser: kein USB, MIDI, Akku, Bild-Versatz ...)
 static bool setHidden(int i) {
+    if (setCatOf(i) == SI_H_PAT && i != SI_H_PAT && i != SI_FILL && i != SI_UNDO && i != SI_REDO) return true;   // Pattern-Funktionen: PRJ-Seite, Tempo/Swing/Skala: MST
 #ifdef __EMSCRIPTEN__
     int h = setCatOf(i);
     if (h == SI_H_MIDI || h == SI_H_USB || h == SI_H_UAUD || h == SI_H_ROUTE) return true;
@@ -4022,13 +4030,14 @@ static void setChange(int i, int d) {
 static uint32_t mutRnd = 0x1234567u;
 static float mrand() { mutRnd ^= mutRnd << 13; mutRnd ^= mutRnd >> 17; mutRnd ^= mutRnd << 5; return (mutRnd >> 8) * (1.f / 16777216.f); }
 // Variation des aktuellen Patterns: Trigs dazu/weg, Velocity, Toene in der Skala, gelegentliche Ratchets/Mikrotiming
-static void mutatePattern() {
+static void mutatePattern(int pi = -1) {
+    if (pi < 0) pi = curPi();
     static const float AMT[3] = {0.08f, 0.16f, 0.30f};
     float a = AMT[mutAmt % 3];
     mutRnd ^= SDL_GetTicks() * 2654435761u;
     lockA();
-    Pattern& P = curP();
-    mutUndo = P; haveMutUndo = true; mutPat = curPi();
+    Pattern& P = eng.proj.pat[pi % NPATTERNS];
+    mutUndo = P; haveMutUndo = true; mutPat = pi % NPATTERNS;
     int sv = curScale();
     for (int t = 0; t < NTRACKS; t++) {
         int len = P.len[t] < 1 ? 1 : P.len[t];
@@ -4065,8 +4074,9 @@ static void mutatePattern() {
     }
     unlockA();
     const char* const AM[3] = {TR("LEICHT", "LIGHT"), TR("MITTEL", "MEDIUM"), TR("STARK", "STRONG")};
-    toast(TR("PATTERN %02d MUTIERT (%s)", "PATTERN %02d MUTATED (%s)"), curPi() + 1, AM[mutAmt % 3]);
+    toast(TR("PATTERN %02d MUTIERT (%s)", "PATTERN %02d MUTATED (%s)"), pi % NPATTERNS + 1, AM[mutAmt % 3]);
 }
+#include "prjpage.inc"   // PRJ-Seite (Projekt, Pattern, Sound)
 
 static bool isGrooveboxOS() { struct stat st; return stat("/etc/groovebox-os", &st) == 0; }
 static void reloadSamples();
@@ -4152,10 +4162,10 @@ static void setAction(int i) {
     switch (i) {
     case SI_COPY: clip = curP(); haveClip = true; toast(TR("PATTERN %02d KOPIERT", "PATTERN %02d COPIED"), curPi() + 1); break;
     case SI_PASTE:
-        if (haveClip) askConfirm(ACT_PASTE, 0, TR("PATTERN %02d MIT KOPIE ÜBERSCHREIBEN?", "OVERWRITE PATTERN %02d WITH COPY?"), curPi() + 1);
+        if (haveClip) askConfirm(ACT_PASTE, curPi(), TR("PATTERN %02d MIT KOPIE ÜBERSCHREIBEN?", "OVERWRITE PATTERN %02d WITH COPY?"), curPi() + 1);
         else toast(TR("ZWISCHENABLAGE LEER", "CLIPBOARD EMPTY"));
         break;
-    case SI_CLEAR: askConfirm(ACT_CLEARPAT, 0, TR("ALLE STEPS VON PATTERN %02d LÖSCHEN?", "CLEAR ALL STEPS OF PATTERN %02d?"), curPi() + 1); break;
+    case SI_CLEAR: askConfirm(ACT_CLEARPAT, curPi(), TR("ALLE STEPS VON PATTERN %02d LÖSCHEN?", "CLEAR ALL STEPS OF PATTERN %02d?"), curPi() + 1); break;
     case SI_CLRTRK: askConfirm(ACT_CLEARTRK, track, TR("ALLE STEPS VON SPUR %d LÖSCHEN?", "CLEAR ALL STEPS OF TRACK %d?"), track + 1); break;
     case SI_TMPL: applyRhythm(tmplSel); break;
     case SI_UNDO: undoStep(); break;
@@ -4771,6 +4781,7 @@ static void handleInput(Uint32 now, float dt) {
     if (page == PG_SONG && !func) { songInput(I, now); return; }
     if (page == PG_LIVE && !func) { liveInput(I, now, dt); return; }
     if (page == PG_SMPR && !func) { samplerInput(I, now); return; }
+    if (page == PG_PRJ && !func) { prjInput(I, now); return; }
 
     if (func) {
         if (I.pressed(BT_LEFT) || I.pressed(BT_RIGHT)) {
@@ -4943,10 +4954,18 @@ static void handleInput(Uint32 now, float dt) {
                     if (sd.kind == K_WDRAW && !aHeld) { openWtEditor(); return; }
                     if (sd.kind == K_LDEST || sd.kind == K_EDEST) { fbParam = slotParam(slot); openBrowser(FB_LDEST); return; }
                     if (sd.kind == K_MACH && !aHeld) { openBrowser(FB_MACH); return; }
+                    if (sd.kind == K_COND) { fbParam = slotParam(slot); openBrowser(FB_COND); return; }
                 }
             }
+            bool lenTile = false;
+            { ParamDef ld; int lv, lb; bool ll; char lab[24]; lenTile = trackPage(page) && knobInfo(slot, ld, lv, ll, lb, lab, sizeof lab) && ld.kind == K_TLEN; }
+            if (lenTile) {   // Spurlaenge: tippen = +-1 Step, halten = in 16er-Schritten
+                if (I.repeat(BT_X, now, 350, 140)) editValue(I.heldMs(BT_X, now) > 340 ? 16 : 1);
+                if (I.repeat(BT_Y, now, 350, 140)) editValue(I.heldMs(BT_Y, now) > 340 ? -16 : -1);
+            } else {
             if (I.repeat(BT_X, now, 300, 45)) editValue(mul);
             if (I.repeat(BT_Y, now, 300, 45)) editValue(-mul);
+            }
             float ry = rsAxis == 1 ? I.ry : 0.f;
             if (fabsf(ry) > 0.25f) {
                 float dz = (fabsf(ry) - 0.25f) / 0.75f;
@@ -5504,6 +5523,7 @@ int main(int argc, char** argv) {
             if (shotPage == 53) { page = PG_PRJ; track = 4; openBrowser(FB_PRESET); fbPick(); fbSel = 3; }
         }
         if (shotPage == 54) { page = PG_TRG; track = 4; slot = 6; openBrowser(FB_MACH); }   // Engine-Liste
+        if (shotPage == 56) { page = PG_TRG; track = 4; slot = 7; curP().p[4][P_COND] = CND_AB + 1; fbParam = P_COND; openBrowser(FB_COND); }   // Bedingungs-Liste
         if (shotPage == 55) { page = PG_LFO1; track = 4; slot = LF_DEST; fbParam = P_L1 + LF_DEST; openBrowser(FB_LDEST); }   // LFO-Ziel-Liste
         if (shotPage == 26) { page = PG_PRJ; slot = 1; askConfirm(ACT_LOAD, 2, "SONG 03 LADEN? UNGESPEICHERTES GEHT VERLOREN"); }
         if (page == PG_SRC && curP().machine[track] == M_SAMPLE) { }

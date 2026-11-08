@@ -193,7 +193,7 @@ static void drawKeyboard() {
 
 // ---------------------------------------------------------------- Explorer
 
-enum { FB_SAMPLE = 1, FB_PROJECT, FB_PRESET, FB_LDEST, FB_MACH };
+enum { FB_SAMPLE = 1, FB_PROJECT, FB_PRESET, FB_LDEST, FB_MACH, FB_COND };
 struct FbEnt { char name[96]; bool dir; int idx; };
 static int fbMode = 0, fbSel = 0, fbN = 0, fbOrig = -1, fbOrigLib = -1;   // Samples: Pool-Platz bzw. Bibliotheksindex beim Oeffnen
 static float fbScroll = 0;
@@ -239,8 +239,39 @@ static int fbCurValue() {   // aktueller Wert des Reglers, fuer den die Liste of
     if (fbMode == FB_MACH) return curP().machine[track];
     return aHeld && holdS().lock[fbParam] != NO_LOCK ? holdS().lock[fbParam] : curP().p[track][fbParam];
 }
+// Trig-Bedingungen: Erklaerung je Wert (Liste FB_COND)
+static const char* condHelp(int v) {
+    switch (v) {
+    case CND_NONE: return TR("keine Bedingung: Trig spielt immer", "no condition: trig always plays");
+    case CND_FILL: return TR("nur solange FILL aktiv ist", "only while FILL is active");
+    case CND_NFILL: return TR("nur ohne FILL", "only without FILL");
+    case CND_PRE: return TR("wenn die letzte Bedingung dieser Spur galt", "if this track's last condition was true");
+    case CND_NPRE: return TR("wenn die letzte Bedingung dieser Spur nicht galt", "if this track's last condition was false");
+    case CND_NEI: return TR("wenn die letzte Bedingung der Spur davor galt", "if the previous track's last condition was true");
+    case CND_NNEI: return TR("wenn sie bei der Spur davor nicht galt", "if it was false on the previous track");
+    case CND_1ST: return TR("nur im ersten Durchlauf", "only on the first pass");
+    case CND_N1ST: return TR("in jedem Durchlauf außer dem ersten", "on every pass except the first");
+    case CND_LAST: return TR("nur im letzten Durchlauf vor einem Pattern-Wechsel", "only on the last pass before a pattern change");
+    case CND_NLAST: return TR("in jedem Durchlauf außer dem letzten vor dem Wechsel", "on every pass except the last before a change");
+    }
+    static char b[64];
+    if (condIsAB(v)) { int a, bb; bool ng; condDecode(v, a, bb, ng);
+        snprintf(b, sizeof b, ng ? TR("außer im %d. von %d Durchläufen", "except on pass %d of %d") : TR("im %d. von %d Durchläufen", "on pass %d of %d"), a, bb); return b; }
+    return "";
+}
 static void fbBuild() {
     fbN = 0;
+    if (fbMode == FB_COND) {   // Wurzel: einfache Bedingungen + je Zyklus (x:2 .. x:8) ein Ordner
+        if (!fbDir[0]) {
+            for (int v = CND_NONE; v < CND_AB; v++) { char b[16]; fmtParam(paramDef(0, P_COND), v, b, sizeof b); fbAdd(b, false, v); }
+            fbAdd("LAST", false, CND_LAST); fbAdd("!LAST", false, CND_NLAST);
+            for (int bb = 2; bb <= 8; bb++) { char d[16]; snprintf(d, sizeof d, "x:%d", bb); fbAdd(d, true, bb); }
+        } else {
+            int bb = atoi(fbDir + 2);
+            for (int ng = 0; ng < 2; ng++)
+                for (int v = CND_AB; v < CND_AB_END; v++) { int a, b2; bool n2; condDecode(v, a, b2, n2); if (b2 == bb && (int)n2 == ng) { char t[16]; snprintf(t, sizeof t, "%s%d:%d", ng ? "!" : "", a, b2); fbAdd(t, false, v); } }
+        }
+    }
     if (fbMode == FB_MACH) {
         for (int i = 0; i < M_COUNT; i++) fbAdd(MACHINE_NAMES[MACHINE_ORDER[i]], false, MACHINE_ORDER[i]);
     } else if (fbMode == FB_LDEST) {
@@ -293,7 +324,7 @@ static void fbBuild() {
         }
     }
     bool factoryDir = fbMode == FB_PRESET && fbDir[0] && !strncmp(fbDir, FB_FACTORY, strlen(FB_FACTORY));
-    if (!factoryDir && !(fbMode == FB_PRESET && !fbDir[0]) && fbMode != FB_LDEST && fbMode != FB_MACH) qsort(fbEnt, fbN, sizeof(FbEnt), fbCmp);
+    if (!factoryDir && !(fbMode == FB_PRESET && !fbDir[0]) && fbMode != FB_LDEST && fbMode != FB_MACH && fbMode != FB_COND) qsort(fbEnt, fbN, sizeof(FbEnt), fbCmp);
     if (fbSel >= fbN) fbSel = fbN ? fbN - 1 : 0;
 }
 static void openBrowser(int mode) {
@@ -319,6 +350,11 @@ static void openBrowser(int mode) {
     } else if (mode == FB_MACH) {
         fbBuild();
         for (int i = 0; i < fbN; i++) if (fbEnt[i].idx == curP().machine[track]) fbSel = i;
+    } else if (mode == FB_COND) {   // im Ordner der aktuellen Bedingung starten
+        int cur = fbCurValue();
+        if (condIsAB(cur)) { int a, bb; bool ng; condDecode(cur, a, bb, ng); snprintf(fbDir, sizeof fbDir, "x:%d/", bb); }
+        fbBuild();
+        for (int i = 0; i < fbN; i++) if (!fbEnt[i].dir && fbEnt[i].idx == cur) fbSel = i;
     } else if (mode == FB_LDEST) {   // im Seitenordner des aktuellen Ziels starten
         int cur = fbCurValue();
         int u = cur > 0 && cur <= NPARAMS ? ldestUiPage(cur - 1) : -1;
@@ -362,6 +398,7 @@ static void fbPick() {
         toast("ENGINE: %s", MACHINE_LONG[e.idx]);
         break;
     case FB_LDEST:
+    case FB_COND:
         lockA();
         if (aHeld || lockLatch) { holdS().lock[fbParam] = (uint8_t)e.idx; aEdited = true; }
         else curP().p[track][fbParam] = (uint8_t)e.idx;
@@ -427,12 +464,12 @@ static void drawBrowser() {
     const char* title = fbMode == FB_SAMPLE ? TR("SAMPLE WÄHLEN", "CHOOSE SAMPLE")
                       : fbMode == FB_PROJECT ? TR("PROJEKT LADEN", "LOAD PROJECT")
                       : fbMode == FB_LDEST ? (fbEnvDest() ? TR("HÜLLKURVEN-ZIEL WÄHLEN", "CHOOSE ENVELOPE TARGET") : TR("LFO-ZIEL WÄHLEN", "CHOOSE LFO TARGET"))
-                      : fbMode == FB_MACH ? TR("ENGINE WÄHLEN", "CHOOSE ENGINE") : TR("SOUND LADEN", "LOAD SOUND");
+                      : fbMode == FB_MACH ? TR("ENGINE WÄHLEN", "CHOOSE ENGINE") : fbMode == FB_COND ? TR("BEDINGUNG WÄHLEN", "CHOOSE CONDITION") : TR("SOUND LADEN", "LOAD SOUND");
     text(x0 + 16, y0 + 10, title, C_CYAN, 2);
     // Pfad
     char path[160];
     const char* root = fbMode == FB_SAMPLE ? "samples" : fbMode == FB_PROJECT ? "projects" : fbMode == FB_LDEST ? TR("ziel", "target")
-                     : fbMode == FB_MACH ? "engine" : "sounds";
+                     : fbMode == FB_MACH ? "engine" : fbMode == FB_COND ? "cond" : "sounds";
     char shown[128]; snprintf(shown, sizeof shown, "%s", fbDir);
     if (fbMode == FB_PRESET && !strncmp(shown, FB_FACTORY, strlen(FB_FACTORY))) snprintf(shown, sizeof shown, "%s/", TR("WERKSKLÄNGE", "FACTORY SOUNDS"));
     snprintf(path, sizeof path, "/%s/%s", root, shown);
@@ -452,9 +489,12 @@ static void drawBrowser() {
         FbEnt& e = fbEnt[i];
         bool sel = i == fbSel;
         bool cur = (fbMode == FB_PROJECT && !strcmp(e.name, cfg.project)) || (fbMode == FB_SAMPLE && !e.dir && e.idx == fbOrigLib) ||
-                   ((fbMode == FB_LDEST || fbMode == FB_MACH) && !e.dir && e.idx == fbCurValue());
+                   ((fbMode == FB_LDEST || fbMode == FB_MACH || fbMode == FB_COND) && !e.dir && e.idx == fbCurValue());
         const char* info = nullptr;   // zweite Spalte: Langname bzw. Erklaerung
+        char cinfo[48];
         if (fbMode == FB_MACH) info = MACHINE_LONG[e.idx];
+        else if (fbMode == FB_COND && e.dir) { snprintf(cinfo, sizeof cinfo, TR("Zyklus aus %d Durchläufen", "cycle of %d passes"), e.idx); info = cinfo; }
+        else if (fbMode == FB_COND) info = condHelp(e.idx);
         else if (fbMode == FB_LDEST && e.dir) info = PAGE_LONG[e.idx];
         else if (fbMode == FB_LDEST) info = e.idx == MOD_VCA ? TR("Lautstärke der Stimme (Verstärker)", "Voice volume (amplifier)")
                                            : e.idx ? paramHelp(e.name) : TR("kein Ziel (aus)", "no target (off)");
@@ -480,7 +520,7 @@ static void drawBrowser() {
     }
     char cnt[32]; snprintf(cnt, sizeof cnt, "%d/%d", fbN ? fbSel + 1 : 0, fbN);
     text(x0 + w - 16 - textW(cnt), y0 + h - 26, cnt, C_DIM);
-    const char* h1 = (fbMode == FB_LDEST || fbMode == FB_MACH) ? TR("[A]WÄHLEN [B]ZURÜCK [L1/R1]SEITE [SEL]ABBRUCH", "[A]PICK [B]BACK [L1/R1]PAGE [SEL]CANCEL")
+    const char* h1 = (fbMode == FB_LDEST || fbMode == FB_MACH || fbMode == FB_COND) ? TR("[A]WÄHLEN [B]ZURÜCK [L1/R1]SEITE [SEL]ABBRUCH", "[A]PICK [B]BACK [L1/R1]PAGE [SEL]CANCEL")
                    : fbMode == FB_SAMPLE ? TR("[A]WÄHLEN [X]HÖREN [B]ZURÜCK [L1/R1]SEITE [SEL]ABBRUCH", "[A]PICK [X]LISTEN [B]BACK [L1/R1]PAGE [SEL]CANCEL")
                                          : TR("[A]ÖFFNEN/LADEN [B]ZURÜCK [L1/R1]SEITE [SEL]ABBRUCH", "[A]OPEN/LOAD [B]BACK [L1/R1]PAGE [SEL]CANCEL");
     hitAdd(x0, y0, w, 46, HK_FBBACK);   // Titel/Pfad antippen = eine Ebene zurueck

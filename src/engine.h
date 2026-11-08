@@ -15,6 +15,8 @@ struct Pattern {
     uint8_t speed[NTRACKS];      // Index in SPEED_TPS (ab v5)
     uint8_t p[NTRACKS][NPARAMS];
     Step s[NTRACKS][NSTEPS];
+    uint8_t chg;                 // ab v15: Pattern-Wechsel nach chg Steps (16tel), 0 = AUTO (laengste Spur)
+    uint8_t chgPad[7];
 };
 
 struct Project {
@@ -31,7 +33,7 @@ struct Project {
     uint8_t patMute[NPATTERNS];   // Mutes je Pattern (Bit je Spur)
     struct SongRow { uint8_t pat[NTRACKS]; uint8_t rep, mute, pad[2]; } row[64];   // Song als Clip-Matrix; pat = SONG_EMPTY: Spur schweigt
 };
-enum { PROJECT_VERSION = 14, SONG_MAX = 64, SONG_EMPTY = 255 };
+enum { PROJECT_VERSION = 15, SONG_MAX = 64, SONG_EMPTY = 255 };
 // Groessen der Formate v9-v12 (96 Parameter je Spur): danach steht ggf. die Sample-Namensliste
 enum { OLD_PAT_SIZE = 24 + 8 * OLD_NPARAMS + NTRACKS * NSTEPS * (1 + OLD_NPARAMS),
        PROJECT_V11_SIZE = 20 + NPATTERNS * OLD_PAT_SIZE + 8 + 8 + 128 + 4,
@@ -41,7 +43,12 @@ enum { V13_PAT_SIZE = 24 + 8 * V13_NPARAMS + NTRACKS * NSTEPS * (1 + V13_NPARAMS
        PROJECT_V13_SIZE = 20 + NPATTERNS * V13_PAT_SIZE + 8 + NBUS * 8 + 4 + NPATTERNS + 64 * 12 };
 static_assert(PROJECT_V11_SIZE == 1602088, "Layout v11 veraendert");
 static_assert(PROJECT_V13_SIZE == 2131144, "Layout v13 veraendert");
-inline long projectDataSize(uint32_t ver) { return ver >= 14 ? (long)sizeof(Project) : (ver == 13 ? (long)PROJECT_V13_SIZE : (ver == 12 ? (long)PROJECT_V12_SIZE : (long)PROJECT_V11_SIZE)); }
+// v14: wie v15, aber ohne chg je Pattern
+enum { V14_PAT_SIZE = 24 + 8 * NPARAMS + NTRACKS * NSTEPS * (1 + NPARAMS),
+       PROJECT_V14_SIZE = 20 + NPATTERNS * V14_PAT_SIZE + 8 + NBUS * 8 + 4 + NPATTERNS + 64 * 12 };
+static_assert(sizeof(Pattern) == V14_PAT_SIZE + 8, "Pattern-Layout veraendert");
+static_assert(sizeof(Project) == PROJECT_V14_SIZE + NPATTERNS * 8, "Projekt-Layout veraendert");
+inline long projectDataSize(uint32_t ver) { return ver >= 15 ? (long)sizeof(Project) : (ver == 14 ? (long)PROJECT_V14_SIZE : (ver == 13 ? (long)PROJECT_V13_SIZE : (ver == 12 ? (long)PROJECT_V12_SIZE : (long)PROJECT_V11_SIZE))); }
 
 struct Rng {
     uint32_t s = 0x9E3779B9u;
@@ -323,6 +330,8 @@ private:
     void doTick();
     void stepTrack(int t);
     bool condOk(int t, int cond);
+    long masterTicks() const;      // Laenge eines Pattern-Durchlaufs in Ticks (Song-Zeile bzw. CHG oder laengste Spur)
+    bool lastPass(int t) const;    // Bedingung LAST: dieser Durchlauf der Spur ist der letzte vor einem Pattern-Wechsel
     double trackStepSamples(int t) const { return stepSamples() * SPEED_TPS[TP(t).speed[t] % 7] / 12.0; }
     bool sendStart = false, sendStop = false;
     void initFx(int sampleRate);

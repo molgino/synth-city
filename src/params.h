@@ -136,9 +136,12 @@ static const float LFO_SYNC_STEPS[12] = {0, 64, 32, 16, 8, 4, 2, 1, 0.5f, 8.f / 
 static const int SPEED_TPS[7] = {96, 48, 24, 16, 12, 8, 6};
 static const char* const SPEED_NAMES[7] = {"1/8x", "1/4x", "1/2x", "3/4x", "1x", "3/2x", "2x"};
 enum { SPEED_1X = 4 };
-// Trig-Bedingungen (Digitone-II-Stil): 0 keine, 1-8 FILL/PRE/NEI/1ST (+ negiert), dann A:B und !A:B (B = 2..8)
-enum { CND_NONE, CND_FILL, CND_NFILL, CND_PRE, CND_NPRE, CND_NEI, CND_NNEI, CND_1ST, CND_N1ST, CND_AB = 9, CND_COUNT = 9 + 35 * 2 };
-inline void condDecode(int v, int& a, int& b, bool& neg) {   // nur fuer v >= CND_AB
+// Trig-Bedingungen (Digitone-II-Stil): 0 keine, 1-8 FILL/PRE/NEI/1ST (+ negiert), dann A:B und !A:B (B = 2..8),
+// dahinter (nur hinten anfuegen: Werte stehen in den Projekten) LAST/!LAST = letzter Durchlauf vor einem Pattern-Wechsel
+enum { CND_NONE, CND_FILL, CND_NFILL, CND_PRE, CND_NPRE, CND_NEI, CND_NNEI, CND_1ST, CND_N1ST, CND_AB = 9, CND_AB_END = 9 + 35 * 2,
+       CND_LAST = CND_AB_END, CND_NLAST, CND_COUNT };
+inline bool condIsAB(int v) { return v >= CND_AB && v < CND_AB_END; }
+inline void condDecode(int v, int& a, int& b, bool& neg) {   // nur fuer condIsAB(v)
     int i = v - CND_AB; neg = i >= 35; if (neg) i -= 35;
     b = 2; while (i >= b) { i -= b; b++; }
     a = i + 1;
@@ -452,6 +455,7 @@ inline void fmtParam(const ParamDef& d, int v, char* buf, int n) {
     case K_COND:
         if (v <= 0) snprintf(buf, n, "---");
         else if (v < CND_AB) { static const char* cn[9] = {"", "FILL", "!FILL", "PRE", "!PRE", "NEI", "!NEI", "1ST", "!1ST"}; snprintf(buf, n, "%s", cn[v]); }
+        else if (v == CND_LAST || v == CND_NLAST) snprintf(buf, n, "%s", v == CND_LAST ? "LAST" : "!LAST");
         else { int a, b; bool ng; condDecode(v, a, b, ng); snprintf(buf, n, "%s%d:%d", ng ? "!" : "", a, b); }
         break;
     case K_TRG: snprintf(buf, n, "%s", v ? "NOTE" : "FREE"); break;

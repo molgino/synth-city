@@ -257,6 +257,13 @@ static void goSlot(int target) {   // linker Stick: je Antippen ein Feld
     while (slot % 4 != target % 4 && guard++ < 80) flickL(slot % 4 < target % 4 ? 1 : -1, 0);
     if (guard >= 40) { printf("  goSlot(%d) haengt in '%s' (Seite %d, Slot %d, Explorer %d)\n", target, uiCase, page, slot, (int)fbOpen); fflush(stdout); }
 }
+static void goPrj(int target) {   // PRJ-Seite: Steuerkreuz bis zum Feld
+    for (int guard = 0; guard < 60 && prjSel != target; guard++) {
+        PrjBox a = prjBox(prjSel), b = prjBox(target);
+        if (a.y != b.y) tap(a.y < b.y ? BT_DOWN : BT_UP); else tap(a.x < b.x ? BT_RIGHT : BT_LEFT);
+    }
+    if (prjSel != target) { printf("  goPrj(%d) haengt in '%s' (bei %d)\n", target, uiCase, prjSel); fflush(stdout); }
+}
 static void goTrack(int t) { while (track != t) tap(track < t ? BT_DOWN : BT_UP); }
 static void goStep(int s) { while (cursor != s) tap(cursor < s ? BT_RIGHT : BT_LEFT); }
 
@@ -537,7 +544,7 @@ static void uiScenarios() {
     curP().s[6][9].on = 0; curP().s[6][9].lock[P_VEL] = NO_LOCK;
 
     uiCase = "Projekt speichern als";
-    simReset(); goPage(PG_PRJ); goSlot(2); tap(BT_A);
+    simReset(); goPage(PG_PRJ); goPrj(PI_SAVEAS); tap(BT_A);
     UCHECK(kbOpen, "SPEICH. ALS oeffnet keine Tastatur");
     for (int i = 0; i < 40; i++) tap(BT_B);
     tap(BT_A); tap(BT_RIGHT); tap(BT_A); tap(BT_DOWN); tap(BT_DOWN); tap(BT_A);   // "A", "b", dann Zeile 3 Spalte 2 = "1"
@@ -548,7 +555,7 @@ static void uiScenarios() {
     uiCase = "Projekt laden";
     curP().s[5][5].on = 1; curP().s[5][5].lock[P_VEL] = 11;   // ungespeicherte Aenderung
     simWait(900);
-    goSlot(0); tap(BT_A);
+    goPrj(PI_LOAD); tap(BT_A);
     UCHECK(fbOpen && fbMode == FB_PROJECT, "LADEN oeffnet keinen Projekt-Explorer");
     for (int i = 0; i < fbN; i++) if (!strcmp(fbEnt[i].name, "Ab1")) fbSel = i;
     tap(BT_A);
@@ -557,7 +564,7 @@ static void uiScenarios() {
     UCHECK(curP().s[5][5].lock[P_VEL] == NO_LOCK && !strcmp(cfg.project, "Ab1"), "Projekt nicht neu geladen");
 
     uiCase = "Sound speichern/laden";
-    simReset(); goTrack(4); goPage(PG_PRJ); goSlot(5); tap(BT_A);
+    simReset(); goTrack(4); goPage(PG_PRJ); goPrj(PI_SSAVE); tap(BT_A);
     UCHECK(kbOpen && kbMode == KB_PSAVE, "SOUND SPEICH. oeffnet keine Tastatur");
     for (int i = 0; i < 40; i++) tap(BT_B);
     tap(BT_DOWN); tap(BT_LEFT); tap(BT_LEFT); tap(BT_LEFT); tap(BT_A);   // Zeile 2: von N dreimal links (Z, Y, X)
@@ -565,13 +572,55 @@ static void uiScenarios() {
     tap(BT_START);
     { char pp[700]; presetFile(curP().machine[4], "X", pp, sizeof pp); UCHECK(fileExists(pp), "Sound-Datei X fehlt"); }
     curP().p[4][P_FREQ] = (uint8_t)(freq0 ^ 1);
-    goSlot(4); tap(BT_A);
+    goPrj(PI_SLOAD); tap(BT_A);
     UCHECK(fbOpen && fbMode == FB_PRESET, "SOUND LADEN oeffnet keinen Explorer");
     for (int i = 0; i < fbN; i++) if (fbEnt[i].dir && fbEnt[i].idx == curP().machine[4]) fbSel = i;
     tap(BT_A);
     for (int i = 0; i < fbN; i++) if (!strcmp(fbEnt[i].name, "X")) fbSel = i;
     tap(BT_A);
     UCHECK(!fbOpen && curP().p[4][P_FREQ] == freq0, "Sound nicht geladen (FREQ %d statt %d)", curP().p[4][P_FREQ], freq0);
+
+    uiCase = "Pattern kopieren (PRJ)";
+    {
+        simReset(); goPage(PG_PRJ);
+        int src = curPi(), dst = (src + 5) % NPATTERNS;
+        eng.proj.pat[src].s[3][7].on = 1; eng.proj.pat[src].s[3][7].lock[P_VEL] = 99; eng.proj.pat[src].len[3] = 48;
+        goPrj(PI_PAT0 + src); tap(BT_A); goPrj(PI_COPY); tap(BT_A);
+        UCHECK(haveClip && clipFrom == src, "KOPIEREN hat nichts kopiert");
+        goPrj(PI_PAT0 + dst); tap(BT_A); goPrj(PI_PASTE); tap(BT_A);
+        if (confirmOpen) tap(BT_A);
+        const Pattern& D = eng.proj.pat[dst];
+        UCHECK(D.s[3][7].on == 1 && D.s[3][7].lock[P_VEL] == 99 && D.len[3] == 48, "EINFUEGEN: Ziel P%02d nicht gleich der Quelle", dst + 1);
+        goPrj(PI_CHG); tap(BT_X); tap(BT_X);
+        UCHECK(eng.proj.pat[dst].chg == 2, "WECHSEL: X erhoeht nicht (%d)", eng.proj.pat[dst].chg);
+        tap(BT_R1);
+        UCHECK(eng.proj.pat[dst].chg == 16, "WECHSEL: R1 springt nicht auf 16 (%d)", eng.proj.pat[dst].chg);
+        goPrj(PI_LEN); tap(BT_R1);
+        UCHECK(eng.proj.pat[dst].len[0] == 64 && eng.proj.pat[dst].len[3] == 64, "LAENGE: R1 nicht auf 64 (%d/%d)", eng.proj.pat[dst].len[0], eng.proj.pat[dst].len[3]);
+        tap(BT_Y);
+        UCHECK(eng.proj.pat[dst].len[5] == 63, "LAENGE: Y nicht -1 (%d)", eng.proj.pat[dst].len[5]);
+        eng.proj.pat[dst].chg = 0; eng.proj.pat[src].s[3][7].on = 0; eng.proj.pat[src].len[3] = 16;
+    }
+    uiCase = "Spurlaenge +-1/+-16";
+    {
+        simReset(); goTrack(3); goPage(PG_SEQ); goSlot(1);
+        curP().len[3] = 16;
+        tap(BT_X);
+        UCHECK(curP().len[3] == 17, "X tippen: Laenge %d statt 17", curP().len[3]);
+        holdDown(BT_X); simWait(420); release(BT_X);
+        UCHECK(curP().len[3] == 32, "X halten: Laenge %d statt 32", curP().len[3]);
+        holdDown(BT_Y); simWait(420); release(BT_Y);
+        UCHECK(curP().len[3] == 16, "Y halten: Laenge %d statt 16", curP().len[3]);
+    }
+    uiCase = "Bedingung per Liste";
+    {
+        simReset(); goTrack(2); goPage(PG_TRG); goSlot(7); tap(BT_X);
+        UCHECK(fbOpen && fbMode == FB_COND, "X auf COND oeffnet keine Liste");
+        for (int i = 0; i < fbN; i++) if (!fbEnt[i].dir && fbEnt[i].idx == CND_LAST) fbSel = i;
+        tap(BT_A);
+        UCHECK(!fbOpen && curP().p[2][P_COND] == CND_LAST, "LAST nicht gewaehlt (%d)", curP().p[2][P_COND]);
+        curP().p[2][P_COND] = 0;
+    }
 
     uiCase = "Sample-Explorer";
     if (libCount() > 1) {

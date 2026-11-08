@@ -159,11 +159,11 @@ Dazu kommen die globalen Seiten (in der Leiste oben grauer dargestellt):
 
 ## Steps, Seiten und Geschwindigkeit
 
-* Jede Spur hat **1 bis 128 Steps**. Die Länge stellst du auf der Seite SEQ (LEN) oder in SET → SPUR ein.
+* Jede Spur hat **1 bis 128 Steps**. Die Länge stellst du auf der Seite SEQ (LEN) ein: **X/Y tippen = ±1 Step, halten = in 16er-Schritten** (16, 32, 48 …). Alle Spuren auf einmal: PRJ-Seite → LÄNGE.
 * Angezeigt werden immer 16 Steps. Die Leiste über den Step-Tasten zeigt die bis zu 8 Seiten: Die Cursor-Seite ist hell, die laufende Seite in Spurfarbe.
 * Das Steuerkreuz läuft durch alle Steps. **SELECT + L2/R2 springt eine Step-Seite** (16 Steps), SELECT + L1/R1 einen Schlag (4 Steps).
 * **Tempo-Faktor pro Spur** (SET → „Tempo-Faktor Spur“): 1/8×, 1/4×, 1/2×, 3/4×, 1×, 3/2× und 2×.
-* Ein Pattern-Wechsel greift, wenn die längste Spur durchgelaufen ist.
+* Ein Pattern-Wechsel greift, wenn die längste Spur durchgelaufen ist – oder nach der festen Zahl Steps, die du auf der PRJ-Seite unter **WECHSEL NACH** einstellst.
 
 ## Sequencer-Werkzeuge (SEQ-Seite)
 
@@ -268,6 +268,10 @@ Im Raster sitzen verschobene Trigs sichtbar versetzt, und beim Drehen zeigt ein 
 
 COND auf der TRG-Seite gilt für die Spur. Meist lockst du COND aber pro Step: A halten und COND drehen. PROB gilt zusätzlich.
 
+**Auswahlliste:** Auf COND öffnet **X** (bzw. Kachel nochmal antippen) eine Liste – oben die einfachen Bedingungen, darunter je Zyklus ein Ordner (`x:2` … `x:8`) mit allen `A:B` und `!A:B`. Jeder Eintrag hat eine kurze Erklärung. Mit gehaltenem Step (oder im Lock-Modus) wird die Auswahl als Lock gesetzt.
+
+![Bedingungs-Liste](shot:56)
+
 | COND | Trig spielt, wenn … |
 |---|---|
 | `A:B` | im A-ten von je B Durchläufen der Spur, z. B. `1:2` = jeder zweite Durchlauf, `4:4` = jeder vierte |
@@ -276,6 +280,7 @@ COND auf der TRG-Seite gilt für die Spur. Meist lockst du COND aber pro Step: A
 | `PRE` / `!PRE` | die vorige Bedingung auf dieser Spur erfüllt war bzw. nicht |
 | `NEI` / `!NEI` | die letzte Bedingung der Nachbarspur (Spur davor) erfüllt war bzw. nicht |
 | `1ST` / `!1ST` | nur im ersten Durchlauf nach Start bzw. Pattern-Wechsel, bzw. in allen außer dem ersten |
+| `LAST` / `!LAST` | nur im **letzten Durchlauf vor einem Pattern-Wechsel** (neues Pattern vorgemerkt bzw. Song-Zeile endet), bzw. in allen anderen – z. B. für Übergänge und Fills vor dem Wechsel |
 
 ## Stereo-Samples
 
@@ -366,9 +371,9 @@ Beim Drehen zeigt eine Mini-Tastatur die Skalentöne. Die aktive Skala steht im 
 
 ![Einstellungen: Bereiche links, Einträge rechts, Erklärung unten](shot:18)
 
-Über die Seitenkarte (SELECT → Zeile PROJEKT → EINSTELLUNGEN) oder L2/R2 auf den Projektseiten. Links stehen die **Bereiche**, rechts deren Einträge, unten eine kurze Erklärung zum gewählten Eintrag:
+Pattern-Funktionen (kopieren, leeren, mutieren, Länge, Wechsel) liegen auf der **PRJ-Seite**, Tempo, Swing und Tonskala auf **MST**. Über die Seitenkarte (SELECT → Zeile PROJEKT → EINSTELLUNGEN) oder L2/R2 auf den Projektseiten. Links stehen die **Bereiche**, rechts deren Einträge, unten eine kurze Erklärung zum gewählten Eintrag:
 
-* **PATTERN:** Pattern wählen, Tempo, Swing, Tonskala, Grundton, Länge aller Spuren, FILL dauerhaft, Pattern kopieren/einfügen/leeren/mutieren, Rückgängig/Wiederholen, Demo-Song
+* **PATTERN:** FILL dauerhaft, Rückgängig/Wiederholen
 * **SPUR n:** Länge und Tempo-Faktor der gewählten Spur, Rhythmus-Vorlagen, Spur leeren
 * **AUDIO:** Ausgang (interner Lautsprecher, USB-Interface …), Puffer mit Latenz in ms, Lautstärke, Rechenkerne
 * **MIDI:** Eingang, Noten ausgeben, Clock (senden/empfangen), Eingangskanäle
@@ -394,18 +399,33 @@ Hier siehst du alle 8 Spuren als Kanalzüge mit Fader, Pegelanzeige, Panorama, D
 
 ![Projekt-Seite](shot:15)
 
-Projekte und Sounds haben **freie Namen**. Die PRJ-Seite hat acht Schaltflächen (mit **A** auslösen):
+Die PRJ-Seite hat drei Bereiche. Das **Steuerkreuz** wählt ein Feld, **A** führt aus, **X/Y** ändern Werte (halten = 16er-Schritte), **L1/R1** = ±16, **B** springt zurück zum gewählten Pattern.
 
-| Schaltfläche | Funktion |
+**PROJEKT** – oben steht der Name und ob es ungespeicherte Änderungen gibt:
+
+| Feld | Funktion |
 |---|---|
-| **LADEN…** | öffnet den Projekt-Explorer: alle Projekte alphabetisch, das aktive ist markiert. A lädt (bei ungespeicherten Änderungen mit Rückfrage) |
-| **SPEICHERN** | speichert unter dem aktuellen Namen (steht unter der Schaltfläche). Das automatische Speichern alle 2 Minuten nutzt denselben Namen |
-| **SPEICH. ALS…** | Bildschirm-Tastatur: neuen Namen eingeben, START speichert (vorhandene Namen mit Rückfrage) |
-| **NEU…** | Name eingeben, dann leeres Projekt anlegen |
-| **SOUND LADEN** | Sound-Explorer: Ordner **Werksklänge** und je Engine ein Ordner mit deinen Sounds |
-| **SOUND SPEICH.** | Klang der Spur (Engine und alle Seiten außer den Steps) unter einem Namen speichern |
-| **INIT SOUND** | Klang der Spur auf die Grundwerte der Engine zurücksetzen |
-| **DEMO-SONG** | „Neon Nights“ als neues Projekt anlegen |
+| **LADEN** | Projekt-Explorer: alle Projekte alphabetisch, das aktive ist markiert. A lädt (bei ungespeicherten Änderungen mit Rückfrage) |
+| **SPEICHERN** | speichert unter dem aktuellen Namen. Das automatische Speichern alle 2 Minuten nutzt denselben Namen |
+| **SPEICH. ALS** | Bildschirm-Tastatur: neuen Namen eingeben, START speichert (vorhandene Namen mit Rückfrage) |
+| **NEU** | Name eingeben, dann leeres Projekt anlegen |
+| **DEMO** | „Neon Nights“ als neues Projekt anlegen |
+
+**PATTERN** – 16 Felder (je Spur mit Trigs ein farbiger Punkt; der Balken links = spielt, blinkend = kommt als nächstes):
+
+| Feld | Funktion |
+|---|---|
+| **P01 … P16** | **A** wählt das Pattern: es spielt (beim Abspielen am Pattern-Ende) und ist das **Ziel** (cyan unterstrichen) für die Funktionen darunter |
+| **KOPIEREN** | Ziel-Pattern in die Ablage (komplett: Steps, Locks, Klänge, Längen) |
+| **EINFÜGEN** | Ablage ins Ziel-Pattern (überschreibt mit Rückfrage, leere Patterns ohne) |
+| **LEEREN** | alle Steps des Ziel-Patterns löschen (Klänge bleiben) |
+| **MUTIEREN** | Trigs, Töne und Anschlag zufällig variieren; X/Y = Stärke, A = los (SELECT+B = rückgängig) |
+| **LÄNGE (ALLE SPUREN)** | setzt alle 8 Spuren auf eine Länge: X/Y ±1, halten oder L1/R1 = ±16 |
+| **WECHSEL NACH** | nach wie vielen Steps ein Pattern-Wechsel greift: **AUTO** = wenn die längste Spur durchgelaufen ist, sonst fest (z. B. 16, auch wenn eine Spur 64 Steps hat). Gilt je Pattern |
+
+**Pattern kopieren in 4 Tipps:** A auf das Quell-Pattern → KOPIEREN → A auf das Ziel-Pattern → EINFÜGEN.
+
+**SOUND DER SPUR** – SPUR (X/Y wählt die Spur), **LADEN** (Sound-Explorer: Werksklänge und je Engine deine Sounds), **SPEICHERN** (Klang der Spur unter einem Namen), **INIT** (Grundwerte der Engine).
 
 **Bildschirm-Tastatur:** Steuerkreuz wählt die Taste, **A** tippt, **B** löscht, **X** Leerzeichen, **Y** Groß/klein, **START** = OK, **SELECT** = Abbruch. Erlaubt sind Buchstaben, Ziffern, Leerzeichen und `- _ . ( ) +`, bis 32 Zeichen.
 

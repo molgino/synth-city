@@ -95,7 +95,7 @@ static void testProbCond() {
     fresh(120);
     E.proj.pat[0].s[0][0].on = 1;
     int a2 = -1, b2 = 0; bool ng = false;
-    for (int v = CND_AB; v < CND_COUNT; v++) { int x, y; bool neg; condDecode(v, x, y, neg); if (x == 1 && y == 2 && !neg) { a2 = v; b2 = y; ng = neg; break; } }
+    for (int v = CND_AB; v < CND_AB_END; v++) { int x, y; bool neg; condDecode(v, x, y, neg); if (x == 1 && y == 2 && !neg) { a2 = v; b2 = y; ng = neg; break; } }
     (void)b2; (void)ng;
     CHECK(a2 >= 0, "Bedingung 1:2 nicht gefunden");
     E.proj.pat[0].s[0][0].lock[P_COND] = (uint8_t)a2;
@@ -103,6 +103,34 @@ static void testProbCond() {
     E.start();
     run(barFrames(120) * 4 - 200);
     CHECK(trigs(0) - c == 2, "1:2 in 4 Takten: %u statt 2", trigs(0) - c);
+}
+
+// LAST: nur im letzten Durchlauf vor einem Pattern-Wechsel; CHG: Wechsel nach festen Steps
+static void testLastChg() {
+    curTest = "LAST/CHG";
+    fresh(120);
+    E.proj.pat[0].s[0][4].on = 1; E.proj.pat[0].s[0][4].lock[P_COND] = CND_LAST;
+    E.proj.pat[0].s[1][4].on = 1; E.proj.pat[0].s[1][4].lock[P_COND] = CND_NLAST;
+    uint32_t a = trigs(0), b = trigs(1);
+    E.start();
+    run(barFrames(120) * 2);   // kein Wechsel vorgemerkt: LAST nie, !LAST jeden Durchlauf
+    CHECK(trigs(0) - a == 0 && trigs(1) - b == 2, "ohne Wechsel: LAST %u (0), !LAST %u (2)", trigs(0) - a, trigs(1) - b);
+    run(barFrames(120) / 32);   // knapp nach Step 1 des 3. Durchlaufs: Wechsel vormerken -> dieser Durchlauf ist der letzte
+    a = trigs(0); b = trigs(1);
+    E.nextPat = 1;
+    run(barFrames(120) / 2);
+    CHECK(trigs(0) - a == 1 && trigs(1) - b == 0, "mit Wechsel: LAST %u (1), !LAST %u (0)", trigs(0) - a, trigs(1) - b);
+    // CHG 4: der vorgemerkte Wechsel greift nach 4 Steps statt nach 16
+    fresh(120);
+    E.proj.pat[0].chg = 4;
+    E.start();
+    run(barFrames(120) / 64);           // erster Tick ist durch (sonst wuerde sofort gewechselt)
+    E.nextPat = 2;
+    run(barFrames(120) / 16 * 2);       // Mitte von Step 3: noch Pattern 1
+    CHECK(E.curPat == 0, "CHG 4: zu frueh gewechselt (%d)", E.curPat);
+    run(barFrames(120) / 16 * 3);       // nach Step 4 + Reserve
+    CHECK(E.curPat == 2, "CHG 4: nicht nach 4 Steps gewechselt (%d)", E.curPat);
+    E.proj.pat[0].chg = 0;
 }
 
 static void testEuclid() {
@@ -457,6 +485,20 @@ static void testSaveLoad() {
         CHECK(P.p[5][P_FENV] == 100 && P.p[5][P_E2D1] == P_FREQ + 1 && P.p[5][P_E1D1] == MOD_VCA && P.p[5][P_E1A1] == 127, "v13: Huellkurven-Ziele falsch (%d %d %d)", P.p[5][P_E2D1], P.p[5][P_E1D1], P.p[5][P_E1A1]);
         CHECK(P.p[5][P_L1 + LF_DEST] == P_PAN + 1 && P.p[5][P_L1D2] == 0 && P.s[5][77].lock[P_E3D1] == NO_LOCK, "v13: LFO-Ziel/neue Locks falsch");
         CHECK(E.proj.bus[1][BX_P2] == 33 && E.proj.songLen == 5 && E.proj.patMute[4] == 0x81 && E.proj.row[1].mute == 0x30, "v13: Busse/Song verloren");
+    }
+    // v14-Datei (ohne Wechsel-Laenge je Pattern): alles bleibt, chg = AUTO
+    {
+        static Project src; memcpy(&src, &ref, sizeof(Project));
+        src.pat[3].len[2] = 77; src.pat[3].s[2][70].on = 1; src.pat[3].s[2][70].lock[P_E3D1] = 12; src.songLen = 7; src.row[6].rep = 3;
+        static uint8_t old[PROJECT_V14_SIZE];
+        memcpy(old, &src, 20); uint32_t v14 = 14; memcpy(old + 4, &v14, 4);
+        for (int pi = 0; pi < NPATTERNS; pi++) memcpy(old + 20 + (long)pi * V14_PAT_SIZE, &src.pat[pi], V14_PAT_SIZE);
+        memcpy(old + 20 + (long)NPATTERNS * V14_PAT_SIZE, src.cmp, PROJECT_V14_SIZE - 20 - (long)NPATTERNS * V14_PAT_SIZE);
+        FILE* f14 = fopen(path, "wb"); fwrite(old, 1, sizeof old, f14); fwrite("SPL1\0\0", 1, 6, f14); fclose(f14);
+        E.proj.pat[3].chg = 9;
+        CHECK(E.load(path), "Laden v14");
+        CHECK(E.proj.version == PROJECT_VERSION && E.proj.pat[3].chg == 0, "v14: Version %u / chg %d", E.proj.version, E.proj.pat[3].chg);
+        CHECK(E.proj.pat[3].len[2] == 77 && E.proj.pat[3].s[2][70].lock[P_E3D1] == 12 && E.proj.songLen == 7 && E.proj.row[6].rep == 3, "v14: Daten verloren");
     }
     // kaputte Datei darf nicht geladen werden
     FILE* f = fopen(path, "wb"); fwrite("GBX1xxxx", 1, 8, f); fclose(f);
@@ -830,6 +872,7 @@ int main(int argc, char** argv) {
     testTiming();
     testPolymeter();
     testProbCond();
+    testLastChg();
     testEuclid();
     testTrigless();
     testSong();
