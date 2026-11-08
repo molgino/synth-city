@@ -117,7 +117,10 @@ setup() {   # $1 = audio (0/1), $2 = laufwerk-Geraet oder leer
                 echo "Synth City" > $U/function_name 2>/dev/null
                 # dwc2 (RK3326) schafft isochrone Pakete jede 125 us oft nicht -> Standard: alle 1 ms (bInterval 4) und mehr Anfragen.
                 # Zum Testen in config/groovebox.env: GB_UAC_BINT=1..4, GB_UAC_REQ=2..8
-                echo ${GB_UAC_BINT:-$PB} > $U/p_hs_bint 2>/dev/null; echo ${GB_UAC_BINT:-4} > $U/c_hs_bint 2>/dev/null
+                # GB_UAC_BINT (SET "USB-Paketabstand"): fest vorgegeben, aber nie groesser als das Paket fuer die Kanalzahl erlaubt
+                PBX=$PB
+                case "$GB_UAC_BINT" in 1|2|3|4) PBX=$GB_UAC_BINT; [ $PBX -gt $PB ] && { echo "UAC2: Paketabstand $PBX zu gross fuer $CH Kanaele - nehme $PB"; PBX=$PB; } ;; esac
+                echo $PBX > $U/p_hs_bint 2>/dev/null; echo ${GB_UAC_BINT:-4} > $U/c_hs_bint 2>/dev/null
                 [ "$CH" -gt 2 ] && echo "UAC2: $CH Kanaele zum PC (p_chmask $(cat $U/p_chmask), Paketabstand bInterval $(cat $U/p_hs_bint 2>/dev/null))"
                 echo ${GB_UAC_REQ:-4} > $U/req_number 2>/dev/null
                 echo "UAC2: p_srate=$(cat $U/p_srate) c_srate=$(cat $U/c_srate) ssize=$(cat $U/p_ssize) p_hs_bint=$(cat $U/p_hs_bint 2>/dev/null) c_hs_bint=$(cat $U/c_hs_bint 2>/dev/null) req_number=$(cat $U/req_number 2>/dev/null)"
