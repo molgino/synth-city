@@ -24,12 +24,12 @@ CXXFLAGS += $(TFLAGS)
 LDFLAGS += $(TFLAGS)
 LIBS += -lstdc++
 endif
-SRC = src/main.cpp src/engine.cpp src/input.cpp src/samples.cpp src/midi.cpp src/dhcpd.cpp src/web.cpp src/webpage.cpp src/websync.cpp src/webicons.cpp src/drmout.cpp src/usbaudio.cpp src/remote.cpp src/fxbus.cpp
+SRC = src/main.cpp src/engine.cpp src/input.cpp src/samples.cpp src/midi.cpp src/dhcpd.cpp src/web.cpp src/webpage.cpp src/websync.cpp src/webtls.cpp src/webicons.cpp src/drmout.cpp src/usbaudio.cpp src/remote.cpp src/fxbus.cpp
 OBJ = $(SRC:.cpp=.o)
 OUT ?= groovebox
 
 $(OUT): $(OBJ)
-	$(CC_LINK) $(LDFLAGS) -o $@ $(OBJ) $(SDL_LIBS) $(LIBS) -lasound -lm -lpthread
+	$(CC_LINK) $(LDFLAGS) -o $@ $(OBJ) $(SDL_LIBS) $(LIBS) -lasound -lm -lpthread -ldl
 
 src/%.o: src/%.cpp src/*.h src/*.inc
 	$(CXX) $(CXXFLAGS) -c $< -o $@

@@ -114,3 +114,36 @@ addEventListener('message',async e=>{
 $('allow').onclick=()=>{if(!pending)return;peer=pending.source;peerOrigin=pending.origin;pending=null;$('ask').hidden=true;log('logB','Verbunden mit '+peerOrigin,'ok');send({t:'ready'});};
 $('deny').onclick=()=>{if(pending){pending.source.postMessage({t:'denied'},pending.origin);pending=null;}$('ask').hidden=true;log('logB','Abgelehnt');};
 </script></body></html>)HTML";
+
+// Seite /cert: Geraete-Zertifikat aufs Handy (einmalig), damit die Handy-App per https direkt syncen kann.
+// Zwischen A und B setzt web.cpp den Zustand von https ein.
+extern const char WEB_CERT_A[], WEB_CERT_B[];
+const char WEB_CERT_A[] = R"HTML(<!doctype html>
+<html lang="de"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#080612"><title>SYNTH CITY – Zertifikat</title>
+<style>
+html{background:#2a0a3a}body{margin:0;min-height:100vh;background:linear-gradient(180deg,#080612,#140a2a 60%,#2a0a3a) fixed;color:#d6eeff;font:15px/1.55 ui-monospace,Menlo,Consolas,monospace;padding:max(16px,env(safe-area-inset-top)) 16px 24px}
+h1{font-size:18px;letter-spacing:.18em;margin:0 0 14px;color:#fff;text-shadow:-2px 0 #ff2e88,2px 0 #00e0ff}
+.card{background:#141026;border:1px solid #3a2f60;border-radius:14px;padding:16px;margin:0 0 14px;max-width:640px}
+.btn{display:inline-block;background:#ff2e88;color:#fff;font-weight:700;border-radius:10px;padding:10px 16px;margin:6px 8px 4px 0;text-decoration:none}
+.btn.s{background:#20183a;border:1px solid #3a2f60;color:#d6eeff;font-weight:400}
+ol{padding-left:20px}li{margin:6px 0}b{color:#fff}.dim{color:#8a80b0;font-size:13px}#st{color:#2bff9a}
+</style></head><body>
+<h1>SYNTH CITY · ZERTIFIKAT</h1>
+<div class="card"><p>Damit die Handy-App direkt (mit einem Tipp) mit diesem R36S syncen kann, braucht das iPhone einmalig das Zertifikat des Geräts.</p>
+<p class="dim">Zustand: <span id="st">)HTML";
+const char WEB_CERT_B[] = R"HTML(</span></p></div>
+<div class="card"><b>iPhone / iPad</b> (diese Seite in <b>Safari</b> öffnen)
+<ol>
+<li><a class="btn" href="/synthcity.mobileconfig">Profil laden</a><br>„Zulassen“ tippen.</li>
+<li><b>Einstellungen</b> öffnen → oben <b>„Profil geladen“</b> → <b>Installieren</b> (Code eingeben, „Nicht überprüft“ ist normal).</li>
+<li><b>Einstellungen → Allgemein → Info → Zertifikatsvertrauenseinstellungen</b> → <b>„SYNTH CITY Gerät“</b> einschalten.</li>
+<li>Prüfen: <a class="btn s" id="test" href="#">https-Seite öffnen</a> – öffnet sie sich ohne Warnung, klappt der Sync aus der App.</li>
+</ol></div>
+<div class="card"><b>Android / PC</b>: <a class="btn s" href="/synthcity-ca.crt">Zertifikat laden</a><br>
+<span class="dim">Android: Einstellungen → Sicherheit → Verschlüsselung → Zertifikat installieren → CA-Zertifikat.</span></div>
+<div class="card dim">Das Zertifikat wurde auf diesem R36S erzeugt und gilt nur für private Netze (192.168.x.x, 10.x.x.x, 172.16–31.x.x) und *.local – für andere Webseiten taugt es nicht. Entfernen: Einstellungen → Allgemein → VPN und Geräteverwaltung → Profil löschen.</div>
+<p class="dim"><a href="/" style="color:#00e0ff">Dateien</a> · <a href="/sync" style="color:#00e0ff">Sync/ZIP</a></p>
+<script>document.getElementById('test').href='https://'+location.hostname+'/cert';</script>
+</body></html>)HTML";

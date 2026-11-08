@@ -152,18 +152,73 @@ wurde eine Datei auf beiden Seiten geändert, bleiben beide erhalten („Name (H
     };
   }
 
-  async function run(dir) {
+  // Direkt per https (Geraet mit eigenem Zertifikat, einmal aufs Handy installiert: http://<geraet>/cert) - ohne zweites Fenster
+  function direct(ip) {
+    let base = null;
+    const tmo = (ms) => { const ac = window.AbortController ? new AbortController() : null; const t = setTimeout(() => ac && ac.abort(), ms); return { signal: ac ? ac.signal : undefined, done: () => clearTimeout(t) }; };
+    const getJ = async path => { const r = await fetch(base + path, { cache: 'no-store' }); if (!r.ok) throw new Error(path + ': ' + r.status); return r.json(); };
+    const getB = async (r, p) => { const x = await fetch(base + '/api/file?root=' + r + '&path=' + encodeURIComponent(p), { cache: 'no-store' }); if (!x.ok) throw new Error(p + ': ' + x.status); return x.arrayBuffer(); };
+    const put = async (r, p, data) => { const x = await fetch(base + '/api/upload?root=' + r + '&path=' + encodeURIComponent(p), { method: 'PUT', body: data, headers: { 'Content-Type': 'application/octet-stream' } }); if (!x.ok) throw new Error(p + ': ' + (await x.text())); };
+    return {
+      kind: 'https',
+      async open() {
+        for (const b of ['https://' + ip, 'https://' + ip + ':8443']) {
+          const t = tmo(4000);
+          try { const r = await fetch(b + '/api/https', { cache: 'no-store', signal: t.signal }); t.done(); if (r.ok) { base = b; return true; } } catch (e) { t.done(); }
+        }
+        return false;
+      },
+      async ask(msg, reply, chunkFn) {
+        const man = async () => (await getJ('/api/manifest' + (msg.rec ? '?rec=1' : ''))).files;
+        if (msg.t === 'manifest') return { t: 'manifest', files: await man() };
+        if (msg.t === 'plan') {
+          for (const f of msg.put || []) await put(f.r, f.p, f.data);
+          let got = [], sz = 0;
+          for (const f of msg.get || []) {
+            const d = await getB(f.r, f.p); got.push({ r: f.r, p: f.p, data: d }); sz += d.byteLength;
+            if (sz >= 8e6 && chunkFn) { chunkFn({ got }); got = []; sz = 0; }
+          }
+          return { t: 'result', got, files: await man() };
+        }
+        throw new Error('?');
+      },
+      done() {}, close() {},
+    };
+  }
+  function certHelp(ip) {
+    const d = document.createElement('div'); d.className = 'hi';
+    d.innerHTML = 'Einmalig einrichten: <a href="#" style="color:#00e0ff">Zertifikat des Geräts installieren</a> (öffnet http://' + ip + '/cert in Safari, dort Schritt für Schritt). Danach geht der Sync hier mit einem Tipp. '
+      + '<br><button class="fl" id="gbsOld">Altes Verfahren (zweites Fenster)</button>';
+    d.querySelector('a').onclick = e => { e.preventDefault(); window.open('http://' + ip + '/cert', '_blank'); };
+    d.querySelector('#gbsOld').onclick = () => { if (!busy) run(lastDir, true); };
+    el.querySelector('#gbsLog').appendChild(d);
+  }
+  let lastDir = 'both';
+
+  async function run(dir, viaWindow) {
     const ip = el.querySelector('#gbsIp').value.trim().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
     if (!ip) return;
     try { localStorage.gbSyncIp = ip; } catch (e) {}
     const smpMode = el.querySelector('#gbsSmp').value, withRec = el.querySelector('#gbsRec').checked;
     el.querySelector('#gbsLog').textContent = ''; lock(true); prog(0);
-    const b = bridge(ip);
+    lastDir = dir;
+    let b = null;
     try {
       GB_LOCAL.saveNow();
-      log('Verbinde mit ' + ip + ' … (im Gerät-Fenster „Erlauben“)', 'hi');
-      await b.open();
-      log('Verbunden', 'ok');
+      if (!viaWindow) {
+        log('Verbinde mit https://' + ip + ' …', 'hi');
+        const d = direct(ip);
+        if (await d.open()) b = d;
+        else {
+          log('Gerät per https nicht erreichbar: Zertifikat noch nicht eingerichtet, Gerät nicht verbunden oder auf dem R36S fehlt das App-Update.', 'bad');
+          certHelp(ip); prog(-1); lock(false); return;
+        }
+      } else {
+        b = bridge(ip);
+        log('Verbinde mit ' + ip + ' … (im Gerät-Fenster „Erlauben“)', 'hi');
+        await b.open();
+      }
+      log('Verbunden' + (b.kind === 'https' ? ' (https)' : ''), 'ok');
       let remote = (await b.ask({ t: 'manifest', rec: withRec }, 'manifest')).files;
       const state = stateLoad(ip), cur = Module.UTF8ToString(Module._gbProjectName());
       let up = 0, down = 0, curChanged = false;
@@ -227,7 +282,7 @@ wurde eine Datei auf beiden Seiten geändert, bleiben beide erhalten („Name (H
       if (down) { Module.ccall('gbFilesChanged', null, ['string'], ['SYNC: ' + down + ' DATEIEN VOM GERÄT']); if (curChanged) Module._gbReloadProject(); }
       log(text, 'ok'); prog(1);
     } catch (e) {
-      b.close();
+      if (b) b.close();
       log('Fehler: ' + e.message, 'bad');
       if (/blockiert|Antwort/.test(e.message)) log('Tipp: Gerät erreichbar? Im Browser http://' + ip + '/sync öffnen – dort geht auch der ZIP-Weg.');
       prog(-1);

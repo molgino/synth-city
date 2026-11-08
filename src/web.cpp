@@ -3,6 +3,7 @@
 #include "web.h"
 #include "samples.h"
 #include "remote.h"
+#include "webtls.h"
 #include <SDL.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -45,6 +46,7 @@ bool webUpdateReady() { return g_updateReady != 0; }
 extern const char WEB_PAGE[];
 extern const char WEB_SCREEN[];
 extern const char WEB_SYNC[];
+extern const char WEB_CERT_A[], WEB_CERT_B[];
 extern const unsigned char WEB_ICON180[], WEB_ICON192[], WEB_ICON512[];
 extern const size_t WEB_ICON180_LEN, WEB_ICON192_LEN, WEB_ICON512_LEN;
 // Web-App: auf dem Homescreen installierbar, startet die Fernbedienung im Vollbild (Querformat)
@@ -82,11 +84,23 @@ static bool sendAll(int fd, const void* p, size_t n) {
     return true;
 }
 
+// CORS: nur die Handy-App (GitHub Pages) und lokale Tests duerfen per Browser auf die API zugreifen
+static __thread char t_origin[160];
+static const char* corsHdr() {
+    static __thread char h[260];
+    const char* o = t_origin;
+    const char* extra = getenv("GB_APP_ORIGIN");
+    bool ok = o[0] && (!strcmp(o, "https://molgino.github.io") || !strncmp(o, "http://localhost:", 17) || !strcmp(o, "http://localhost") ||
+                       !strncmp(o, "http://127.0.0.1:", 17) || (extra && !strcmp(o, extra)));
+    if (!ok) return "";
+    snprintf(h, sizeof h, "Access-Control-Allow-Origin: %s\r\nVary: Origin\r\n", o);
+    return h;
+}
 static void reply(int fd, int code, const char* type, const char* body, size_t len) {
-    char h[256];
+    char h[600];
     const char* msg = code == 200 ? "OK" : code == 204 ? "No Content" : code == 404 ? "Not Found" : code == 413 ? "Too Large" : "Bad Request";
     int hl = snprintf(h, sizeof h, "HTTP/1.1 %d %s\r\nContent-Type: %s\r\nContent-Length: %zu\r\n"
-                      "Cache-Control: no-store\r\nConnection: close\r\n\r\n", code, msg, type, len);
+                      "Cache-Control: no-store\r\n%sConnection: close\r\n\r\n", code, msg, type, len, corsHdr());
     sendAll(fd, h, (size_t)hl);
     if (len) sendAll(fd, body, len);
 }
@@ -277,6 +291,39 @@ static void manifestDir(Buf& b, const char* root, const char* dir, const char* s
     }
     closedir(d);
 }
+// iPhone-Profil mit der CA des Geraets (Einstellungen -> Profil installieren, danach in "Zertifikatsvertrauen" einschalten)
+static void handleMobileconfig(int fd, const unsigned char* der, size_t n) {
+    static const char* const b64c = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    Buf b = {nullptr, 0, 0};
+    char* enc = (char*)malloc(n * 4 / 3 + 8); size_t e = 0;
+    for (size_t i = 0; i < n; i += 3) {
+        uint32_t v = (uint32_t)der[i] << 16 | (i + 1 < n ? (uint32_t)der[i + 1] << 8 : 0) | (i + 2 < n ? der[i + 2] : 0);
+        enc[e++] = b64c[v >> 18 & 63]; enc[e++] = b64c[v >> 12 & 63];
+        enc[e++] = i + 1 < n ? b64c[v >> 6 & 63] : '='; enc[e++] = i + 2 < n ? b64c[v & 63] : '=';
+    }
+    enc[e] = 0;
+    uint32_t h = 2166136261u; for (size_t i = 0; i < n; i++) h = (h ^ der[i]) * 16777619u;   // UUIDs je Geraet fest
+    char u1[40], u2[40];
+    snprintf(u1, sizeof u1, "5C17C17A-0001-4000-8000-%012X", h);
+    snprintf(u2, sizeof u2, "5C17C17A-0002-4000-8000-%012X", h ^ 0x5a5a5a5au);
+    bstr(b, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n"
+            "<plist version=\"1.0\"><dict><key>PayloadContent</key><array><dict>"
+            "<key>PayloadCertificateFileName</key><string>synthcity-ca.cer</string><key>PayloadContent</key><data>");
+    bstr(b, enc);
+    bstr(b, "</data><key>PayloadDescription</key><string>Erlaubt der SYNTH-CITY-Handy-App den Sync mit diesem R36S (nur private Netze).</string>"
+            "<key>PayloadDisplayName</key><string>SYNTH CITY Geraet</string><key>PayloadIdentifier</key><string>city.synth.ca.");
+    bstr(b, u1);
+    bstr(b, "</string><key>PayloadType</key><string>com.apple.security.root</string><key>PayloadUUID</key><string>");
+    bstr(b, u1);
+    bstr(b, "</string><key>PayloadVersion</key><integer>1</integer></dict></array>"
+            "<key>PayloadDisplayName</key><string>SYNTH CITY (R36S)</string><key>PayloadIdentifier</key><string>city.synth.profile.");
+    bstr(b, u2);
+    bstr(b, "</string><key>PayloadRemovalDisallowed</key><false/><key>PayloadType</key><string>Configuration</string><key>PayloadUUID</key><string>");
+    bstr(b, u2);
+    bstr(b, "</string><key>PayloadVersion</key><integer>1</integer></dict></plist>\n");
+    reply(fd, 200, "application/x-apple-aspen-config", b.p, b.n);
+    free(b.p); free(enc);
+}
 // WAV-Kopf lesen: Format, Kanaele, Rate, Bits, Laenge
 static void handleInfo(int fd, const char* full) {
     FILE* f = fopen(full, "rb");
@@ -369,8 +416,19 @@ static bool handle(int fd) {   // true = Verbindung wurde uebernommen (WebSocket
     char method[8] = {0}, target[1024] = {0};
     if (sscanf(hb, "%7s %1023s", method, target) != 2) { replyText(fd, 400, "?"); return false; }
     long long clen = 0;
-    for (char* l = strstr(hb, "\r\n"); l && l < bodyStart; l = strstr(l + 2, "\r\n"))
+    t_origin[0] = 0;
+    for (char* l = strstr(hb, "\r\n"); l && l < bodyStart; l = strstr(l + 2, "\r\n")) {
         if (!strncasecmp(l + 2, "Content-Length:", 15)) clen = atoll(l + 17);
+        if (!strncasecmp(l + 2, "Origin:", 7)) { const char* v = l + 9; while (*v == ' ') v++; snprintf(t_origin, sizeof t_origin, "%.*s", (int)strcspn(v, "\r\n"), v); }
+    }
+    if (!strcmp(method, "OPTIONS")) {   // CORS-Vorabfrage (PUT der Handy-App, Chrome: privates Netz)
+        char h[700]; const char* c = corsHdr();
+        int l = snprintf(h, sizeof h, "HTTP/1.1 204 No Content\r\n%s%sContent-Length: 0\r\nConnection: close\r\n\r\n", c,
+                         c[0] ? "Access-Control-Allow-Methods: GET, PUT, POST, OPTIONS\r\nAccess-Control-Allow-Headers: Content-Type\r\n"
+                                "Access-Control-Allow-Private-Network: true\r\nAccess-Control-Max-Age: 600\r\n" : "");
+        sendAll(fd, h, (size_t)l);
+        return false;
+    }
     char* q = strchr(target, '?');
     if (q) *q++ = 0;
     char root[16] = "samples", rel[400] = "", dir[700], full[1200];
@@ -481,6 +539,27 @@ static bool handle(int fd) {   // true = Verbindung wurde uebernommen (WebSocket
         return false;
     }
 
+    if (!strcmp(method, "GET") && (!strcmp(target, "/synthcity-ca.crt") || !strcmp(target, "/synthcity.mobileconfig"))) {
+        char p[700]; snprintf(p, sizeof p, "%s/ca.der", webTlsDir());
+        FILE* f = fopen(p, "rb"); static unsigned char der[4096]; size_t n = f ? fread(der, 1, sizeof der, f) : 0; if (f) fclose(f);
+        if (!n) { replyText(fd, 404, "Zertifikat noch nicht erzeugt (https startet beim Start der Groovebox)"); return false; }
+        if (!strcmp(target, "/synthcity-ca.crt")) { reply(fd, 200, "application/x-x509-ca-cert", (const char*)der, n); return false; }
+        handleMobileconfig(fd, der, n);
+        return false;
+    }
+    if (!strcmp(method, "GET") && !strcmp(target, "/cert")) {
+        char st[200]; snprintf(st, sizeof st, "%s", webTlsStatus());
+        Buf b = {nullptr, 0, 0};
+        bstr(b, WEB_CERT_A); bstr(b, st); bstr(b, WEB_CERT_B);
+        reply(fd, 200, "text/html; charset=utf-8", b.p, b.n);
+        free(b.p);
+        return false;
+    }
+    if (!strcmp(method, "GET") && !strcmp(target, "/api/https")) {   // fuer die App: laeuft https, auf welchem Port?
+        char j[120]; snprintf(j, sizeof j, "{\"port\":%d}", webTlsPort());
+        reply(fd, 200, "application/json", j, strlen(j));
+        return false;
+    }
     if (!strcmp(method, "GET") && !strcmp(target, "/sync")) { reply(fd, 200, "text/html; charset=utf-8", WEB_SYNC, strlen(WEB_SYNC)); return false; }
     if (!strcmp(method, "GET") && !strcmp(target, "/api/manifest")) {   // alle Projekte, Sounds, Samples mit Groesse + Zeit (Sync der Handy-App)
         char rec[4] = ""; if (q) queryGet(q, "rec", rec, sizeof rec);
@@ -566,8 +645,8 @@ static bool handle(int fd) {   // true = Verbindung wurde uebernommen (WebSocket
         if (!f) { replyText(fd, 404, "nicht gefunden"); return false; }
         fseek(f, 0, SEEK_END); long n = ftell(f); fseek(f, 0, SEEK_SET);
         char h[300];
-        int l = snprintf(h, sizeof h, "HTTP/1.1 200 OK\r\nContent-Type: %s\r\nContent-Length: %ld\r\nConnection: close\r\n\r\n",
-                         isS ? "audio/wav" : "application/octet-stream", n);
+        int l = snprintf(h, sizeof h, "HTTP/1.1 200 OK\r\nContent-Type: %s\r\nContent-Length: %ld\r\n%sConnection: close\r\n\r\n",
+                         isS ? "audio/wav" : "application/octet-stream", n, corsHdr());
         sendAll(fd, h, (size_t)l);
         static char buf[65536];
         size_t r;

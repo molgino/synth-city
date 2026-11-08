@@ -13,6 +13,7 @@
 #include "midi.h"
 #include "usbaudio.h"
 #include "drmout.h"
+#include "webtls.h"
 
 // ---------------------------------------------------------------- Eingaben (gleiches Format wie remote.cpp)
 volatile bool remoteDown[BT_COUNT];
@@ -144,3 +145,8 @@ extern "C" int pthread_setschedparam(pthread_t, int, const struct sched_param*) 
 extern "C" int fsync(int) { return 0; }
 extern "C" void sync(void) {}
 bool webTakeProjectUpload(char*, int) { return false; }
+// https des Geraets gibt es in der App nicht
+bool webTlsStart(const char*, int) { return false; }
+int webTlsPort() { return 0; }
+const char* webTlsStatus() { return ""; }
+const char* webTlsDir() { return ""; }

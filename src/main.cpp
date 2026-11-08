@@ -24,6 +24,7 @@
 #include "usbaudio.h"
 #include "pcm.h"
 #include "remote.h"
+#include "webtls.h"
 #include "paramhelp.h"
 #include "factory.h"
 
@@ -5625,6 +5626,7 @@ int main(int argc, char** argv) {
     else toast(TR("%d SAMPLES GELADEN", "%d SAMPLES LOADED"), sampleCount());
     if (firstRun) msgUntil = SDL_GetTicks() + 6000;
     webStart(basePath);
+    webTlsStart(basePath, webPort());   // https fuer die Handy-App (Sync direkt aus der App)
     int webSeq = 0;
     if (cfg.usb && !usbMode) { usbMode = cfg.usbAudio ? 2 : 1; usbApplyAt = SDL_GetTicks() + 1500; }   // PC-Modus nach Neustart wiederherstellen
     Uint32 lastAuto = SDL_GetTicks();

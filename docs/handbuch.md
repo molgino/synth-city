@@ -482,13 +482,21 @@ SYNTH CITY läuft auch komplett auf dem Handy: dieselbe Groovebox (Engine und Ob
 
 Was es nur am Gerät gibt: USB-Audio, MIDI, USB-Modus, Akku, Bild-Versatz. Diese Einstellungen blendet SET in der App aus. Der Sampler nimmt in der App Master und einzelne Spuren auf, nicht USB.
 
+**Einmalig: Zertifikat des Geräts aufs Handy.** Die App spricht per https mit dem R36S. Dafür erzeugt der R36S beim Start ein eigenes Zertifikat, dem das Handy einmal vertrauen muss:
+1. R36S verbinden (USB-Modus = PC oder WLAN), in **Safari** **http://192.168.77.1/cert** öffnen.
+2. **Profil laden** → „Zulassen“. Dann **Einstellungen → Profil geladen → Installieren**.
+3. **Einstellungen → Allgemein → Info → Zertifikatsvertrauenseinstellungen** → „SYNTH CITY Gerät“ einschalten.
+4. Prüfen über den Knopf auf der Seite: die https-Seite muss sich ohne Warnung öffnen.
+
+Das Zertifikat entsteht auf deinem R36S und gilt nur für private Netze (192.168.x.x, 10.x.x.x, 172.16–31.x.x) und *.local. Android/PC: auf derselben Seite „Zertifikat laden“.
+
 **Sync mit dem R36S** (Taste **⇅ Sync** oben rechts):
 1. R36S per USB anschließen (SET → USB-Modus = PC) oder ins selbe WLAN; die Adresse des Geräts steht in SET (Standard 192.168.77.1).
 2. Richtung wählen:
    * **Handy → Gerät**: das Gerät bekommt alle Stände vom Handy.
    * **Gerät → Handy**: umgekehrt.
    * **Beides abgleichen**: Neues und Geändertes wird in beide Richtungen kopiert. Wurde eine Datei auf beiden Seiten geändert, bleiben beide erhalten – der Handy-Stand heißt dann „Name (Handy)“.
-3. Es öffnet sich ein zweites Fenster vom Gerät: dort **Erlauben** tippen. Hält das Handy eines der Fenster an, einfach zwischen beiden hin- und herwechseln; der Abgleich läuft in wenigen großen Schritten weiter.
+3. Fertig – der Abgleich läuft direkt, ohne zweites Fenster. Ist das Zertifikat noch nicht eingerichtet, zeigt die App den Weg dorthin. Als Rückfall gibt es „Altes Verfahren (zweites Fenster)“: dort im Gerät-Fenster **Erlauben** tippen (auf dem iPhone unzuverlässig).
 
 Gelöscht wird beim Sync nichts. Erst kommen Projekte und Sounds, dann die Samples – Standard **„nur benutzte“**: nur die Samples, die in den Projekten und Sounds vorkommen (die ganze Bibliothek wäre fürs Handy oft zu groß). Wählbar sind auch „alle“ oder „keine“. Große Mengen gehen in Häppchen, der Balken zeigt den Fortschritt. Aufnahmen (samples/rec) sind nur auf Wunsch dabei. Ist auf dem Gerät gerade das Projekt offen, das vom Handy kommt, lädt es das Gerät neu – außer es spielt oder hat ungespeicherte Änderungen (dann ein Hinweis, neu laden über PRJ).
 
