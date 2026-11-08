@@ -496,6 +496,26 @@ Es wird mit `tools/gensamples.py` erzeugt.
 * Den Sample-Regler auf der SRC-Seite kannst du pro Step locken. So spielt eine einzige Spur verschiedene Samples.
 * NOTE C-4 ist die Originaltonhöhe.
 * Ohne LOOP läuft ein Sample als One-Shot bis zum Ende. Mit LOOP gilt die Trig-Länge (LEN) bzw. die Haltedauer der MIDI-Taste.
+* **Loop:** Der Loop läuft von **LSTR** (Seite WARP/LOOP; 0 = ab START) bis **END**. Am Loop-Ende wird kurz (bis 6 ms) in das Material vor dem Loop-Anfang übergeblendet – der Sprung knackt nicht. Mit **ZERO** rasten Start, Loop und Ende auf den nächsten Nulldurchgang ein. **S.FIN / E.FIN / L.FIN** setzen die Punkte 128-mal feiner als STRT/END/LSTR.
+
+### Sample-Editor (SMPL → EDIT)
+
+Auf der Seite QUELLE von SMPL öffnet **X auf EDIT** den Editor mit der Wellenform des Slots und den Marken **S** (Start), **L** (Loop-Anfang) und **E** (Ende). Der gespielte Bereich ist pink, der Loop cyan.
+
+| Taste | Funktion |
+|---|---|
+| **L1/R1** | Marke wählen (START / LOOP / ENDE) |
+| **← →** | Marke schieben (1 Bildpunkt, gehalten schneller); rechter Stick schiebt stufenlos |
+| **X / Y** | Marke fein schieben (bis auf einzelne Samples) |
+| **↑ ↓** | Zoom (bis 16384-fach), die Ansicht folgt der Marke |
+| **SELECT** | ZERO an/aus (auf Nulldurchgänge einrasten) |
+| **START** | LOOP an/aus |
+| **A** | anhören |
+| **B** | fertig |
+
+Die Marken sind normale Spur-Parameter (STRT/END/LSTR + Feinwerte): Sie werden mit dem Projekt bzw. Sound gespeichert und lassen sich pro Step locken.
+
+![Sample-Editor](shot:58)
 * Das Projekt merkt sich die Samples per **Name**. Dateien darfst du beliebig hinzufügen und Ordner anlegen. Benennst du eine benutzte Datei um oder verschiebst sie, findet das Projekt sie nicht mehr – dann im Explorer neu wählen.
 
 ## Handy-App (offline, iPhone und Android)

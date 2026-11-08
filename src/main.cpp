@@ -874,7 +874,8 @@ static const char* pageLong(int p) {
     }
     if (p == PG_SRC2 && m == M_SYNTH) return TR("OSZILLATOREN", "OSCILLATORS");
     if (p == PG_SRC2 && m == M_WTBL) return TR("OSZILLATOR + EIGENE WAVETABLE", "OSCILLATOR + USER WAVETABLE");
-    if (p == PG_SRC2 && (m == M_SAMPLE || m == M_CHOP)) return TR("TIME-WARP: SAMPLE FOLGT DEM TEMPO", "TIME WARP: SAMPLE FOLLOWS THE TEMPO");
+    if (p == PG_SRC2 && m == M_SAMPLE) return TR("TIME-WARP + LOOP-PUNKTE", "TIME WARP + LOOP POINTS");
+    if (p == PG_SRC2 && m == M_CHOP) return TR("TIME-WARP: SAMPLE FOLGT DEM TEMPO", "TIME WARP: SAMPLE FOLLOWS THE TEMPO");
     return PAGE_LONG[p];
 }
 static void gotoPage(int dir) {
@@ -2517,6 +2518,7 @@ static void mapSummary(int p, char* b, int n) {
 }
 static void drawExportModal();
 static void drawWtEditorIfOpen();
+static void drawSmpEditorIfOpen();
 static void drawMenu() {
     hitModal();
     rrect(10, 30, 620, 420, 14, C_ACC);
@@ -2936,7 +2938,8 @@ static const char* sigName(int p) {
     int m = curP().machine[track];
     if (m == M_FM) switch (p) { case PG_SRC: return "FM"; case PG_SRC2: return "OP 1"; case PG_SRC3: return "OP 2"; case PG_SRC4: return "OP 3"; case PG_SRC5: return "OP 4"; }
     if (p == PG_SRC2 && (m == M_SYNTH || m == M_WTBL)) return "OSC";
-    if (p == PG_SRC2 && (m == M_SAMPLE || m == M_CHOP)) return "WARP";
+    if (p == PG_SRC2 && m == M_SAMPLE) return "WARP/LOOP";
+    if (p == PG_SRC2 && m == M_CHOP) return "WARP";
     switch (p) {
     case PG_SEND: return "SENDS";
     case PG_SRC: return TR("QUELLE", "SOURCE"); case PG_SRC2: return TR("QUELLE 2", "SOURCE 2"); case PG_FLT: return "FILTER 1"; case PG_FLT2: return "FILTER 2";
@@ -3298,6 +3301,7 @@ static void drawAll(bool help) {
     if (menuOpen) drawMenu();
     if (touchBlocked()) hitModal();   // Explorer/Tastatur/Editor/Export: per Steuerkreuz bedienen
     drawWtEditorIfOpen();
+    drawSmpEditorIfOpen();
     drawExportModal();
     if (fbOpen) drawBrowser();
     if (kbOpen) drawKeyboard();
@@ -3630,6 +3634,7 @@ static int loadPresetPath(int t, const char* p) {   // 1 ok, 0 fehlt, -1 Fehler
 #include "filedlg.inc"
 #include "wtedit.inc"
 static void drawWtEditorIfOpen() { if (wteOpen) drawWtEditor(); }
+#include "smpedit.inc"   // Sample-Editor (SMPL: EDIT)
 
 static void runAction(int act, int arg) {
     switch (act) {
@@ -4750,7 +4755,7 @@ static void liveInput(Input& I, Uint32 now, float dt) {
     if (f) eng.proj.bpm = (uint16_t)clampi(eng.proj.bpm + f, 30, 300);
 }
 
-static bool touchBlocked() { return wteOpen || expState == 1 || fbOpen || kbOpen; }
+static bool touchBlocked() { return wteOpen || sedOpen || expState == 1 || fbOpen || kbOpen; }
 #include "touch.inc"
 
 static void handleInput(Uint32 now, float dt) {
@@ -4765,6 +4770,7 @@ static void handleInput(Uint32 now, float dt) {
     if (kbOpen) { kbInput(I, now); return; }
     if (fbOpen) { fbInput(I, now); return; }
     if (wteOpen) { wteInput(I, now, dt); return; }
+    if (sedOpen) { sedInput(I, now, dt); return; }
     if (expState == 1) { if (I.pressed(BT_B)) expCancel = true; return; }   // Export laeuft: nur Abbrechen
     if (expState >= 2) {
         if (expState == 2) toast(TR("EXPORT FERTIG: SAMPLES/REC/%s", "EXPORT DONE: SAMPLES/REC/%s"), expName);
@@ -4958,6 +4964,7 @@ static void handleInput(Uint32 now, float dt) {
                 if (knobInfo(slot, sd, sv, sl, sb, slab, sizeof slab)) {
                     if (sd.kind == K_SMPL) { fbSmpIdx = slotParam(slot); openBrowser(FB_SLOT); return; }
                     if (sd.kind == K_WDRAW && !aHeld) { openWtEditor(); return; }
+                    if (sd.kind == K_SEDIT && !aHeld) { openSmpEditor(); return; }
                     if (sd.kind == K_LDEST || sd.kind == K_EDEST) { fbParam = slotParam(slot); openBrowser(FB_LDEST); return; }
                     if (sd.kind == K_MACH && !aHeld) { openBrowser(FB_MACH); return; }
                     if (sd.kind == K_COND) { fbParam = slotParam(slot); openBrowser(FB_COND); return; }
@@ -5527,6 +5534,7 @@ int main(int argc, char** argv) {
             if (shotPage == 53) { page = PG_PRJ; track = 4; openBrowser(FB_PRESET); fbPick(); fbSel = 3; }
         }
         if (shotPage == 54) { page = PG_TRG; track = 4; slot = 6; openBrowser(FB_MACH); }   // Engine-Liste
+        if (shotPage == 58) { page = PG_SRC; track = 7; Engine::setMachine(curP(), 7, M_SAMPLE); curP().p[7][P_S0] = 9; curP().p[7][P_S5] = 1; curP().p[7][P_S3] = 20; curP().p[7][P_S4] = 90; curP().p[7][P_X3] = 45; curP().p[7][P_X7] = 1; slot = 7; openSmpEditor(); sedZoom = 1; sedFollow(); }   // Sample-Editor
         if (shotPage == 57) { page = PG_SRC; track = 7; Engine::setMachine(curP(), 7, M_SAMPLE); curP().p[7][P_S0] = 2; slot = 0; fbSmpIdx = P_S0; openBrowser(FB_SLOT); fbSel = 4; }   // Sample-Slots
         if (shotPage == 56) { page = PG_TRG; track = 4; slot = 7; curP().p[4][P_COND] = CND_AB + 1; fbParam = P_COND; openBrowser(FB_COND); }   // Bedingungs-Liste
         if (shotPage == 55) { page = PG_LFO1; track = 4; slot = LF_DEST; fbParam = P_L1 + LF_DEST; openBrowser(FB_LDEST); }   // LFO-Ziel-Liste

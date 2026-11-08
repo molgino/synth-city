@@ -659,6 +659,23 @@ static void uiScenarios() {
         poolSetSlot(empty, "");
     }
 
+    uiCase = "Sample-Editor";
+    if (libCount() > 0) {
+        simReset(); goTrack(7); Engine::setMachine(curP(), 7, M_SAMPLE); poolSetSlot(0, libName(0)); curP().p[7][P_S0] = 0;
+        goPage(PG_SRC); goSlot(7); tap(BT_X);
+        UCHECK(sedOpen, "X auf EDIT oeffnet keinen Sample-Editor");
+        int s0 = sedPos(0);
+        tap(BT_UP); tap(BT_UP); tap(BT_RIGHT); tap(BT_RIGHT);
+        UCHECK(sedPos(0) > s0, "START laesst sich nicht schieben (%d -> %d)", s0, sedPos(0));
+        tap(BT_R1); tap(BT_START);   // Marke LOOP, Loop an
+        UCHECK(sedMark == 1 && curP().p[7][P_S5] == 1, "Marke/Loop nicht umgeschaltet");
+        tap(BT_SELECT);
+        UCHECK(curP().p[7][P_X7] == 1, "ZERO nicht umgeschaltet");
+        tap(BT_B);
+        UCHECK(!sedOpen && curP().p[7][P_X4] + curP().p[7][P_S3] > 0, "Editor nicht geschlossen / START nicht uebernommen");
+        curP().p[7][P_S3] = 0; curP().p[7][P_X4] = 0; curP().p[7][P_S5] = 0; curP().p[7][P_X7] = 0;
+    }
+
     uiCase = "Engine-Liste";
     simReset(); goTrack(2); goPage(PG_TRG); slot = 6;   // ENGINE (TRG-Seite hat eigenes Raster)
     tap(BT_X);

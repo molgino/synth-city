@@ -606,6 +606,43 @@ static void testStereoSample() {
     Sample e; memset(&e, 0, sizeof e); poolSwap(SL, e); sampleFree(e);
 }
 
+// Loop: am Loop-Punkt darf es nicht springen (Ueberblenden), LSTR + Feinwerte + ZERO setzen die Punkte
+static void testLoop() {
+    curTest = "Sample-Loop";
+    static Engine X; static float out[44100 * 2 * 2];
+    Sample sm; memset(&sm, 0, sizeof sm);
+    snprintf(sm.name, sizeof sm.name, "test-loop");
+    sm.rate = 44100; sm.len = 44100;
+    sm.data = (float*)malloc(sizeof(float) * sm.len);
+    for (int i = 0; i < sm.len; i++) sm.data[i] = 0.5f * sinf(6.2831853f * 220.7f * i / 44100.f) + 0.2f;   // Gleichanteil: harter Sprung waere deutlich
+    const int SL = 202;
+    poolSwap(SL, sm); sampleFree(sm);
+    const Sample* S = sampleGet(SL);
+    CHECK(smpPoint(S, 127, 0) == S->len - 1 && smpPoint(S, 0, 0) == 0 && smpPoint(S, 64, 0) == (int)(64 / 127.0 * (S->len - 1)), "smpPoint ohne Feinwert anders als frueher");
+    CHECK(smpPoint(S, 10, 64) > smpPoint(S, 10, 0) && smpPoint(S, 10, 64) < smpPoint(S, 11, 0), "Feinwert liegt nicht zwischen zwei Grobwerten");
+    int z = smpZero(S, 1000); CHECK(z > 0 && fabsf(S->data[z]) < 0.25f, "smpZero findet keinen Nulldurchgang (%.3f)", S->data[z]);
+    float maxJump[2] = {0, 0};
+    for (int xfOn = 0; xfOn < 2; xfOn++) {
+        X.init(44100); X.stop(); X.audioThreads = 1; X.defaultProject(false); X.proj.bpm = 120;
+        Pattern& P = X.proj.pat[0];
+        Engine::initTrack(P, 6, M_SAMPLE);
+        for (int t = 0; t < NTRACKS; t++) for (int s2 = 0; s2 < 64; s2++) P.s[t][s2].on = 0;
+        P.s[6][0].on = 1; P.p[6][P_LEN] = 127; P.p[6][P_S0] = SL; P.p[6][P_S5] = 1;   // LOOP
+        P.p[6][P_S4] = 10;          // Ende bei ~3500 Samples: schnelle Durchlaeufe
+        P.p[6][P_X3] = xfOn ? 4 : 0; // Loop-Anfang ~1400 (mit Material davor -> Ueberblenden), sonst ab STRT = 0 (kein Material davor)
+        P.p[6][P_FTYP] = FT_LP12; P.p[6][P_FREQ] = 127;
+        for (int b = 0; b < NBUS; b++) Engine::setBusType(X.proj, b, BF_OFF);
+        X.start();
+        for (int i = 0; i < 44100; i += 256) X.render(out + i * 2, 256);
+        for (int i = 4410; i < 44100; i++) { float d = fabsf(out[i * 2] - out[i * 2 - 2]); if (d > maxJump[xfOn]) maxJump[xfOn] = d; }
+        float e = 0; for (int i = 30000; i < 44100; i++) e += fabsf(out[i * 2]);
+        CHECK(e > 100.f, "Loop %d: nach 0,7 s still (%.0f) - Loop laeuft nicht weiter", xfOn, e);
+    }
+    printf("  Loop: groesster Sprung ohne Ueberblenden %.3f, mit %.3f\n", maxJump[0], maxJump[1]);
+    CHECK(maxJump[1] < maxJump[0] * 0.5f, "Ueberblenden glaettet den Loop-Punkt nicht (%.3f vs %.3f)", maxJump[1], maxJump[0]);
+    Sample e; memset(&e, 0, sizeof e); poolSwap(SL, e); sampleFree(e);
+}
+
 // Sampler-Abgriff: eine Spur getrennt mitschreiben, Master bleibt gleich
 static void testTrackTap() {
     curTest = "Spur-Abgriff";
@@ -895,6 +932,7 @@ int main(int argc, char** argv) {
     testWarp();
     testTrackTap();
     testStereoSample();
+    testLoop();
     testPcm24(sdir);
     printf("%s: %d Pruefungen ok, %d Fehler\n", nFail ? "FEHLGESCHLAGEN" : "OK", nPass, nFail);
     return nFail ? 1 : 0;

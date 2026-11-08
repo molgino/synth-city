@@ -118,6 +118,23 @@ static inline float smpReadD(const float* d, int n, double pos) {
 }
 static inline float smpRead(const Sample* sm, double pos) { return smpReadD(sm->data, sm->len, pos); }
 static inline float smpReadR(const Sample* sm, double pos) { return smpReadD(sm->dataR ? sm->dataR : sm->data, sm->len, pos); }
+// Sample-Position aus Grobwert (0-127) + Feinwert (1/128 Schritt); Fein 0 = genau wie frueher
+int smpPoint(const Sample* sm, int coarse, int fine) {
+    double f = (coarse + fine / 128.0) / 127.0;
+    if (f > 1.0) f = 1.0;
+    return (int)(f * (sm->len - 1));
+}
+// naechster Nulldurchgang (Vorzeichenwechsel links) bis +-2048 Samples, sonst die Stelle selbst
+int smpZero(const Sample* sm, int p) {
+    const float* d = sm->data;
+    if (p <= 0 || p >= sm->len - 1) return p;
+    for (int k = 0; k < 2048; k++) {
+        int a = p - k, b = p + k;
+        if (a > 0 && (d[a - 1] <= 0.f) != (d[a] <= 0.f)) return fabsf(d[a - 1]) < fabsf(d[a]) ? a - 1 : a;
+        if (b < sm->len - 1 && (d[b] <= 0.f) != (d[b + 1] <= 0.f)) return fabsf(d[b]) < fabsf(d[b + 1]) ? b : b + 1;
+    }
+    return p;
+}
 static inline float fastTanh(float x) {
     if (x < -3.f) return -1.f;
     if (x > 3.f) return 1.f;
@@ -198,11 +215,22 @@ void Voice::noteOn(int m, const uint8_t* b, const uint8_t* locks, float velScale
     if (m == M_SAMPLE) {
         smp = sampleGet(P(P_S0));
         if (!smp) { active = false; return; }
-        int a = (int)(P(P_S3) / 127.f * (smp->len - 1)), e = (int)(P(P_S4) / 127.f * (smp->len - 1));
+        int a = smpPoint(smp, P(P_S3), P(P_X4)), e = smpPoint(smp, P(P_S4), P(P_X5));
+        bool zero = P(P_X7) != 0;
+        if (zero) { a = smpZero(smp, a); e = smpZero(smp, e); }
         sRev = e < a;
         sStart = a; sEnd = e; spos = a; sDone = false;
         sLoop = P(P_S5) != 0;
         if (sStart == sEnd) { active = false; return; }
+        sLoopS = a; sXf = 0;
+        if (sLoop && !sRev) {   // Loop-Anfang (LSTR) und Ueberblenden am Ende, damit der Sprung nicht knackt
+            if (P(P_X3) || P(P_X6)) { int l = smpPoint(smp, P(P_X3), P(P_X6)); if (zero) l = smpZero(smp, l); sLoopS = l < a ? a : (l >= e - 8 ? e - 8 : l); }
+            if (sLoopS < a) sLoopS = a;
+            int xf = (int)(sr * 0.006f), room = (e - sLoopS) / 4;
+            if (xf > room) xf = room;
+            if (xf > sLoopS) xf = sLoopS;   // braucht Material vor dem Loop-Anfang
+            sXf = xf >= 8 ? xf : 0;
+        }
     }
     update(0, sr, 120);
     if (warp) warpInit();
@@ -907,11 +935,19 @@ void Voice::render(float* L, float* R, float (*S)[32], int n, float sr) {
             float fade = sLoop || rem >= 64.f ? 1.f : (rem > 0.f ? rem / 64.f : 0.f);   // Ende (z. B. END < Dateiende) ohne Knacken
             float fg = sGain * fade;
             if (warp) { s = warpRead(sR) * fg; sR *= fg; }
-            else { s = smpRead(smp, spos) * fg; if (st) sR = smpReadR(smp, spos) * fg; }
+            else {
+                s = smpRead(smp, spos) * fg; if (st) sR = smpReadR(smp, spos) * fg;
+                if (sXf && spos > sEnd - sXf) {   // Loop-Ende: in das Material vor dem Loop-Anfang ueberblenden
+                    float k = (float)((spos - (sEnd - sXf)) / sXf);
+                    double q = sLoopS - (sEnd - spos);
+                    s = s * (1.f - k) + smpRead(smp, q) * fg * k;
+                    if (st) sR = sR * (1.f - k) + smpReadR(smp, q) * fg * k;
+                }
+            }
             spos += sinc;
             bool past = sRev ? spos <= sEnd : spos >= sEnd;
             if (past) {
-                if (sLoop) spos = sStart + (spos - sEnd);
+                if (sLoop) spos = (sRev ? sStart : sLoopS) + (spos - sEnd);
                 else sDone = true;
                 if (sRev ? spos < sEnd : spos > sEnd) spos = sStart;
             }

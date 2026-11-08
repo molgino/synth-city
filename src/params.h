@@ -62,7 +62,7 @@ enum Kind {
     K_SMPL, K_SEMI, K_OFFON, K_DEV, K_BUFS, K_CLK, K_CHM, K_INFO, K_USB,
     K_ALGO, K_DECAY, K_ACT, K_SLOT, K_COND, K_LSYNC, K_LDEST, K_LMODE, K_FBK, K_DIR, K_TLEN, K_TSPD, K_RANGE, K_MTIM, K_WTAB, K_SLICE,
     K_SCALE, K_ROOT, K_INS, K_MS, K_MACH, K_THR, K_CRAT, K_CATK, K_CREL, K_CGAIN, K_SCSRC, K_GR,
-    K_ARPM, K_ACHD, K_ARAT, K_OCT, K_SUBO, K_FXT, K_WDRAW, K_EDEST
+    K_ARPM, K_ACHD, K_ARAT, K_OCT, K_SUBO, K_FXT, K_WDRAW, K_EDEST, K_SEDIT
 };
 
 struct ParamDef { const char* name; Kind kind; uint8_t def; uint8_t max; };
@@ -279,7 +279,7 @@ static const ParamDef SRC_DEFS[M_COUNT][8] = {
      {"P.DEC", K_NUM, 40, 127}, {"NOIS", K_NUM, 0, 127}, PDEF_NONE, PDEF_NONE},
     // SAMPLE (END < STRT = rueckwaerts)
     {{"SMPL", K_SMPL, SMP_NONE, 249}, {"TUNE", K_SEMI, 24, 48}, {"FINE", K_BIP, 64, 127}, {"STRT", K_NUM, 0, 127},
-     {"END", K_NUM, 127, 127}, {"LOOP", K_OFFON, 0, 1}, {"GAIN", K_NUM, 64, 127}, PDEF_NONE},
+     {"END", K_NUM, 127, 127}, {"LOOP", K_OFFON, 0, 1}, {"GAIN", K_NUM, 64, 127}, {"EDIT", K_SEDIT, 0, 0}},
     // TOM
     {{"TUNE", K_NUM, 50, 127}, {"DCAY", K_NUM, 70, 127}, {"SWEP", K_NUM, 40, 127}, {"NOIS", K_NUM, 30, 127},
      {"BODY", K_NUM, 20, 127}, PDEF_NONE, PDEF_NONE, PDEF_NONE},
@@ -314,7 +314,9 @@ static const ParamDef SRC2_DEFS[M_COUNT][8] = {
     {{"OCT1", K_OCT, 3, 6}, {"OCT2", K_OCT, 3, 6}, {"LVL1", K_NUM, 127, 127}, {"LVL2", K_NUM, 127, 127},
      {"SUB.O", K_SUBO, 0, 1}, {"SYNC", K_OFFON, 0, 1}, {"XMOD", K_NUM, 0, 127}, {"RING", K_NUM, 0, 127}},
     {PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE},   // FM: siehe FM_OP_DEFS
-    {{"TEMPO", K_OFFON, 0, 1}, {"BEATS", K_NUM, 0, 128}, {"GRAIN", K_NUM, 40, 127}, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE},   // Time-Warp
+    // SMPL: Time-Warp + Loop-Anfang (LSTR, 0 = ab STRT) + Feinwerte (je 1/128 eines Schritts) + Nulldurchgang-Einrasten
+    {{"TEMPO", K_OFFON, 0, 1}, {"BEATS", K_NUM, 0, 128}, {"GRAIN", K_NUM, 40, 127}, {"LSTR", K_NUM, 0, 127},
+     {"S.FIN", K_NUM, 0, 127}, {"E.FIN", K_NUM, 0, 127}, {"L.FIN", K_NUM, 0, 127}, {"ZERO", K_OFFON, 0, 1}},
     {PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE},
     {PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE},
     {PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE},
@@ -464,7 +466,7 @@ inline void fmtParam(const ParamDef& d, int v, char* buf, int n) {
     case K_OCT: snprintf(buf, n, "%+d", v - 3); break;
     case K_SUBO: snprintf(buf, n, "%s", v ? "-2" : "-1"); break;
     case K_FXT: snprintf(buf, n, "%s", BUS_TYPE_NAMES[v % BF_COUNT]); break;
-    case K_WDRAW: snprintf(buf, n, ">>"); break;
+    case K_WDRAW: case K_SEDIT: snprintf(buf, n, ">>"); break;
     case K_DTIM: snprintf(buf, n, "%s", dtim[v % 15]); break;
     case K_SWNG: snprintf(buf, n, "%d%%", 50 + v); break;
     case K_CNT: snprintf(buf, n, "%d", v + 1); break;

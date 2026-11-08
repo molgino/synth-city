@@ -9,6 +9,11 @@
 
 struct Step { uint8_t on; uint8_t lock[NPARAMS]; };
 
+// Sample-Punkte (Start/Ende/Loop) aus Grob+Fein, Nulldurchgang suchen (auch fuer den Sample-Editor)
+struct Sample;
+int smpPoint(const Sample* sm, int coarse, int fine);
+int smpZero(const Sample* sm, int p);
+
 struct Pattern {
     uint8_t machine[NTRACKS];
     uint8_t len[NTRACKS];
@@ -147,6 +152,7 @@ struct Voice {
     // Sample-Wiedergabe
     const Sample* smp = nullptr;
     double spos = 0; float sinc = 0, sGain = 1; int sStart = 0, sEnd = 0; bool sRev = false, sLoop = false, sDone = false;
+    int sLoopS = 0, sXf = 0;       // SMPL: Loop-Anfang (Sample) und Ueberblend-Laenge am Loop-Ende (0 = harter Sprung)
     // Time-Warp (SMPL/CHOP): spos laeuft im Projekttempo, zwei Lese-Koepfe mit Dreiecksfenster spielen die Tonhoehe
     bool warp = false; float wPitch = 1, wGr = 1800, wPh[2] = {0, 0.5f}; double wSt[2] = {0, 0};
     float warpRead(float& r);

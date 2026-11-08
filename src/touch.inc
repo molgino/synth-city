@@ -94,7 +94,7 @@ static void touchUp(TouchPtr& t, Uint32 now) {
         }
         if (t.kind == HK_SLOT && t.wasSel && trackPage(page)) {   // nochmal antippen: Liste wie X (nur Sonderregler)
             ParamDef d; int v, bv; bool lk; char lb[24];
-            if (knobInfo(t.a, d, v, lk, bv, lb, sizeof lb) && (d.kind == K_SMPL || d.kind == K_LDEST || d.kind == K_EDEST || d.kind == K_MACH || d.kind == K_WDRAW || d.kind == K_COND)) remoteHit[BT_X] = true;
+            if (knobInfo(t.a, d, v, lk, bv, lb, sizeof lb) && (d.kind == K_SMPL || d.kind == K_LDEST || d.kind == K_EDEST || d.kind == K_MACH || d.kind == K_WDRAW || d.kind == K_SEDIT || d.kind == K_COND)) remoteHit[BT_X] = true;
         }
         if ((t.kind == HK_SET && t.wasSel && setIsAction(t.a)) || (t.kind == HK_SONG && t.wasSel)) remoteHit[BT_A] = true;
     }
