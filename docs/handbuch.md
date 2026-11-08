@@ -27,7 +27,7 @@ Sie startet als App aus dem Ports-Menü oder auf Wunsch direkt beim Booten statt
 
 Auf den Spurseiten zeigt die Oberfläche den Weg des Klangs: links alle 8 Spuren mit Mini-Steps und Pegel, oben die Blöcke **QUELLE → FILTER → AMP → INSERT** (zusammengehörige Seiten untereinander: QUELLE/QUELLE 2, FILTER 1/FILTER 2), darunter die Reihe **SEQ**: TRIG · SEQ · ARP, rechts die Modulation **ENV1–3 / LFO1–3** (Hüllkurve n und LFO n nebeneinander, hell = hat ein Ziel). **L2/R2** gehen alle Spurseiten der Reihe nach durch (TRIG → SEQ → ARP → QUELLE → QUELLE 2 → FILTER 1 → FILTER 2 → AMP → INSERT → SENDS → HÜLLKURVE 1–3 → LFO 1–3, im Kreis), direkt springen über die Seitenkarte (SELECT). **L1/R1** wählen den Regler. Der gewählte Block zeigt Grafik, 8 Regler (Hüllkurven und LFOs: 12) und eine Erklärung des gewählten Reglers, unten liegen die 16 Steps der Spur.
 
-* **SELECT + L1/R1** springt einen Schlag (4 Steps) – vier Kicks auf 1/5/9/13 sind so in wenigen Tastendrücken gesetzt.
+* **SELECT + L1/R1** öffnet auf der TRIG-Seite das **PAGE-Menü** (siehe unten); auf den anderen Spurseiten springt es einen Schlag (4 Steps).
 * **Rhythmus-Vorlagen** für die gewählte Spur: SET → „Rhythmus-Vorlage“ (Four on the Floor, Backbeat, Offbeat, Achtel, Sechzehntel, Breakbeat, Clave, Tresillo, Dembow …), mit ←/→ wählen, A setzt sie.
 * **Hüllkurvenform:** Regler **CURVE** auf jeder Hüllkurven-Seite: Minus = weich/rund, 0 = Standard, Plus = knackig/schnell abfallend. Die Grafik zeigt die Form.
 
@@ -161,7 +161,12 @@ Dazu kommen die globalen Seiten (in der Leiste oben grauer dargestellt):
 
 * Jede Spur hat **1 bis 128 Steps**. Die Länge stellst du auf der Seite SEQ (LEN) ein: **X/Y tippen = ±1 Step, halten = in 16er-Schritten** (16, 32, 48 …). Alle Spuren auf einmal: PRJ-Seite → LÄNGE.
 * Angezeigt werden immer 16 Steps. Die Leiste über den Step-Tasten zeigt die bis zu 8 Seiten: Die Cursor-Seite ist hell, die laufende Seite in Spurfarbe.
-* Das Steuerkreuz läuft durch alle Steps. **SELECT + L2/R2 springt eine Step-Seite** (16 Steps), SELECT + L1/R1 einen Schlag (4 Steps).
+* Das Steuerkreuz läuft durch alle Steps. **SELECT + L2/R2 springt eine Step-Seite** (16 Steps).
+* **PAGE-Menü** (TRIG-Seite, **SELECT + L1/R1**; eine Page = 16 Steps = ein Takt): ▲▼ wählen, A ausführen, B schließt.
+  * **PAGE KOPIEREN / EINFÜGEN / LEEREN** – die Page unter dem Cursor (mit allen Trigs und Locks). Eingefügt wird in die Page unter dem Cursor, auch auf einer anderen Spur oder in einem anderen Pattern.
+  * **PAGE ANHÄNGEN** verlängert die Spur um eine Page, **LETZTE PAGE ENTFERNEN** kürzt um eine.
+  * **BEREICH**: NUR SPUR oder ALLE SPUREN (gilt für Kopieren, Leeren, Anhängen, Entfernen; eine Kopie aller Spuren fügt auch in alle ein).
+  * **NEUE PAGE** (bleibt gespeichert): **KOPIE DER VORIGEN** (Standard) oder **LEER**. Gilt fürs Anhängen und auch, wenn die Spur über LEN länger wird: neue Steps bekommen dann die Steps eine Page davor (bereits vorhandene, versteckte Steps bleiben erhalten). Rückgängig wie immer mit SELECT + B.
 * **Tempo-Faktor pro Spur** (SET → „Tempo-Faktor Spur“): 1/8×, 1/4×, 1/2×, 3/4×, 1×, 3/2× und 2×.
 * Ein Pattern-Wechsel greift, wenn die längste Spur durchgelaufen ist – oder nach der festen Zahl Steps, die du auf der PRJ-Seite unter **WECHSEL NACH** einstellst.
 
@@ -614,7 +619,7 @@ Technisch läuft MIDI über den ALSA-Sequencer. Fehlt der im Kernel, greift die 
 | SELECT + A | Spur stummschalten (im Lock-Modus: Trig ↔ trigless) |
 | SELECT + B | **Rückgängig** (Spur leeren: SET → SPUR → „Spur leeren“) |
 | SELECT + X/Y | Engine der Spur wechseln (alternativ: X auf dem Regler ENGINE öffnet die Liste) |
-| SELECT + L1 / R1 | Step-Cursor einen Schlag (4 Steps) zurück/vor; **im Lock-Modus bzw. mit gehaltenem A: Trig kopieren / einfügen** |
+| SELECT + L1 / R1 | TRIG-Seite: **PAGE-Menü** (Page kopieren/einfügen/leeren/anhängen); andere Spurseiten: Step-Cursor einen Schlag (4 Steps); **im Lock-Modus bzw. mit gehaltenem A: Trig kopieren / einfügen** |
 | SELECT + L2 / R2 | Step-Cursor eine Step-Seite (16 Steps) zurück/vor |
 | SELECT + START | Speichern (2 s halten: Speichern und Beenden) |
 

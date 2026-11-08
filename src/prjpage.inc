@@ -34,7 +34,7 @@ static void prjValue(int i, int d) {
         int m = patMaxLen(P);
         int n = abs(d) >= 16 ? step16(m, d) : m + d;
         n = clampi(n, 1, NSTEPS);
-        lockA(); for (int t = 0; t < NTRACKS; t++) P.len[t] = (uint8_t)n; unlockA();
+        lockA(); for (int t = 0; t < NTRACKS; t++) setTrackLen(P, t, n); unlockA();
     } else if (i == PI_CHG) {
         int c = P.chg;
         int n = abs(d) >= 16 ? step16(c, d) : c + d;

@@ -505,8 +505,32 @@ static void uiScenarios() {
     curP().s[0][0].on = 0; simWait(900);
 
     uiCase = "Beat-Sprung";
-    simReset(); combo(BT_SELECT, BT_R1); UCHECK(cursor == 4, "SELECT+R1: Step %d statt 5", cursor + 1);
+    simReset(); goPage(PG_SEQ); combo(BT_SELECT, BT_R1); UCHECK(cursor == 4, "SELECT+R1: Step %d statt 5", cursor + 1);
     combo(BT_SELECT, BT_L1); UCHECK(cursor == 0, "SELECT+L1: Step %d statt 1", cursor + 1);
+
+    uiCase = "PAGE-Menue";
+    {
+        simReset(); goPage(PG_TRG);
+        int keepNew = cfg.newPage; cfg.newPage = 1;
+        Pattern& P = curP(); P.len[0] = 16; P.s[0][3].on = 1; P.s[0][3].lock[P_NOTE] = 50;
+        combo(BT_SELECT, BT_L1); UCHECK(pgmOpen, "SELECT+L1 oeffnet das PAGE-Menue nicht");
+        tap(BT_A); UCHECK(!pgmOpen && pgClipState == 1, "Page kopieren: Zustand %d", pgClipState);
+        combo(BT_SELECT, BT_R1); pgmSel = PM_ADD; tap(BT_A);
+        UCHECK(P.len[0] == 32 && P.s[0][19].on == 1 && P.s[0][19].lock[P_NOTE] == 50 && cursor >= 16, "Page anhaengen (Kopie): Laenge %d, Step 20 %d, Cursor %d", P.len[0], P.s[0][19].on, cursor);
+        combo(BT_SELECT, BT_L1); pgmSel = PM_CLEAR; tap(BT_A);
+        UCHECK(P.s[0][19].on == 0 && P.s[0][3].on == 1, "Page leeren falsch");
+        combo(BT_SELECT, BT_L1); pgmSel = PM_PASTE; tap(BT_A);
+        UCHECK(P.s[0][19].on == 1 && P.s[0][19].lock[P_NOTE] == 50, "Page einfuegen falsch");
+        combo(BT_SELECT, BT_L1); pgmSel = PM_NEW; tap(BT_X); UCHECK(cfg.newPage == 0 && pgmOpen, "NEUE PAGE nicht umschaltbar");
+        pgmSel = PM_ADD; tap(BT_A); UCHECK(P.len[0] == 48 && P.s[0][35].on == 0, "Page anhaengen (leer) falsch");
+        combo(BT_SELECT, BT_L1); pgmSel = PM_DEL; tap(BT_A); UCHECK(P.len[0] == 32, "Letzte Page entfernen: %d", P.len[0]);
+        combo(BT_SELECT, BT_L1); tap(BT_B); UCHECK(!pgmOpen, "B schliesst das PAGE-Menue nicht");
+        cfg.newPage = 1; P.len[1] = 16; P.s[1][2].on = 1; P.s[1][18].on = 0;   // Verlaengern ueber LEN: Kopie
+        lockA(); setTrackLen(P, 1, 17); unlockA(); UCHECK(P.s[1][16].on == 0, "LEN: Step 17 nicht von Step 1");
+        lockA(); setTrackLen(P, 1, 19); unlockA(); UCHECK(P.s[1][18].on == 1, "LEN +: Step 19 keine Kopie von Step 3");
+        cfg.newPage = keepNew; P.len[0] = P.len[1] = 16;
+        for (int t = 0; t < 2; t++) for (int st = 0; st < NSTEPS; st++) { P.s[t][st].on = 0; memset(P.s[t][st].lock, NO_LOCK, NPARAMS); }
+    }
 
     uiCase = "Rhythmus-Vorlage";
     simReset(); track = 2; applyRhythm(0);
@@ -858,7 +882,7 @@ struct Task { const char* name; int keys; int steps; };
 static void uiTasks() {
     Task T[16]; int n = 0;
     auto rec = [&](const char* nm, int steps) { T[n].name = nm; T[n].keys = simKeys; T[n].steps = steps; n++; };
-    simReset(); for (int s = 0; s < 16; s += 4) { if (s) combo(BT_SELECT, BT_R1); tap(BT_A); } rec("Kick: 4 Trigs (1/5/9/13)", 4);
+    simReset(); for (int s = 0; s < 16; s += 4) { if (s) for (int k = 0; k < 4; k++) tap(BT_RIGHT); tap(BT_A); } rec("Kick: 4 Trigs (1/5/9/13)", 4);
     UCHECK(curP().s[0][12].on == 1, "Aufgabe Kick");
     simReset(); goTrack(4); goPage(PG_FLT); goSlot(0); stickR(-1.f, 300); rec("Spur 5: Filter-Cutoff aendern", 4);
     simReset(); goTrack(4); goPage(PG_FLT); goSlot(0); goStep(6); holdDown(BT_A); stickR(-1.f, 300); release(BT_A); rec("Spur 5: Cutoff-Lock auf Step 7", 5);

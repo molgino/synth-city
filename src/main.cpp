@@ -743,6 +743,18 @@ static void switchPattern(int to) {
     unlockA();
     if (wasSong) toast(TR("SONG AUS - PATTERN %02d", "SONG OFF - PATTERN %02d"), to + 1);
 }
+// Spurlaenge setzen. Waechst sie, bekommen neue Steps je nach cfg.newPage eine Kopie des Steps 16 davor
+// (nur leere Steps; force = PAGE ANHAENGEN: neue Steps immer Kopie bzw. leer)
+static bool stepEmpty(const Step& s) { if (s.on) return false; for (int i = 0; i < NPARAMS; i++) if (s.lock[i] != NO_LOCK) return false; return true; }
+static void setTrackLen(Pattern& P, int t, int n, bool force = false) {
+    n = n < 1 ? 1 : (n > NSTEPS ? NSTEPS : n);
+    for (int s = P.len[t]; s < n; s++) {
+        Step& d = P.s[t][s];
+        if (s >= 16 && cfg.newPage && (force || stepEmpty(d))) d = P.s[t][s - 16];
+        else if (force) { d.on = 0; memset(d.lock, NO_LOCK, NPARAMS); }
+    }
+    P.len[t] = (uint8_t)n;
+}
 static Step& holdS() { return eng.proj.pat[holdPat].s[holdTrack][holdStep]; }
 static void lockJumpTo(int st) {   // Lock-Modus: zu einem anderen Step derselben Spur springen, Modus bleibt
     Step& o = holdS();
@@ -2522,6 +2534,7 @@ static void mapSummary(int p, char* b, int n) {
 static void drawExportModal();
 static void drawWtEditorIfOpen();
 static void drawSmpEditorIfOpen();
+static void drawPageMenu();
 static void drawMenu() {
     hitModal();
     rrect(10, 30, 620, 420, 14, C_ACC);
@@ -2923,7 +2936,7 @@ static void drawHelp() {
         TR("  LINKS/RECHTS   Pattern     HOCH/RUNTER  Aufnahme / Tap", "  LEFT/RIGHT     Pattern     UP/DOWN      Record / tap"),
         TR("  A / B          Spur stumm / RÜCKGÄNGIG", "  A / B          Mute track / UNDO"),
         TR("  X / Y          Engine wechseln", "  X / Y          Change engine"),
-        TR("  L1/R1  L2/R2   4 Steps / 16 Steps springen", "  L1/R1  L2/R2   Jump 4 steps / 16 steps"),
+        TR("  L1/R1  L2/R2   PAGE-Menü (TRIG) / 16 Steps springen", "  L1/R1  L2/R2   PAGE menu (TRIG) / jump 16 steps"),
         TR("  L1 / R1        im Lock-Modus: Trig kopieren / einfügen", "  L1 / R1        in lock mode: copy / paste trig"),
         TR("  START          Speichern (2 s halten: Ende)", "  START          Save (hold 2 s: quit)"),
     };
@@ -3305,6 +3318,7 @@ static void drawAll(bool help) {
     if (touchBlocked()) hitModal();   // Explorer/Tastatur/Editor/Export: per Steuerkreuz bedienen
     drawWtEditorIfOpen();
     drawSmpEditorIfOpen();
+    drawPageMenu();
     drawExportModal();
     if (fbOpen) drawBrowser();
     if (kbOpen) drawKeyboard();
@@ -3518,7 +3532,7 @@ static void editValue(int delta) {
     if (d.kind == K_TLEN) {   // |delta| >= 16: auf das naechste Vielfache von 16 (Taste halten)
         int l = P.len[track];
         int n = delta >= 16 ? (l / 16 + 1) * 16 : (delta <= -16 ? ((l - 1) / 16) * 16 : l + delta);
-        P.len[track] = (uint8_t)clampi(n, 1, NSTEPS); return;
+        lockA(); setTrackLen(P, track, n); unlockA(); return;
     }
     if (d.kind == K_TSPD) { P.speed[track] = (uint8_t)clampi(P.speed[track] + (delta > 0 ? 1 : -1), 0, 6); return; }
     if (d.kind == K_LDEST || d.kind == K_EDEST) {   // Ziel: naechster gueltiger Parameter (Huellkurve: nach "aus" kommt VCA)
@@ -3638,6 +3652,7 @@ static int loadPresetPath(int t, const char* p) {   // 1 ok, 0 fehlt, -1 Fehler
 #include "wtedit.inc"
 static void drawWtEditorIfOpen() { if (wteOpen) drawWtEditor(); }
 #include "smpedit.inc"   // Sample-Editor (SMPL: EDIT)
+#include "pagemenu.inc"  // PAGE-Menue (TRIG: SELECT + L1/R1)
 
 static void runAction(int act, int arg) {
     switch (act) {
@@ -3984,8 +3999,8 @@ static void setChange(int i, int d) {
     case SI_PATTERN: {
         switchPattern(curPi() + d);
     } break;
-    case SI_LEN: P.len[track] = (uint8_t)clampi(P.len[track] + d, 1, NSTEPS); break;
-    case SI_LENALL: { int l = clampi(P.len[track] + d, 1, NSTEPS); for (int t = 0; t < NTRACKS; t++) P.len[t] = (uint8_t)l; } break;
+    case SI_LEN: setTrackLen(P, track, P.len[track] + d); break;
+    case SI_LENALL: { int l = clampi(P.len[track] + d, 1, NSTEPS); for (int t = 0; t < NTRACKS; t++) setTrackLen(P, t, l); } break;
     case SI_SPEED: P.speed[track] = (uint8_t)clampi(P.speed[track] + (d > 0 ? 1 : -1), 0, 6); break;
     case SI_FILL: eng.fill = !eng.fill; break;
     case SI_BPM: eng.proj.bpm = (uint16_t)clampi(eng.proj.bpm + d, 30, 300); break;
@@ -4758,7 +4773,7 @@ static void liveInput(Input& I, Uint32 now, float dt) {
     if (f) eng.proj.bpm = (uint16_t)clampi(eng.proj.bpm + f, 30, 300);
 }
 
-static bool touchBlocked() { return wteOpen || sedOpen || expState == 1 || fbOpen || kbOpen; }
+static bool touchBlocked() { return wteOpen || sedOpen || pgmOpen || expState == 1 || fbOpen || kbOpen; }
 #include "touch.inc"
 
 static void handleInput(Uint32 now, float dt) {
@@ -4774,6 +4789,7 @@ static void handleInput(Uint32 now, float dt) {
     if (fbOpen) { fbInput(I, now); return; }
     if (wteOpen) { wteInput(I, now, dt); return; }
     if (sedOpen) { sedInput(I, now, dt); return; }
+    if (pgmOpen) { pgmInput(I, now); return; }
     if (expState == 1) { if (I.pressed(BT_B)) expCancel = true; return; }   // Export laeuft: nur Abbrechen
     if (expState >= 2) {
         if (expState == 2) toast(TR("EXPORT FERTIG: SAMPLES/REC/%s", "EXPORT DONE: SAMPLES/REC/%s"), expName);
@@ -4848,6 +4864,8 @@ static void handleInput(Uint32 now, float dt) {
             funcUsed = true;
             if (!haveTrigClip) toast(TR("TRIG-ABLAGE LEER (LOCK-MODUS: SELECT + L1)", "TRIG CLIPBOARD EMPTY (LOCK MODE: SELECT + L1)"));
             else { lockA(); holdS() = trigClip; unlockA(); aEdited = true; toast(TR("TRIG EINGEFÜGT IN STEP %d", "TRIG PASTED INTO STEP %d"), holdStep + 1); }
+        } else if (!aHeld && page == PG_TRG && (I.pressed(BT_L1) || I.pressed(BT_R1))) {   // TRIG: PAGE-Menue (kopieren, leeren, anhaengen)
+            funcUsed = true; openPageMenu();
         } else if (!aHeld && (I.repeat(BT_L1, now) || I.repeat(BT_R1, now))) {   // Step-Cursor um einen Schlag (4 Steps)
             funcUsed = true;
             int cl = curP().len[track] < 1 ? 1 : curP().len[track];
@@ -5539,6 +5557,7 @@ int main(int argc, char** argv) {
         if (shotPage == 54) { page = PG_TRG; track = 4; slot = 6; openBrowser(FB_MACH); }   // Engine-Liste
         if (shotPage == 58) { page = PG_SRC; track = 7; Engine::setMachine(curP(), 7, M_SAMPLE); curP().p[7][P_S0] = 9; curP().p[7][P_S5] = 1; curP().p[7][P_S3] = 20; curP().p[7][P_S4] = 90; curP().p[7][P_X3] = 45; curP().p[7][P_X7] = 1; slot = 7; openSmpEditor(); sedZoom = 1; sedFollow(); }   // Sample-Editor
         if (shotPage == 57) { page = PG_SRC; track = 7; Engine::setMachine(curP(), 7, M_SAMPLE); curP().p[7][P_S0] = 2; slot = 0; fbSmpIdx = P_S0; openBrowser(FB_SLOT); fbSel = 4; }   // Sample-Slots
+        if (shotPage == 59) { page = PG_TRG; track = 0; curP().len[0] = 32; cursor = 18; pgClipState = 1; pgClipTrack = 0; pgClipPage = 0; openPageMenu(); pgmSel = PM_ADD; }   // PAGE-Menue
         if (shotPage == 56) { page = PG_TRG; track = 4; slot = 7; curP().p[4][P_COND] = CND_AB + 1; fbParam = P_COND; openBrowser(FB_COND); }   // Bedingungs-Liste
         if (shotPage == 55) { page = PG_LFO1; track = 4; slot = LF_DEST; fbParam = P_L1 + LF_DEST; openBrowser(FB_LDEST); }   // LFO-Ziel-Liste
         if (shotPage == 26) { page = PG_PRJ; slot = 1; askConfirm(ACT_LOAD, 2, "SONG 03 LADEN? UNGESPEICHERTES GEHT VERLOREN"); }
