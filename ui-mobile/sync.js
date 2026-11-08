@@ -23,7 +23,7 @@ window.GB_SYNC = (function () {
     const st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
     el = document.createElement('div'); el.id = 'gbs';
     el.innerHTML = `
-<div class="card"><button id="gbsX">✕</button><h2>SYNC MIT DEM GERÄT</h2>
+<div class="card"><button id="gbsX">✕</button><h2>SYNC MIT DEM GERÄT</h2><p id="gbsVer" style="font-size:11px;margin-top:-4px"></p>
 <p>R36S per USB anschließen (SET → USB-Modus = PC) oder ins selbe WLAN. Es öffnet sich ein zweites Fenster vom Gerät – dort „Erlauben“ tippen.
 Hält das Handy ein Fenster an, einfach zwischen beiden hin- und herwechseln.</p>
 <div>Gerät <input type="text" id="gbsIp" autocomplete="off" autocapitalize="off" spellcheck="false"></div>
@@ -35,6 +35,7 @@ wurde eine Datei auf beiden Seiten geändert, bleiben beide erhalten („Name (H
 <button id="gbsZip">Als ZIP sichern</button><label class="fl">ZIP einspielen<input type="file" id="gbsZipIn" accept=".zip,application/zip" hidden></label></div>
 <div class="card"><progress id="gbsPr" max="1" value="0" hidden></progress><div id="gbsLog"></div></div>`;
     document.body.appendChild(el);
+    fetch('VERSION', { cache: 'no-store' }).then(r => r.text()).then(t => el.querySelector('#gbsVer').textContent = 'App-Version ' + t.trim()).catch(() => {});
     const ip = el.querySelector('#gbsIp');
     try { ip.value = localStorage.gbSyncIp || '192.168.77.1'; } catch (e) { ip.value = '192.168.77.1'; }
     const sm = el.querySelector('#gbsSmp');

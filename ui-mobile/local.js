@@ -106,10 +106,15 @@ window.GB_LOCAL = (function () {
     document.body.appendChild(s);
     if ('serviceWorker' in navigator && window.isSecureContext) {
       const hadSw = !!navigator.serviceWorker.controller;
-      navigator.serviceWorker.register('sw.js').then(r => r.update()).catch(() => {});
-      // neue Version im Hintergrund geladen: Bescheid geben (laeuft erst nach dem Neustart der App)
+      let reg = null;
+      navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(r => { reg = r; r.update(); }).catch(() => {});
+      // iOS startet Home-Bildschirm-Apps selten neu: auch beim Zurueckkehren nach einer neuen Version schauen
+      document.addEventListener('visibilitychange', () => { if (!document.hidden && reg) reg.update().catch(() => {}); });
+      // neue Version ist da: gestoppt sofort neu laden (Projekt vorher speichern), beim Spielen nur Hinweis
       navigator.serviceWorker.addEventListener('controllerchange', () => {
-        if (hadSw && ready) M.ccall('gbToast', null, ['string'], ['UPDATE GELADEN - APP NEU STARTEN']);
+        if (!hadSw) return;
+        if (!ready || !(M._gbState() & 1)) { saveNow(() => location.reload()); return; }
+        M.ccall('gbToast', null, ['string'], ['UPDATE GELADEN - APP NEU STARTEN']);
       });
     }
   }
