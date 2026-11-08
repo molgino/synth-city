@@ -3721,6 +3721,17 @@ static float setScroll = 0;
 static bool setIsHeader(int i) { return i == SI_H_PAT || i == SI_H_TRK || i == SI_H_AUDIO || i == SI_H_MIDI || i == SI_H_USB || i == SI_H_UAUD || i == SI_H_ROUTE || i == SI_H_SMP || i == SI_H_SYS; }
 static int setCatOf(int i) { while (i > 0 && !setIsHeader(i)) i--; return i; }   // Bereich = vorangehende Ueberschrift
 static int setCatEnd(int h) { int e = h + 1; while (e < SI_COUNT && !setIsHeader(e)) e++; return e; }
+// Eintraege, die es auf dieser Plattform nicht gibt (Handy-App im Browser: kein USB, MIDI, Akku, Bild-Versatz ...)
+static bool setHidden(int i) {
+#ifdef __EMSCRIPTEN__
+    int h = setCatOf(i);
+    if (h == SI_H_MIDI || h == SI_H_USB || h == SI_H_UAUD || h == SI_H_ROUTE) return true;
+    switch (i) { case SI_OUT: case SI_CORES: case SI_WEB: case SI_DRIVE: case SI_DISP: case SI_LEARN: case SI_BAT: case SI_QUIT: return true; default: return false; }
+#else
+    (void)i; return false;
+#endif
+}
+static int setFirstIn(int h) { int i = h + 1; while (i < SI_COUNT && !setIsHeader(i) && setHidden(i)) i++; return i < SI_COUNT && !setIsHeader(i) ? i : h + 1; }
 // kurze Erklaerung je Eintrag (unten in den Einstellungen)
 static const char* setHelp(int i) {
     switch (i) {
@@ -4174,11 +4185,15 @@ static void setAction(int i) {
 static void settingsInput(Input& I, Uint32 now, float dt) {
     int dy = (I.repeat(BT_DOWN, now) ? 1 : 0) - (I.repeat(BT_UP, now) ? 1 : 0) - flick(I.ly, flLY, flLYt, now);
     if (setIsHeader(setSel)) setSel++;
+    if (setHidden(setSel)) setSel = setFirstIn(setCatOf(setSel));
     auto nextCat = [&](int dc) {   // Bereich wechseln (im Kreis), erster Eintrag
         int h = setCatOf(setSel);
-        if (dc > 0) { h = setCatEnd(h); if (h >= SI_COUNT) h = 0; }
-        else { h = h > 0 ? setCatOf(h - 1) : setCatOf(SI_COUNT - 1); }
-        setSel = h + 1; setScroll = 0;
+        for (int guard = 0; guard < SI_COUNT; guard++) {
+            if (dc > 0) { h = setCatEnd(h); if (h >= SI_COUNT) h = 0; }
+            else { h = h > 0 ? setCatOf(h - 1) : setCatOf(SI_COUNT - 1); }
+            if (!setHidden(h)) break;
+        }
+        setSel = setFirstIn(h); setScroll = 0;
     };
     int dc = (I.pressed(BT_R1) ? 1 : 0) - (I.pressed(BT_L1) ? 1 : 0);
     if (dc) nextCat(dc);   // L1/R1: Bereich wechseln (auf beiden Ebenen)
@@ -4194,7 +4209,10 @@ static void settingsInput(Input& I, Uint32 now, float dt) {
     if (I.pressed(BT_B)) { setIn = false; return; }   // Ebene 2 -> zurueck zu den Bereichen
     if (dy) {   // innerhalb des Bereichs (im Kreis)
         int h = setCatOf(setSel), e = setCatEnd(h), n = e - h - 1;
-        setSel = h + 1 + ((setSel - h - 1 + dy) % n + n) % n;
+        for (int guard = 0; guard < n; guard++) {
+            setSel = h + 1 + ((setSel - h - 1 + dy) % n + n) % n;
+            if (!setHidden(setSel)) break;
+        }
     }
     int dx = (I.repeat(BT_RIGHT, now) ? 1 : 0) - (I.repeat(BT_LEFT, now) ? 1 : 0) + (I.repeat(BT_X, now) ? 1 : 0) - (I.repeat(BT_Y, now) ? 1 : 0);
     if (fabsf(I.rx) > fabsf(I.ry)) dx += flick(I.rx, flRX, flRXt, now); else flRX = 0;
@@ -4309,8 +4327,12 @@ static void startExport() {
     long ticks = songTicks(J, a, b);
     expFrames = (long)((double)ticks * renderEng.sr * 60.0 / (J.bpm * 48.0) + 0.5);
     expProg = 0; expCancel = false; expState = 1;
+#ifdef __EMSCRIPTEN__
+    exportThread(nullptr);   // Browser ohne Threads: am Stueck rechnen (dauert auf dem Handy nur Sekunden)
+#else
     SDL_Thread* th = SDL_CreateThread(exportThread, "export", nullptr);
     if (th) SDL_DetachThread(th); else { expState = 3; }
+#endif
 }
 static void drawExport();
 static void drawExportModal() { if (expState == 1) drawExport(); }
@@ -4561,10 +4583,10 @@ static void drawSettings() {
     // links: Bereiche
     int cat = setCatOf(setSel), cy = 56;
     for (int i = 0; i < SI_COUNT; i++) {
-        if (!setIsHeader(i)) continue;
+        if (!setIsHeader(i) || setHidden(i)) continue;
         setLabel(i, l, sizeof l, v, sizeof v);
         bool sel = i == cat;
-        hitAdd(10, cy, 140, 30, HK_SET, i + 1, 1);   // Bereich: erster Eintrag
+        hitAdd(10, cy, 140, 30, HK_SET, setFirstIn(i), 1);   // Bereich: erster Eintrag
         if (sel && !setIn) {   // Bereiche-Ebene: gewaehlter Bereich leuchtet und pulsiert
             float pl = 0.5f + 0.5f * sinf(animTime * 4.f);
             rrect(8, cy - 2, 144, 34, 8, mix(C_ACC, C_PLAY, 0.3f * pl));
@@ -4578,15 +4600,16 @@ static void drawSettings() {
     if (436 - (cy + 30) > 40) { rrect(10, cy + 30, 140, 436 - (cy + 30), 8, C_BG); drawSpectrum(14, cy + 36, 132, 436 - (cy + 30) - 12, C_ACC, 12); }
     // rechts: Eintraege des Bereichs
     const int X0 = 158, W = 470, rowH = 27, top = 56, visible = 13;
-    int first = cat + 1, end = setCatEnd(cat), n = end - first;
-    float target = (setSel - first) - visible / 2.f;
+    int vis[SI_COUNT], n = 0, selK = 0;   // sichtbare Eintraege des Bereichs
+    for (int i = cat + 1; i < setCatEnd(cat); i++) if (!setHidden(i)) { if (i == setSel) selK = n; vis[n++] = i; }
+    float target = selK - visible / 2.f;
     if (target > n - visible) target = (float)(n - visible);
     if (target < 0) target = 0;
     static int lastCat = -1;
     if (cat != lastCat || setScroll > n || setScroll < 0) { lastCat = cat; setScroll = target; }
     setScroll += (target - setScroll) * (1.f - expf(-animDt * 14.f));
     for (int k = 0; k < n; k++) {
-        int i = first + k;
+        int i = vis[k];
         float yf = top + (k - setScroll) * rowH;
         if (yf < top - 4 || yf > top + (visible - 1) * rowH + 4) continue;
         int y = (int)yf;
@@ -4608,7 +4631,7 @@ static void drawSettings() {
     }
     {   // freie Flaeche unter der Liste: Bild zum Bereich
         int used = top + (n - (int)setScroll) * rowH + 6;
-        int ci = 0; for (int i = 0; i < cat; i++) if (setIsHeader(i)) ci++;
+        int ci = 0; for (int i = 0; i < cat; i++) if (setIsHeader(i)) ci++;   // Bild nach dem echten Bereich (auch wenn welche ausgeblendet sind)
         if (n <= visible && 404 - used >= 44) settingsArt(ci, X0, used, W, 404 - used);
     }
     // Erklaerung des gewaehlten Eintrags
@@ -5194,8 +5217,12 @@ static void applyUsbMode() {
 }
 
 static void setupPaths() {
+#ifdef __EMSCRIPTEN__
+    snprintf(basePath, sizeof basePath, "/data/");   // Browser: IndexedDB-Ordner (web/local.js haengt ihn vor dem Start ein)
+#else
     char* bp = SDL_GetBasePath();
     if (bp) { snprintf(basePath, sizeof basePath, "%s", bp); SDL_free(bp); }
+#endif
     char dir[600];
     snprintf(dir, sizeof dir, "%sprojects", basePath);
     mkdir(dir, 0755);
@@ -5337,6 +5364,9 @@ static void reloadSamples() {
 }
 
 #include "selftest.inc"
+#ifdef __EMSCRIPTEN__
+#include "../web/webhooks.inc"
+#endif
 
 int main(int argc, char** argv) {
     if (argc >= 3 && !strcmp(argv[1], "--dhcpd")) return runDhcpd(argv[2]);   // Hilfsdienst fuer den PC-Modus
@@ -5354,6 +5384,10 @@ int main(int argc, char** argv) {
         else if (!strcmp(argv[i], "--selftest")) { selftestMode = true; if (i + 1 < argc && argv[i + 1][0] != '-') stressSecs = atof(argv[++i]); }
         else { printf("Optionen: --learn --windowed --buffer FRAMES --project DATEI --render WAV [sek] --shot BMP [seite] --bench [datei] --selftest [sek]\n"); return 0; }
     }
+#ifdef __EMSCRIPTEN__
+    setenv("GB_HEADLESS", "1", 1);   // in den Speicher zeichnen, present() schickt das Bild ins Canvas (web/webapp.cpp)
+    if (!bufOverride) bufOverride = 2048;   // Ton laeuft im Haupt-Thread des Browsers: grosszuegiger Puffer gegen Aussetzer
+#endif
     setupPaths();
 
     if (renderOut) {   // Offline-Bounce ohne Grafik/Audiogeraet
@@ -5497,6 +5531,9 @@ int main(int argc, char** argv) {
     const char* gbd = getenv("GB_DISPLAY");
     bool useDrm = gbd && !strcmp(gbd, "drm") && !windowed && drmOutOpen();
     if (useDrm) setenv("SDL_VIDEODRIVER", "offscreen", 1);
+#ifdef __EMSCRIPTEN__
+    SDL_SetHint(SDL_HINT_EMSCRIPTEN_KEYBOARD_ELEMENT, "#gbsdl");   // Tastatur bleibt bei der Seite (sonst wuerde ESC beenden)
+#endif
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER) != 0 && useDrm) {
         printf("SDL offscreen: %s, versuche dummy\n", SDL_GetError());
         setenv("SDL_VIDEODRIVER", "dummy", 1);
@@ -5672,6 +5709,10 @@ int main(int argc, char** argv) {
         Uint32 frameMs = now - lastActive > 2000 ? 33 : 16;
         Uint32 spent = SDL_GetTicks() - now;
         if (spent < frameMs) SDL_Delay(frameMs - spent);
+#ifdef __EMSCRIPTEN__
+        else SDL_Delay(1);   // Browser: immer kurz abgeben (Ton, Eingaben, Bild)
+        if (quitReq) { quitReq = false; saveProject(); }   // Browser: nie beenden (SELECT+START halten speichert nur)
+#endif
     }
 
     lockA(); eng.stop(); unlockA();

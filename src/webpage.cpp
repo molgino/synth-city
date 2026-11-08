@@ -391,6 +391,7 @@ function wsKill(){if(!ws)return;const w=ws;ws=null;w.onclose=w.onmessage=w.onope
  if(aws){const a=aws;aws=null;a.onclose=a.onmessage=null;try{a.close();}catch(e){}if(aOn)setTimeout(connectAudio,800);}}   // Ton-Socket haengt meist mit
 setInterval(()=>{lostTick();if(ws&&performance.now()-lastRx>5000)wsKill();},500);
 function connect(){
+ if(window.GB_LOCAL){mode='local';setStat(true);GB_LOCAL.start();return;}   // Handy-App: Groovebox laeuft in dieser Seite (web/local.js)
  if(wsFails>=3&&!everWs){mode='poll';pollLoop();return;}
  tries++;
  try{ws=new WebSocket((location.protocol==='https:'?'wss://':'ws://')+location.host+'/ws');}catch(e){wsFails++;setTimeout(connect,500);return;}
@@ -437,10 +438,10 @@ $('bAud').onclick=()=>{if(aOn)audioOff();else audioOn();};
 $('vol').oninput=()=>{if(again)again.gain.value=($('vol').value/100)**2;try{localStorage.vol=$('vol').value;}catch(e){}};
 try{if(localStorage.vol)$('vol').value=localStorage.vol;}catch(e){}
 try{if(localStorage.audio){const once=ev=>{document.removeEventListener('pointerdown',once,true);if(!aOn&&ev.target.id!=='bAud')audioOn();};document.addEventListener('pointerdown',once,true);$('bAud').textContent='🔈 Ton (antippen)';}}catch(e){}
-if('serviceWorker' in navigator&&window.isSecureContext)navigator.serviceWorker.register('/sw.js').catch(()=>{});
+if(!window.GB_LOCAL&&'serviceWorker' in navigator&&window.isSecureContext)navigator.serviceWorker.register('/sw.js').catch(()=>{});
 setInterval(()=>{const now=performance.now(),s=(now-last)/1000;
  if(ws&&ws.readyState===1)ws.send('p '+now.toFixed(0));
- $('stat').textContent=(mode==='ws'?'Live':mode==='poll'?'Abfrage':'…')+' · '+Math.round(frames/s)+' fps · '+Math.round(bytes/1024/s)+' kB/s'+(mode==='ws'?' · '+Math.round(lat)+' ms':'')+(aOn&&aws?' · Ton '+Math.round(aBuf*1000)+' ms':'');
+ $('stat').textContent=mode==='local'?'Offline · '+Math.round(frames/s)+' fps':(mode==='ws'?'Live':mode==='poll'?'Abfrage':'…')+' · '+Math.round(frames/s)+' fps · '+Math.round(bytes/1024/s)+' kB/s'+(mode==='ws'?' · '+Math.round(lat)+' ms':'')+(aOn&&aws?' · Ton '+Math.round(aBuf*1000)+' ms':'');
  frames=0;bytes=0;last=now;},1000);
 document.addEventListener('visibilitychange',()=>{if(document.hidden){releaseAll();return;}
  lastRx=performance.now();if(ws&&ws.readyState===1){ws.send('f');ws.send('p '+lastRx.toFixed(0));}});   // zurueck aus dem Hintergrund: Watchdog prueft sofort
@@ -450,7 +451,7 @@ connect();
 // ---- Tasten senden (Zaehler je Taste: Touch + Tastatur + Gamepad duerfen sich ueberlappen)
 const cnt={},AX={LX:1,LY:1,RX:1,RY:1};
 function vib(){if(navigator.vibrate)try{navigator.vibrate(8);}catch(e){}}
-function out(msg,b,v){if(ws&&ws.readyState===1)ws.send(msg);else fetch('/api/input?b='+b+'&v='+v,{method:'POST',keepalive:true}).catch(()=>{});}
+function out(msg,b,v){if(window.GB_LOCAL){GB_LOCAL.send(msg);return;}if(ws&&ws.readyState===1)ws.send(msg);else fetch('/api/input?b='+b+'&v='+v,{method:'POST',keepalive:true}).catch(()=>{});}
 function press(b,v){const key=b+(AX[b]?':'+v:'');cnt[key]=(cnt[key]||0)+1;if(cnt[key]>1)return;
  if(AX[b])out('a '+b+' '+v,b,v);else out('d '+b,b,1);show(key,true);vib();}
 function release(b,v){const key=b+(AX[b]?':'+v:'');if(!cnt[key])return;if(--cnt[key]>0)return;delete cnt[key];
@@ -516,7 +517,7 @@ function gestMove(){const[a,b]=gest.ids.map(i=>gest.pos[i]);const d=Math.hypot(a
 const tIds=new Map(),tPend=new Map(),rips=new Map();
 function tId(pid){if(tIds.has(pid))return tIds.get(pid);for(let i=0;i<10;i++){if(![...tIds.values()].includes(i)){tIds.set(pid,i);return i;}}return -1;}
 function tPos(e){const r=cv.getBoundingClientRect();return[Math.max(0,Math.min(W-1,Math.round((e.clientX-r.left)/r.width*W))),Math.max(0,Math.min(H-1,Math.round((e.clientY-r.top)/r.height*H)))];}
-function tSend(m){if(ws&&ws.readyState===1)ws.send(m);}
+function tSend(m){if(window.GB_LOCAL){GB_LOCAL.send(m);return;}if(ws&&ws.readyState===1)ws.send(m);}
 function ripple(e,hold){const r=$('cvw').getBoundingClientRect(),d=document.createElement('div');d.className='rip'+(hold?' hold':'');d.style.left=(e.clientX-r.left)+'px';d.style.top=(e.clientY-r.top)+'px';$('cvw').appendChild(d);if(!hold)setTimeout(()=>d.remove(),460);return d;}
 function tDown(e){const id=tId(e.pointerId);if(id<0)return;
  const[x,y]=tPos(e);tSend('t '+id+' '+x+' '+y);ripple(e,false);rips.set(e.pointerId,ripple(e,true));vib();}
