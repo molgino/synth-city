@@ -107,16 +107,17 @@ static inline float fastLog2(float x) {
 static inline float fastPow01(float b, float e) { return b <= 0.f ? 0.f : fastExp2(e * fastLog2(b)); }
 // Sample lesen mit 4-Punkt-Hermite-Interpolation (kubisch): deutlich weniger Spiegelfrequenzen ("Zischeln")
 // als linear, wenn ein Sample transponiert oder mit anderer Samplerate abgespielt wird
-static inline float smpRead(const Sample* sm, double pos) {
-    int n = sm->len, i = (int)pos;
+static inline float smpReadD(const float* d, int n, double pos) {
+    int i = (int)pos;
     if (i < 0) i = 0;
     if (i > n - 1) i = n - 1;
     float t = (float)(pos - i);
-    const float* d = sm->data;
     float y0 = d[i > 0 ? i - 1 : 0], y1 = d[i], y2 = d[i + 1 < n ? i + 1 : n - 1], y3 = d[i + 2 < n ? i + 2 : n - 1];
     float c1 = 0.5f * (y2 - y0), c2 = y0 - 2.5f * y1 + 2.f * y2 - 0.5f * y3, c3 = 0.5f * (y3 - y0) + 1.5f * (y1 - y2);
     return ((c3 * t + c2) * t + c1) * t + y1;
 }
+static inline float smpRead(const Sample* sm, double pos) { return smpReadD(sm->data, sm->len, pos); }
+static inline float smpReadR(const Sample* sm, double pos) { return smpReadD(sm->dataR ? sm->dataR : sm->data, sm->len, pos); }
 static inline float fastTanh(float x) {
     if (x < -3.f) return -1.f;
     if (x > 3.f) return 1.f;
@@ -303,16 +304,17 @@ void Voice::warpInit() {   // Kopf 0 startet voll am Anfang (Anschlag bleibt erh
     wPh[0] = 0.5f; wSt[0] = sStart - dir * 0.5f * wGr * wPitch;
     wPh[1] = 0.f;  wSt[1] = sStart;
 }
-float Voice::warpRead() {
-    float o = 0.f, dir = sRev ? -1.f : 1.f, st = 1.f / wGr, span = wGr * wPitch;
+float Voice::warpRead(float& r) {
+    float o = 0.f, oR = 0.f, dir = sRev ? -1.f : 1.f, st = 1.f / wGr, span = wGr * wPitch;
     const double hi = (double)(smp->len - 2);
     for (int k = 0; k < 2; k++) {
         wPh[k] += st;
         if (wPh[k] >= 1.f) { wPh[k] -= 1.f; wSt[k] = spos; }   // neues Korn an der aktuellen Zeitachse
         float w = wPh[k] < 0.5f ? 2.f * wPh[k] : 2.f - 2.f * wPh[k];
         double rp = wSt[k] + dir * wPh[k] * span;
-        if (w > 0.f && rp >= 0.0 && rp <= hi) o += smpRead(smp, rp) * w;
+        if (w > 0.f && rp >= 0.0 && rp <= hi) { o += smpRead(smp, rp) * w; if (st) oR += smpReadR(smp, rp) * w; }
     }
+    r = oR;
     return o;
 }
 
@@ -405,6 +407,12 @@ void Voice::update(int n, float sr, float bpm) {
         for (int k = 0; k < 4; k++) lad[k] = 0.f;
         for (int k = 0; k < 2048; k++) cmb[k] = 0.f;
         cmbLp = 0.f; lastS = 0.f; dcOff = 0.f;
+    }
+    if (!(filtR.ic1 == filtR.ic1) || !(filtR.ic2 == filtR.ic2) || !(filt2R.ic1 == filt2R.ic1) || !(filt3R.ic1 == filt3R.ic1) || !(ladR[3] == ladR[3]) || !(cmbLpR == cmbLpR) || !(bwHpR.ic1 == bwHpR.ic1)) {
+        filtR.reset(); filt2R.reset(); filt3R.reset(); bwHpR.reset(); bwLpR.reset();
+        for (int k = 0; k < 4; k++) ladR[k] = 0.f;
+        for (int k = 0; k < 2048; k++) cmbR[k] = 0.f;
+        cmbLpR = 0.f; lastSR = 0.f; dcOffR = 0.f;
     }
     (void)bpm;
     lfoUpdate(n, sr);
@@ -604,7 +612,10 @@ void Voice::update(int n, float sr, float bpm) {
 }
 
 // Filter 1 pro Sample (Typ ftype, Koeffizienten aus render())
-inline float Voice::filter1(float x) {
+template <bool RIGHT> inline float Voice::filter1t(float x) {
+    SVF& filt = RIGHT ? filtR : this->filt; SVF& filt2 = RIGHT ? filt2R : this->filt2; SVF& filt3 = RIGHT ? filt3R : this->filt3;
+    float* lad = RIGHT ? ladR : this->lad; float* cmb = RIGHT ? cmbR : this->cmb;
+    int& cmbW = RIGHT ? cmbWR : this->cmbW; float& cmbLp = RIGHT ? cmbLpR : this->cmbLp;
     float lo, bp, hp;
     switch (ftype) {
     case FT_LP24: {
@@ -690,6 +701,8 @@ void Voice::render(float* L, float* R, float (*S)[32], int n, float sr) {
         drift2 += rng.next() * 0.35f - drift2 * 0.02f;
     }
     if (bwOn) { bwHp.set(bwLo, 0.2f, sr); bwLp.set(bwHi, 0.2f, sr); }
+    st = (machine == M_SAMPLE || machine == M_CHOP || machine == M_GRAN) && smp && smp->dataR;
+    if (st) { filtR.coefFrom(filt); filt2R.coefFrom(filt2); filt3R.coefFrom(filt3); bwHpR.coefFrom(bwHp); bwLpR.coefFrom(bwLp); }
 
     // maschinenspezifische Konstanten
     float sweep = P(P_S2) / 127.f * 6.f, click = P(P_S4) / 127.f, body = P(P_S5) / 127.f;
@@ -712,7 +725,7 @@ void Voice::render(float* L, float* R, float (*S)[32], int n, float sr) {
     float bmax = 0.f;
 
     for (int i = 0; i < n; i++) {
-        float s = 0.f;
+        float s = 0.f, sR = 0.f;   // sR: rechter Kanal (nur Stereo-Samples)
         switch (machine) {
         case M_KICK: {
             // 808/909: exponentieller Pitch-Abfall (SWEP bis 3 Oktaven), Sinus, Anschlag aus Puls + Rauschen
@@ -854,7 +867,9 @@ void Voice::render(float* L, float* R, float (*S)[32], int n, float sr) {
             if (sDone || !smp || !smp->data || smp->len < 2) break;   // Pool-Platz kann waehrend des Spielens geleert werden
             float rem = (float)(sRev ? spos - sEnd : sEnd - spos);
             float fade = rem < 64.f ? rem / 64.f : 1.f;           // kein Knacken am Scheibenende
-            s = (warp ? warpRead() : smpRead(smp, spos)) * sGain * (fade < 0 ? 0 : fade);
+            float fg = sGain * (fade < 0 ? 0 : fade);
+            if (warp) { s = warpRead(sR) * fg; sR *= fg; }
+            else { s = smpRead(smp, spos) * fg; if (st) sR = smpReadR(smp, spos) * fg; }
             spos += sinc;
             if (sRev ? spos <= sEnd : spos >= sEnd) sDone = true;
         } break;
@@ -872,23 +887,27 @@ void Voice::render(float* L, float* R, float (*S)[32], int n, float sr) {
                     break;
                 }
             }
-            float acc = 0; int na = 0;
+            float acc = 0, accR = 0; int na = 0;
             for (auto& g : gr) {
                 if (!g.on) continue;
                 int ip = (int)g.pos;
                 if (ip < 0 || ip >= smp->len - 1) { g.on = false; continue; }
-                float v2 = smpRead(smp, g.pos);
-                acc += v2 * sin01(g.age / g.len * 0.5f);   // Halbsinus-Fenster
+                float v2 = smpRead(smp, g.pos), wn = sin01(g.age / g.len * 0.5f);   // Halbsinus-Fenster
+                acc += v2 * wn;
+                if (st) accR += smpReadR(smp, g.pos) * wn;
                 g.pos += g.inc; g.age += 1.f; na++;
                 if (g.age >= g.len) g.on = false;
             }
-            s = acc * sGain / sqrtf((float)(na > 1 ? na : 1)) * 1.2f;
+            float gg = sGain / sqrtf((float)(na > 1 ? na : 1)) * 1.2f;
+            s = acc * gg; sR = accR * gg;
         } break;
         case M_SAMPLE: {
             if (sDone || !smp || !smp->data || smp->len < 2) break;
             float rem = (float)(sRev ? spos - sEnd : sEnd - spos);
             float fade = sLoop || rem >= 64.f ? 1.f : (rem > 0.f ? rem / 64.f : 0.f);   // Ende (z. B. END < Dateiende) ohne Knacken
-            s = (warp ? warpRead() : smpRead(smp, spos)) * sGain * fade;
+            float fg = sGain * fade;
+            if (warp) { s = warpRead(sR) * fg; sR *= fg; }
+            else { s = smpRead(smp, spos) * fg; if (st) sR = smpReadR(smp, spos) * fg; }
             spos += sinc;
             bool past = sRev ? spos <= sEnd : spos >= sEnd;
             if (past) {
@@ -901,31 +920,36 @@ void Voice::render(float* L, float* R, float (*S)[32], int n, float sr) {
 
         fenv.tick();
         if (env3On) env3.tick();
-        if (!bypassF) s = filter1(s);
+        if (!bypassF) { s = filter1(s); if (st) sR = filter1t<true>(sR); }
         if (bwOn) {   // Base-Width: Hochpass, dann Tiefpass
             float lo, bp, hp;
             bwHp.proc(s, lo, bp, hp); s = hp;
             bwLp.proc(s, lo, bp, hp); s = lo;
+            if (st) { bwHpR.proc(sR, lo, bp, hp); sR = hp; bwLpR.proc(sR, lo, bp, hp); sR = lo; }
         }
-        if (vcaSimple) { float av = aenv.tick(); s *= envCrv[0] == 1.f ? av : fastPow01(av, envCrv[0]); }
+        if (vcaSimple) { float av = aenv.tick(); av = envCrv[0] == 1.f ? av : fastPow01(av, envCrv[0]); s *= av; sR *= av; }
         else {   // Lautstaerke aus beliebigen Huellkurven (volle Tiefe = Huellkurve, sonst Mischung), ohne volle: Gate
             aenv.tick();
             float g = vcaVel;
             for (int j = 0; j < vcaN; j++) { float d = vcaDep[j], e = envVal(vcaE[j]); g *= d > 0.f ? 1.f - d + d * e : 1.f + d * e; }
             if (!vcaFull) g *= gateEnv.tick();
-            s *= g;
+            s *= g; sR *= g;
         }
-        if (drive > 0.f) s = fastTanh(s * (1.f + drive * 6.f)) * (1.f - drive * 0.3f);
-        if (srrN > 1) { if (holdC <= 0) { hold = s; holdC = srrN; } holdC--; s = hold; }
-        if (crushQ > 0.f) s = floorf(s * crushQ + 0.5f) / crushQ;
+        if (drive > 0.f) { s = fastTanh(s * (1.f + drive * 6.f)) * (1.f - drive * 0.3f); if (st) sR = fastTanh(sR * (1.f + drive * 6.f)) * (1.f - drive * 0.3f); }
+        if (srrN > 1) { if (holdC <= 0) { hold = s; holdR = sR; holdC = srrN; } holdC--; s = hold; sR = holdR; }
+        if (crushQ > 0.f) { s = floorf(s * crushQ + 0.5f) / crushQ; if (st) sR = floorf(sR * crushQ + 0.5f) / crushQ; }
         // Neuanschlag, waehrend die Stimme noch klingt (Kick in den Kick-Ausklang, Sample in Sample): ohne das
         // springt die Wellenform -> Knacken auf dem Beat. Sprung als schnell abklingenden Versatz ausgleichen.
-        if (dcArm) { dcOff = lastS - s; dcArm = false; }
+        if (dcArm) { dcOff = lastS - s; dcOffR = st ? lastSR - sR : 0.f; dcArm = false; }
         if (dcOff != 0.f) { s += dcOff; dcOff *= dcCo; if (dcOff > -1e-5f && dcOff < 1e-5f) dcOff = 0.f; }
-        lastS = s;
+        if (dcOffR != 0.f) { sR += dcOffR; dcOffR *= dcCo; if (dcOffR > -1e-5f && dcOffR < 1e-5f) dcOffR = 0.f; }
+        lastS = s; lastSR = st ? sR : s;
+        if (!st) sR = s;
+        const float dryL = s, dryR = sR;
+        if (st) s = (s + sR) * 0.5f;   // Insert-Effekte bearbeiten die Mitte, die Seite bleibt
 
-        // Insert-Effekt (mono rein, stereo raus)
-        float sl = s, sr2 = s;
+        // Insert-Effekt (mono rein, stereo raus; Stereo-Samples: Mitte rein, Seite wird wieder dazugegeben)
+        float sl = dryL, sr2 = dryR;
         if (insType != INS_OFF) {
             float wl = s, wr = s;
             switch (insType) {
@@ -964,10 +988,17 @@ void Voice::render(float* L, float* R, float (*S)[32], int n, float sr) {
                 wl = (s + xl) * 0.5f; wr = (s + xr) * 0.5f;
             } break;
             case INS_DRIVE: {
-                float x = s * odG;
+                float x = (st ? dryL : s) * odG;
                 x = x > 0 ? fastTanh(x) : fastTanh(x * 0.8f) * 1.1f;   // leicht asymmetrisch
                 odLp += (x - odLp) * odCo;
                 wl = wr = odLp * odLvl;
+                if (st) {   // Stereo: jeder Kanal einzeln verzerrt (nichtlinear -> Mitte/Seite ginge nicht sauber)
+                    float y = dryR * odG;
+                    y = y > 0 ? fastTanh(y) : fastTanh(y * 0.8f) * 1.1f;
+                    odLpR += (y - odLpR) * odCo;
+                    wr = odLpR * odLvl;
+                    float sd = (dryL - dryR) * 0.5f; wl -= sd; wr += sd;   // gleicht die Seite aus, die unten dazukommt
+                }
             } break;
             case INS_RING: {
                 insPh += insRate * inv; if (insPh >= 1.f) insPh -= 1.f;
@@ -979,8 +1010,9 @@ void Voice::render(float* L, float* R, float (*S)[32], int n, float sr) {
                 wl = s * (1.f - lv); wr = s * (1.f + lv);
             } break;
             }
-            sl = s + (wl - s) * insMix;
-            sr2 = s + (wr - s) * insMix;
+            if (st) { float sd = (dryL - dryR) * 0.5f; wl += sd; wr -= sd; }
+            sl = dryL + (wl - dryL) * insMix;
+            sr2 = dryR + (wr - dryR) * insMix;
         }
         float as = fabsf(sl) > fabsf(sr2) ? fabsf(sl) : fabsf(sr2);
         if (as > bmax) bmax = as;

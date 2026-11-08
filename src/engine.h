@@ -61,6 +61,7 @@ struct SVF {
         lo = v2; bp = v1; hp = v0 - k * v1 - v2;
     }
     void reset() { ic1 = ic2 = 0; }
+    void coefFrom(const SVF& o) { a1 = o.a1; a2 = o.a2; a3 = o.a3; k = o.k; }   // Stereo: rechter Kanal, gleiche Einstellung
 };
 
 struct ADSR {
@@ -141,7 +142,7 @@ struct Voice {
     double spos = 0; float sinc = 0, sGain = 1; int sStart = 0, sEnd = 0; bool sRev = false, sLoop = false, sDone = false;
     // Time-Warp (SMPL/CHOP): spos laeuft im Projekttempo, zwei Lese-Koepfe mit Dreiecksfenster spielen die Tonhoehe
     bool warp = false; float wPitch = 1, wGr = 1800, wPh[2] = {0, 0.5f}; double wSt[2] = {0, 0};
-    float warpRead();
+    float warpRead(float& r);
     void warpInit();
     void warpSetup(int regionLen, float sr);
     Rng rng;
@@ -150,12 +151,16 @@ struct Voice {
     int srrN = 1, ftype = 0;
     float fBase = 127, reso = 0;
     SVF bwHp, bwLp;              // Base-Width-Filter
+    // Stereo-Samples (SMPL/CHOP/GRAN mit dataR): rechter Kanal mit eigenem Filter-Zustand, gleiche Einstellungen
+    bool st = false;
+    SVF filtR, filt2R, filt3R, bwHpR, bwLpR;
+    float ladR[4] = {0}, cmbR[2048]; int cmbWR = 0; float cmbLpR = 0, holdR = 0, lastSR = 0, dcOffR = 0;
     float bwLo = 20, bwHi = 20000; bool bwOn = false;
     // Insert-Effekt
     float ib[2048];
     int iw = 0;
     float insPh = 0, insRate = 0, insMix = 0, insP2 = 0, insP3 = 0, insFb = 0;
-    float apZL[6] = {0}, apZR[6] = {0}, apA[2] = {0}, phFbL = 0, phFbR = 0, odLp = 0, odG = 1, odLvl = 1, odCo = 1;
+    float apZL[6] = {0}, apZR[6] = {0}, apA[2] = {0}, phFbL = 0, phFbR = 0, odLp = 0, odLpR = 0, odG = 1, odLvl = 1, odCo = 1;
     int insType = 0;
     // fuer die Anzeige
     volatile uint32_t trigs = 0;
@@ -187,7 +192,8 @@ struct Voice {
     bool gated() const { return machine == M_SYNTH || machine == M_FM || machine == M_WTBL || machine == M_GRAN || (machine == M_SAMPLE && P(P_S5)); }
     void update(int n, float sr, float bpm);
     void render(float* L, float* R, float (*S)[32], int n, float sr);   // S = Sends an Bus A/B/C
-    inline float filter1(float x);
+    template <bool RIGHT> inline float filter1t(float x);
+    inline float filter1(float x) { return filter1t<false>(x); }
 };
 
 struct Comb { float* b = nullptr; int n = 0, i = 0; float store = 0; };

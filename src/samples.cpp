@@ -55,10 +55,15 @@ static bool loadWav(const char* path, Sample& s, long& total) {
     int frames = (int)(rawLen / (uint32_t)(bps * ch));
     if (frames > MAX_LEN) frames = MAX_LEN;
     if (frames < 1 || total + frames > MAX_TOTAL) { snprintf(g_err, sizeof g_err, frames < 1 ? "leer" : "Speicher voll"); free(raw); return false; }
+    // Stereo bleibt Stereo (Kanal 1 = links, 2 = rechts; mehr Kanaele: gerade -> links, ungerade -> rechts)
+    bool st = ch >= 2;
+    if (st && total + 2L * frames > MAX_TOTAL) st = false;   // knapp: lieber mono als gar nicht
     s.data = (float*)malloc(sizeof(float) * frames);
-    if (!s.data) { free(raw); return false; }
+    s.dataR = st ? (float*)malloc(sizeof(float) * frames) : nullptr;
+    if (!s.data || (st && !s.dataR)) { free(s.data); free(s.dataR); s.data = s.dataR = nullptr; free(raw); return false; }
+    bool same = true;
     for (int i = 0; i < frames; i++) {
-        float acc = 0;
+        float l = 0, r = 0; int nl = 0, nr = 0;
         for (int c = 0; c < ch; c++) {
             const uint8_t* p = raw + ((size_t)i * ch + c) * bps;
             float v;
@@ -67,14 +72,18 @@ static bool loadWav(const char* path, Sample& s, long& total) {
             else if (bits == 16) v = (int16_t)rd16(p) / 32768.f;
             else if (bits == 24) v = (int32_t)((p[0] << 8) | (p[1] << 16) | ((uint32_t)p[2] << 24)) / 2147483648.f;
             else v = (int32_t)rd32(p) / 2147483648.f;
-            acc += v;
+            if (c & 1) { r += v; nr++; } else { l += v; nl++; }
         }
-        s.data[i] = acc / ch;
+        if (st) {
+            s.data[i] = l / nl; s.dataR[i] = r / nr;
+            if (s.data[i] != s.dataR[i]) same = false;
+        } else s.data[i] = (l + r) / ch;
     }
+    if (st && same) { free(s.dataR); s.dataR = nullptr; st = false; }   // nur scheinbar stereo
     free(raw);
     s.len = frames;
     s.rate = rate;
-    total += frames;
+    total += st ? 2L * frames : frames;
     return true;
 }
 
@@ -149,11 +158,11 @@ void poolSwap(int slot, Sample& s) {
     Sample old = g_pool[slot];
     g_pool[slot] = s;
     s = old;
-    g_total += g_pool[slot].len - s.len;
+    g_total += (long)g_pool[slot].len * (g_pool[slot].dataR ? 2 : 1) - (long)s.len * (s.dataR ? 2 : 1);   // Stereo zaehlt doppelt
     g_used = 0;
     for (int i = 0; i < PREVIEW_SLOT; i++) if (g_pool[i].data) g_used = i + 1;
 }
-void sampleFree(Sample& s) { free(s.data); memset(&s, 0, sizeof s); }
+void sampleFree(Sample& s) { free(s.data); free(s.dataR); memset(&s, 0, sizeof s); }
 const char* sampleLastError() { return g_err; }
 
 int sampleCount() { return g_used; }

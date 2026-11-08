@@ -64,12 +64,12 @@ Im ARP-Modus **AKKD** spielt ein Trig alle Töne des gewählten Akkords (**CHRD*
 | CLAP  | TUNE, DCAY, SPRD (Abstand), RPTS (Anzahl Schläge) |
 | SYNTH | WAV1, WAV2 (SAW/SQR/TRI/SIN), DETN, MIX, SUB, NOIS, PW, GLID. Seite **OSC**: OCT1, OCT2 (±3 Oktaven), LVL1, LVL2 (Pegel je Oszillator), SUB.O (Sub −1/−2 Oktaven), SYNC (Hard-Sync OSC2 → OSC1), XMOD (OSC2 moduliert OSC1), RING (Ringmodulation) |
 | FM    | **4 Operatoren, 8 Algorithmen.** Seite FM: ALGO, FBK (Feedback OP4), VELO (Anschlag → Modulation), PITCH/P.DEC (Tonhöhen-Hüllkurve ±24 Halbtöne), NOIS. Je Operator eine eigene Seite **OPERATOR 1–4**: RAT (0,25–16), FINE (±0,5 für unharmonische Glocken), DETN (±50 Cent), O.LVL (Träger: Lautstärke, Modulator: Helligkeit), O.ATK/O.DEC/O.SUS/O.REL (eigene Hüllkurve) |
-| SMPL  | SMPL (Sample-Auswahl), TUNE (±24 Halbtöne), FINE, STRT, END (END < STRT = rückwärts), LOOP, GAIN. Seite **WARP**: Time-Warp (siehe unten) |
+| SMPL  | **Stereo** (Stereo-WAVs bleiben stereo), SMPL (Sample-Auswahl), TUNE (±24 Halbtöne), FINE, STRT, END (END < STRT = rückwärts), LOOP, GAIN. Seite **WARP**: Time-Warp (siehe unten) |
 | TOM   | TUNE, DCAY, SWEP (Pitch-Abfall), NOIS (Anschlag), BODY |
 | RIM   | TUNE, DCAY, TONE, CLCK |
 | SHKR  | TONE, DCAY, ATK (Ausholen), GRIT (Körnigkeit) |
 | WTBL  | **Wavetable**: TABL (BASIC Sinus→Dreieck→Säge→Rechteck, PWM, VOKAL A→U, OBERTÖNE, **USER** = eigene), POS (Position in der Tabelle, auch als LFO-Ziel), WARP (Phasenverbiegung), DETN (Unisono), SUB, NOIS, P.ENV (Filterhüllkurve → Position), GLID. Seite **OSC**: OCT, LVL, SUB.O, **UWAV** (eigene Wavetable aus einer WAV-Datei, X = Explorer), **DRAW** (X = Wavetable selbst zeichnen) |
-| CHOP  | **Sample-Chopper**: SMPL, SLCS (2–64 Scheiben), SLIC (AUTO = Scheibe nach Step-Nummer, oder feste Scheibe, pro Step lockbar), TUNE, FINE, LEN (Anteil der Scheibe), REV, GAIN. Seite **WARP**: Time-Warp (siehe unten) |
+| CHOP  | **Sample-Chopper** (stereo): SMPL, SLCS (2–64 Scheiben), SLIC (AUTO = Scheibe nach Step-Nummer, oder feste Scheibe, pro Step lockbar), TUNE, FINE, LEN (Anteil der Scheibe), REV, GAIN. Seite **WARP**: Time-Warp (siehe unten) |
 | GRAN  | **Granulator**: SMPL, POS, SPRY (Streuung), SIZE (10–500 ms), DENS (2–128 Körner/s), PTCH, P.SPR (Tonhöhen-Streuung), GAIN |
 
 **Klangcharakter:** KICK, SNARE, HAT, CLAP und RIM sind an die klassischen analogen Drumcomputer angelehnt (Kick: Sinus mit schnellem Pitch-Sweep und Sättigung über BODY, Klick über CLCK; Snare: zwei verstimmte Töne mit eigenem Pitch-Abfall plus gefiltertes Rauschen, TONE = Helligkeit; Hihat: sechs Rechteck-Oszillatoren durch Bandpass + Hochpass; Clap: sägezahnförmige Einzelschläge vor der Fahne).
@@ -276,6 +276,10 @@ COND auf der TRG-Seite gilt für die Spur. Meist lockst du COND aber pro Step: A
 | `PRE` / `!PRE` | die vorige Bedingung auf dieser Spur erfüllt war bzw. nicht |
 | `NEI` / `!NEI` | die letzte Bedingung der Nachbarspur (Spur davor) erfüllt war bzw. nicht |
 | `1ST` / `!1ST` | nur im ersten Durchlauf nach Start bzw. Pattern-Wechsel, bzw. in allen außer dem ersten |
+
+## Stereo-Samples
+
+SMPL, CHOP und GRAN spielen Stereo-WAVs in **Stereo** – links bleibt links, rechts bleibt rechts, durch Filter, Hüllkurven, Base-Width, Sample-Reduktion, Bitcrusher und Time-Warp. PAN wirkt als Balance. Die Insert-Effekte bearbeiten die Mitte und lassen die Stereobreite stehen (DRIVE verzerrt jeden Kanal einzeln). Mono-Dateien und Stereo-Dateien mit identischen Kanälen werden mono geladen (halber Speicher, weniger CPU). Eine Stereo-Stimme braucht etwa doppelt so viel Filter-Rechenzeit wie eine Mono-Stimme.
 
 ## Time-Warp (SMPL, CHOP)
 

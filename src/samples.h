@@ -12,7 +12,8 @@ enum {
 
 struct Sample {
     char name[96];   // Bibliotheksname ohne .wav, z.B. "drums/808/kick"
-    float* data;     // mono
+    float* data;     // links bzw. mono
+    float* dataR;    // rechts (nullptr = mono; Stereo-Dateien mit L == R werden mono gespeichert)
     int len;
     int rate;
     long mtime, fsize;   // zum Erkennen geaenderter Dateien

@@ -533,6 +533,37 @@ static void testModTargets() {
     CHECK(pk > 0.05f && lastActive >= 0 && lastActive < 44100 / 4, "Gate-VCA falsch (Spitze %.2f, Ende %d)", pk, lastActive);
 }
 
+// Stereo-Samples: links Ton, rechts Stille -> Ausgang bleibt getrennt (mit Filter, Insert, Warp und Granulator)
+static void testStereoSample() {
+    curTest = "Stereo-Sample";
+    static Engine X; static float out[44100 * 2];
+    Sample sm; memset(&sm, 0, sizeof sm);
+    snprintf(sm.name, sizeof sm.name, "test-stereo");
+    sm.rate = 44100; sm.len = 44100;
+    sm.data = (float*)malloc(sizeof(float) * sm.len); sm.dataR = (float*)malloc(sizeof(float) * sm.len);
+    for (int i = 0; i < sm.len; i++) { sm.data[i] = 0.5f * sinf(6.2831853f * 330.f * i / 44100.f); sm.dataR[i] = 0.f; }
+    const int SL = 201;
+    poolSwap(SL, sm); sampleFree(sm);
+    struct Case { const char* name; int mach, ftyp, ins, warp; } C[5] = {
+        {"SMPL", M_SAMPLE, FT_LP12, INS_OFF, 0}, {"SMPL+LP24", M_SAMPLE, FT_LP24, INS_OFF, 0}, {"SMPL+Drive", M_SAMPLE, FT_LP12, INS_DRIVE, 0},
+        {"SMPL+Warp", M_SAMPLE, FT_LP12, INS_OFF, 1}, {"GRAN", M_GRAN, FT_LP12, INS_OFF, 0}};
+    for (auto& c : C) {
+        X.init(44100); X.stop(); X.audioThreads = 1; X.defaultProject(false); X.proj.bpm = 120;
+        Pattern& P = X.proj.pat[0];
+        Engine::initTrack(P, 6, c.mach);
+        for (int t = 0; t < NTRACKS; t++) for (int s2 = 0; s2 < 64; s2++) P.s[t][s2].on = 0;
+        P.s[6][0].on = 1; P.p[6][P_LEN] = 127; P.p[6][P_S0] = SL; P.p[6][P_FTYP] = (uint8_t)c.ftyp; P.p[6][P_ITYP] = (uint8_t)c.ins;
+        P.p[6][P_X0] = (uint8_t)c.warp; P.p[6][P_X1] = 8;
+        for (int b = 0; b < NBUS; b++) Engine::setBusType(X.proj, b, BF_OFF);
+        X.start();
+        for (int i = 0; i < 22050; i += 256) X.render(out + i * 2, 256);
+        float eL = 0, eR = 0; for (int i = 0; i < 22050; i++) { eL += fabsf(out[i * 2]); eR += fabsf(out[i * 2 + 1]); }
+        printf("  Stereo %s: links %.0f, rechts %.1f\n", c.name, eL, eR);
+        CHECK(eL > 50.f && eR < eL * 0.02f, "%s: Kanaele nicht getrennt (L %.0f, R %.1f)", c.name, eL, eR);
+    }
+    Sample e; memset(&e, 0, sizeof e); poolSwap(SL, e); sampleFree(e);
+}
+
 // Sampler-Abgriff: eine Spur getrennt mitschreiben, Master bleibt gleich
 static void testTrackTap() {
     curTest = "Spur-Abgriff";
@@ -786,9 +817,10 @@ static void testPcm24(const char* sdir) {
     if (!ok) return;
     CHECK(s.rate == 48000 && s.len == N, "WAV-Kopf falsch (Rate %d, Laenge %d)", s.rate, s.len);
     float me = 0;
-    for (int i = 0; i < s.len && i < N; i++) me = fmaxf(me, fabsf(s.data[i] - (st[i * 2] + st[i * 2 + 1]) * 0.5f));
+    CHECK(s.dataR != nullptr, "Stereo-WAV wurde mono geladen");
+    for (int i = 0; i < s.len && i < N; i++) me = fmaxf(me, fmaxf(fabsf(s.data[i] - st[i * 2]), s.dataR ? fabsf(s.dataR[i] - st[i * 2 + 1]) : 1.f));
     CHECK(me < 1e-5f, "24-Bit-WAV liest sich anders zurueck (%.3g)", me);
-    free(s.data);
+    sampleFree(s);
 }
 
 int main(int argc, char** argv) {
@@ -819,6 +851,7 @@ int main(int argc, char** argv) {
     testModTargets();
     testWarp();
     testTrackTap();
+    testStereoSample();
     testPcm24(sdir);
     printf("%s: %d Pruefungen ok, %d Fehler\n", nFail ? "FEHLGESCHLAGEN" : "OK", nPass, nFail);
     return nFail ? 1 : 0;
