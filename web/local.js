@@ -8,12 +8,12 @@ window.GB_LOCAL = (function () {
     noExitRuntime: true,
     print: t => console.log(t),
     printErr: t => console.warn(t),
-    preRun: [() => {
+    preRun: [() => {   // M ist das Modul selbst (MODULARIZE: createSynthCity(M) fuellt dieses Objekt)
       M.canvas = document.getElementById('gbsdl');
-      FS.mkdir('/data');
-      FS.mount(IDBFS, {}, '/data');
-      addRunDependency('gb-idb');
-      FS.syncfs(true, err => { if (err) console.warn('IndexedDB laden:', err); removeRunDependency('gb-idb'); });
+      M.FS.mkdir('/data');
+      M.FS.mount(M.FS.filesystems.IDBFS, {}, '/data');
+      M.addRunDependency('gb-idb');
+      M.FS.syncfs(true, err => { if (err) console.warn('IndexedDB laden:', err); M.removeRunDependency('gb-idb'); });
     }],
     onRuntimeInitialized: () => {
       msgPtr = M._malloc(256);
@@ -28,7 +28,7 @@ window.GB_LOCAL = (function () {
     if (!ready) { if (cb) cb(); return; }
     if (syncing) { syncAgain = true; if (cb) setTimeout(() => persist(cb), 200); return; }
     syncing = true;
-    FS.syncfs(false, err => {
+    M.FS.syncfs(false, err => {
       syncing = false;
       if (err) console.warn('IndexedDB speichern:', err);
       if (syncAgain) { syncAgain = false; persist(); }
@@ -71,9 +71,17 @@ window.GB_LOCAL = (function () {
     ld.textContent = 'SYNTH CITY startet …';
     document.getElementById('cvw').appendChild(ld);
     const s = document.createElement('script'); s.src = 'synthcity.js'; s.async = true;
+    s.onload = () => createSynthCity(M).catch(e => setStatus('Fehler beim Start: ' + e));
     s.onerror = () => setStatus('Laden fehlgeschlagen – Seite neu laden');
     document.body.appendChild(s);
-    if ('serviceWorker' in navigator && window.isSecureContext) navigator.serviceWorker.register('sw.js').catch(() => {});
+    if ('serviceWorker' in navigator && window.isSecureContext) {
+      const hadSw = !!navigator.serviceWorker.controller;
+      navigator.serviceWorker.register('sw.js').then(r => r.update()).catch(() => {});
+      // neue Version im Hintergrund geladen: Bescheid geben (laeuft erst nach dem Neustart der App)
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (hadSw && ready) M.ccall('gbToast', null, ['string'], ['UPDATE GELADEN - APP NEU STARTEN']);
+      });
+    }
   }
 
   return { start, send, saveNow, persist, isReady: () => ready };
