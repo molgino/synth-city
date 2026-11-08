@@ -606,6 +606,28 @@ static void testMultiOut8() {
     for (int c = 2; c < 8; c++) CHECK(e[c] > 1.f, "8 Kanaele: Kanal %d still", c + 1);
 }
 
+// 24 Kanaele (Host-Modus, z. B. MPC als Interface): jede Spur und jeder FX-Bus auf einem eigenen Paar
+static void testMultiOut24() {
+    curTest = "Mehrkanal 24";
+    static float out[22050 * 2], mb[22050 * 24];
+    Engine& X = MC[0];
+    X.init(44100); X.stop(); X.audioThreads = 1;
+    X.defaultProject(false); X.proj.bpm = 140;
+    Pattern& P = X.proj.pat[0];
+    static const int ms[NTRACKS] = {M_KICK, M_SNARE, M_HAT, M_CLAP, M_SYNTH, M_FM, M_WTBL, M_TOM};
+    for (int t = 0; t < NTRACKS; t++) { Engine::initTrack(P, t, ms[t]); for (int s2 = 0; s2 < 16; s2 += 2) P.s[t][s2].on = 1; P.p[t][P_DLY] = 60; P.p[t][P_REV] = 60; P.p[t][P_SNDC] = 60; }
+    X.multiCh = 24; X.start();
+    for (int q = 0; q < NTRACKS + NBUS; q++) X.multiRoute[q] = (signed char)q;
+    for (int i = 0; i < 22050; i += 256) { X.multiBuf = mb + (size_t)i * 24; X.render(out + i * 2, 22050 - i < 256 ? 22050 - i : 256); }
+    X.multiBuf = nullptr; X.multiCh = 2;
+    for (int q = 0; q < NTRACKS + NBUS; q++) X.multiRoute[q] = -1;
+    float e[24] = {0};
+    for (int i = 0; i < 22050; i++) for (int c = 0; c < 24; c++) e[c] += fabsf(mb[i * 24 + c]);
+    int quiet = 0; for (int c = 0; c < 24; c += 2) if (e[c] + e[c + 1] <= 1.f) { quiet++; printf("  Kanal %d-%d still\n", c + 1, c + 2); }   // Paare: Ping-Pong-Delay ist rechts erst spaeter
+    printf("  Mehrkanal 24: Master %.0f, Spur 1 %.0f, Spur 8 %.0f, FX C %.0f\n", e[0], e[2], e[16], e[22]);
+    CHECK(quiet == 0, "24 Kanaele: %d Paare still", quiet);
+}
+
 // Mehrkanal-Ausgang (USB): Master gleich wie ohne Mehrkanal, jede Spur einzeln hoerbar - auf 1 und 2 Kernen
 static void testMultiOut() {
     curTest = "Mehrkanal";
@@ -727,6 +749,7 @@ int main(int argc, char** argv) {
     testMultiCore();
     testMultiOut();
     testMultiOut8();
+    testMultiOut24();
     testMultiRoute();
     testLfoFreeRun();
     testModTargets();

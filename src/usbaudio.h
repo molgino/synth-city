@@ -2,6 +2,10 @@
 #pragma once
 bool usbAudioStart();                         // Gadget-Soundkarte suchen und Schreib-Thread starten
 void usbAudioStop();
+bool usbAudioStartHost(int maxCh);            // Host-Modus: Mehrkanal an ein USB-Geraet am R36S (z. B. MPC), Kanaele = was es annimmt
+bool usbAudioHost();                          // laeuft im Host-Modus
+const char* usbAudioHostName();               // Kartenname des Geraets
+void usbAudioLogDevices();                    // alle Karten mit Kanaelen/Raten ins Log (nur bei Aenderung)
 bool usbAudioActive();
 int usbAudioStatus();                         // 0 aus, 1 wartet auf PC, 2 PC liest mit
 int usbAudioRate();                           // vom PC gewaehlte Abtastrate (44100/48000), 0 = kein Strom offen

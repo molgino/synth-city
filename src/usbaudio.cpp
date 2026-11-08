@@ -28,6 +28,9 @@ void usbAudioSetChannels(int ch) { if (!g_active) g_ch = ch >= 2 && ch <= MAXCH 
 int usbAudioChannels() { return g_ch; }
 static SDL_Thread* g_thread = nullptr;
 static char g_dev[32];
+static volatile bool g_host = false;     // Host-Modus: Geraet am R36S (z. B. MPC) statt Gadget zum PC
+static char g_hostName[64] = "";         // Name der Karte im Host-Modus (Anzeige)
+static volatile int g_hostMax = 0;       // groesste Kanalzahl, die das Geraet annimmt
 static volatile int g_peak = 0;          // groesster Betrag der uebergebenen Samples (seit letzter Statistik)
 static volatile Uint32 g_toneUntil = 0;  // Testton bis zu diesem Zeitpunkt
 static volatile float g_gain = 1.f;      // USB-Lautstaerke (unabhaengig von der internen)
@@ -106,6 +109,50 @@ static bool findGadget(char* out, int n) {
     return true;
 }
 
+// Wiedergabe-Faehigkeiten einer Karte (Kanaele, Raten) - fuer das Log und den Host-Modus
+static bool cardCaps(const char* dev, unsigned& chMin, unsigned& chMax, unsigned& rMin, unsigned& rMax) {
+    snd_pcm_t* pcm;
+    if (snd_pcm_open(&pcm, dev, SND_PCM_STREAM_PLAYBACK, SND_PCM_NONBLOCK) < 0) return false;
+    snd_pcm_hw_params_t* hw; snd_pcm_hw_params_alloca(&hw);
+    bool ok = snd_pcm_hw_params_any(pcm, hw) >= 0;
+    if (ok) {
+        snd_pcm_hw_params_get_channels_min(hw, &chMin); snd_pcm_hw_params_get_channels_max(hw, &chMax);
+        snd_pcm_hw_params_get_rate_min(hw, &rMin, nullptr); snd_pcm_hw_params_get_rate_max(hw, &rMax, nullptr);
+    }
+    snd_pcm_close(pcm);
+    return ok;
+}
+// Host-Modus: erste USB-Soundkarte mit Wiedergabe (nicht der interne Codec, nicht HDMI/MIDI)
+static bool findHost(char* out, int n) {
+    int card = -1;
+    static char lastList[768] = "";
+    char list[768] = "";
+    bool found = false;
+    while (snd_card_next(&card) == 0 && card >= 0) {
+        char *nm = nullptr, *ln = nullptr;
+        snd_card_get_name(card, &nm);
+        snd_card_get_longname(card, &ln);
+        int pd = playbackDevice(card);
+        bool internal = (nm && strcasestr(nm, "rk817")) || (ln && strcasestr(ln, "rk817"));
+        bool usb = ln && strcasestr(ln, "usb");
+        char dev[32]; snprintf(dev, sizeof dev, "hw:%d,%d", card, pd < 0 ? 0 : pd);
+        unsigned c0 = 0, c1 = 0, r0 = 0, r1 = 0;
+        bool caps = pd >= 0 && !internal && cardCaps(dev, c0, c1, r0, r1);
+        size_t ll = strlen(list);
+        if (caps) snprintf(list + ll, sizeof list - ll, "%d:'%s' %u-%u Kanaele %u-%u Hz; ", card, nm ? nm : "?", c0, c1, r0, r1);
+        else snprintf(list + ll, sizeof list - ll, "%d:'%s'%s; ", card, nm ? nm : "?", pd >= 0 ? (internal ? " (intern)" : " (belegt?)") : "");
+        if (!found && caps && usb) {
+            found = true;
+            snprintf(out, n, "%s", dev);
+            snprintf(g_hostName, sizeof g_hostName, "%s", nm ? nm : "USB");
+            g_hostMax = (int)c1;
+        }
+        free(nm); free(ln);
+    }
+    if (strcmp(list, lastList)) { printf("USB-Geraete (Host): %s\n", list); fflush(stdout); snprintf(lastList, sizeof lastList, "%s", list); }
+    return found;
+}
+
 static inline float hermite(const float* r, unsigned i, float t, int c, unsigned m = RMASK, int st = 2) {   // 4-Punkt, wie smpRead in der Engine; st = Kanaele je Frame
     float y0 = r[((i - 1) & m) * st + c], y1 = r[(i & m) * st + c], y2 = r[((i + 1) & m) * st + c], y3 = r[((i + 2) & m) * st + c];
     float c1 = 0.5f * (y2 - y0), c2 = y0 - 2.5f * y1 + 2.f * y2 - 0.5f * y3, c3 = 0.5f * (y3 - y0) + 1.5f * (y1 - y2);
@@ -157,16 +204,23 @@ static int usbThread(void*) {
         if (strcmp(lastErr, g_dev)) { printf("USB-Audio: %s nicht zu oeffnen (%s)\n", g_dev, snd_strerror(e)); snprintf(lastErr, sizeof lastErr, "%s", g_dev); }
         g_active = false; return 0;
     }
-    const int rate = pickRate(pcm, gadgetRate(true));
-    const int ch = g_ch;
-    const int bps = openFormat(pcm, (unsigned)rate, 40000, ch);
+    const int rate = g_host ? pickRate(pcm, g_srcRate) : pickRate(pcm, gadgetRate(true));
+    int ch = g_ch;
+    int bps = openFormat(pcm, (unsigned)rate, 40000, ch);
+    while (!bps && g_host && ch > 2) {   // Geraet nimmt die Kanalzahl nicht: in Zweierschritten weniger probieren
+        ch -= 2; snd_pcm_close(pcm); pcm = nullptr;
+        if (snd_pcm_open(&pcm, g_dev, SND_PCM_STREAM_PLAYBACK, SND_PCM_NONBLOCK) < 0) break;
+        bps = openFormat(pcm, (unsigned)rate, 40000, ch);
+    }
+    if (bps && ch != g_ch) { printf("USB-Audio: Geraet nimmt %d statt %d Kanaele\n", ch, g_ch); g_ch = ch; }
     if (!bps) {
+        if (!pcm) { g_active = false; return 0; }
         printf("USB-Audio: Format nicht moeglich (%d Hz, %d Kanaele - passt die Kanalzahl zum Gadget?)\n", rate, ch);
         snd_pcm_close(pcm); g_active = false; return 0;
     }
     g_rateOut = rate;
     const int src = g_srcRate;
-    printf("USB-Audio zum PC aktiv (%s, %d Hz, %d Bit, %d Kanaele, Engine %d Hz)\n", g_dev, rate, bps == 2 ? 16 : 24, ch, src);
+    printf("USB-Audio %s aktiv (%s, %d Hz, %d Bit, %d Kanaele, Engine %d Hz)\n", g_host ? "an USB-Geraet" : "zum PC", g_dev, rate, bps == 2 ? 16 : 24, ch, src);
     const double base = (double)src / rate;   // Ring-Frames (Engine-Rate) je USB-Frame
     Uint32 rateCheckAt = SDL_GetTicks();
     // Taktausgleich: interne Soundkarte und USB-Host laufen mit leicht unterschiedlicher Uhr. Wir lesen den Ring mit
@@ -186,7 +240,7 @@ static int usbThread(void*) {
     while (g_run) {
         if (SDL_GetTicks() - rateCheckAt >= 500) {   // PC hat eine andere Rate gewaehlt?
             rateCheckAt = SDL_GetTicks();
-            int r = gadgetRate(true);
+            int r = g_host ? 0 : gadgetRate(true);
             if (r > 0 && r != rate) { printf("USB-Audio: PC wechselt auf %d Hz\n", r); break; }
             if (g_srcRate != src) { printf("USB-Audio: Engine-Rate jetzt %d Hz\n", g_srcRate); break; }
         }
@@ -252,11 +306,43 @@ bool usbAudioStart() {
     if (g_active) return true;
     if (g_thread) { SDL_WaitThread(g_thread, nullptr); g_thread = nullptr; }   // vorheriger Versuch beendet
     if (!findGadget(g_dev, sizeof g_dev)) return false;
+    g_host = false;
     g_w = g_r = 0;
     g_run = true; g_active = true; g_status = 1;
     g_thread = SDL_CreateThread(usbThread, "usbaudio", nullptr);
     if (!g_thread) { g_run = false; g_active = false; return false; }
     return true;
+}
+
+bool usbAudioStartHost(int maxCh) {   // Host-Modus: Mehrkanal an ein Geraet am R36S (z. B. MPC als Audio-Interface)
+    if (g_active) return true;
+    if (g_thread) { SDL_WaitThread(g_thread, nullptr); g_thread = nullptr; }
+    if (!findHost(g_dev, sizeof g_dev)) return false;
+    int ch = g_hostMax < 2 ? 2 : g_hostMax;
+    if (ch > maxCh) ch = maxCh;
+    if (ch > MAXCH) ch = MAXCH;
+    ch &= ~1;
+    g_ch = ch < 2 ? 2 : ch;
+    g_host = true;
+    g_w = g_r = 0;
+    g_run = true; g_active = true; g_status = 1;
+    g_thread = SDL_CreateThread(usbThread, "usbaudio", nullptr);
+    if (!g_thread) { g_run = false; g_active = false; return false; }
+    return true;
+}
+bool usbAudioHost() { return g_active && g_host; }
+const char* usbAudioHostName() { return g_hostName; }
+void usbAudioLogDevices() {   // nur wenn sich die Kartenliste geaendert hat (Oeffnen jeder Karte ist nicht gratis)
+    if (g_active) return;
+    static char last[256] = "";
+    char sig[256] = ""; int card = -1;
+    while (snd_card_next(&card) == 0 && card >= 0) {
+        char* nm = nullptr; snd_card_get_name(card, &nm);
+        size_t l = strlen(sig); snprintf(sig + l, sizeof sig - l, "%d:%s;", card, nm ? nm : "?"); free(nm);
+    }
+    if (!strcmp(sig, last)) return;
+    snprintf(last, sizeof last, "%s", sig);
+    char d[32]; findHost(d, sizeof d);
 }
 
 void usbAudioStop() {
@@ -482,6 +568,10 @@ void usbAudioSetEngineRate(int) {}
 void pcRecDone() {}
 void usbAudioTestTone(int) {}
 bool usbAudioStart() { return false; }
+bool usbAudioStartHost(int) { return false; }
+bool usbAudioHost() { return false; }
+const char* usbAudioHostName() { return ""; }
+void usbAudioLogDevices() {}
 int usbAudioRate() { return 0; }
 void usbAudioStop() {}
 bool usbAudioActive() { return false; }

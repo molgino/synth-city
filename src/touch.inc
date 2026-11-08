@@ -33,7 +33,8 @@ static void touchDrag(TouchPtr& t, int x, int y) {
         if (fbScroll > fbN - 15) fbScroll = (float)(fbN - 15);
         if (fbScroll < 0) fbScroll = 0;
         int lo = (int)ceilf(fbScroll) + 2, hi = (int)fbScroll + 12;   // ceil: sonst zieht drawBrowser die Liste zurueck
-        if (fbSel < lo) fbSel = lo; if (fbSel > hi) fbSel = hi;
+        if (fbSel < lo) fbSel = lo;
+        if (fbSel > hi) fbSel = hi;
         if (fbSel >= fbN) fbSel = fbN - 1;
     } else if (t.kind == HK_SET && !setIsAction(t.a)) {
         t.acc += dx / 22.f;
