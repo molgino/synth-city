@@ -85,8 +85,8 @@ static bool selfTesting = false;   // --selftest/--bench: keine Systemaktionen (
 static Project lastSaved;
 
 // System-Einstellungen (settings.cfg)
-struct Settings { char dev[128]; int buf, midiIn, notesOut, clk, chm, usb, song, dispOff, usbAudio, hwVol, pcIn, usbVol, intUsb, cores, lang, usbNet, uac, uacSendOnly, usbCh, hostMc, usbBint; signed char usbRoute[NTRACKS + NBUS]; char project[64]; };   // usbRoute: 0 Auto, 1 nur Master, 2+k Paar k (USB 3-4 ...)   // usbNet 0 NCM / 1 RNDIS, uac 2 / 1
-static Settings cfg = {"", 1, 1, 0, 0, 0, 0, 0, 277, 1, 80, 1, 100, 1, 2, 0, 0, 2, 0, 2, 0, 0, {0}, ""};
+struct Settings { char dev[128]; int buf, midiIn, notesOut, clk, chm, usb, song, dispOff, usbAudio, hwVol, pcIn, usbVol, intUsb, cores, lang, usbNet, uac, uacSendOnly, usbCh, hostMc, usbBint, usbNetOn; signed char usbRoute[NTRACKS + NBUS]; char project[64]; };   // usbRoute: 0 Auto, 1 nur Master, 2+k Paar k (USB 3-4 ...)   // usbNet 0 NCM / 1 RNDIS, uac 2 / 1
+static Settings cfg = {"", 1, 1, 0, 0, 0, 0, 0, 277, 1, 80, 1, 100, 1, 2, 0, 0, 2, 0, 2, 0, 0, 1, {0}, ""};
 // Kanaele zum PC (USB-Audio): Mehrkanal nur mit UAC2
 static int usbChannels() { return cfg.uac == 1 ? 2 : (cfg.usbCh == 8 || cfg.usbCh == 18 ? cfg.usbCh : 2); }
 // Kanaele, mit denen gerade gesendet wird (Host-Modus: was das Geraet annimmt), sonst die PC-Einstellung
@@ -187,6 +187,7 @@ static void loadSettings() {
         else if (!strcmp(line, "usb_net")) cfg.usbNet = clampi(atoi(v), 0, 1);
         else if (!strcmp(line, "usb_audio_class")) cfg.uac = atoi(v) == 1 ? 1 : 2;
         else if (!strcmp(line, "usb_audio_send_only")) cfg.uacSendOnly = atoi(v) != 0;
+        else if (!strcmp(line, "usb_network_on")) cfg.usbNetOn = atoi(v) ? 1 : 0;
         else if (!strcmp(line, "usb_audio_interval")) { int b = atoi(v); cfg.usbBint = b >= 1 && b <= 4 ? b : 0; }
         else if (!strcmp(line, "usb_host_multi")) cfg.hostMc = atoi(v) ? 1 : 0;
         else if (!strcmp(line, "usb_audio_channels")) { int c = atoi(v); cfg.usbCh = c >= 18 ? 18 : (c == 8 ? 8 : 2); }   // 24 gab es kurz: stockte am R36S
@@ -198,8 +199,8 @@ static void loadSettings() {
 static void saveSettings() {
     FILE* f = fopen(setPath, "w");
     if (!f) return;
-    fprintf(f, "# Groovebox Systemeinstellungen\naudio_device %s\nbuffer %d\nmidi_in %d\nmidi_notes_out %d\nmidi_clock %d\nmidi_channels %d\nusb_mode %d\nsong %d\ndisplay_offset %d\nusb_audio %d\nhw_volume %d\npc_in %d\nusb_volume %d\ninternal_on_usb %d\naudio_cores %d\nlanguage %d\nusb_net %d\nusb_audio_class %d\nusb_audio_send_only %d\nusb_audio_channels %d\nusb_host_multi %d\nusb_audio_interval %d\nusb_route %d %d %d %d %d %d %d %d %d %d %d\nproject %s\n",
-            cfg.dev, cfg.buf, cfg.midiIn, cfg.notesOut, cfg.clk, cfg.chm, cfg.usb, cfg.song, cfg.dispOff, cfg.usbAudio, cfg.hwVol, cfg.pcIn, cfg.usbVol, cfg.intUsb, cfg.cores, cfg.lang, cfg.usbNet, cfg.uac, cfg.uacSendOnly, cfg.usbCh, cfg.hostMc, cfg.usbBint, cfg.usbRoute[0], cfg.usbRoute[1], cfg.usbRoute[2], cfg.usbRoute[3], cfg.usbRoute[4], cfg.usbRoute[5], cfg.usbRoute[6], cfg.usbRoute[7], cfg.usbRoute[8], cfg.usbRoute[9], cfg.usbRoute[10], cfg.project);
+    fprintf(f, "# Groovebox Systemeinstellungen\naudio_device %s\nbuffer %d\nmidi_in %d\nmidi_notes_out %d\nmidi_clock %d\nmidi_channels %d\nusb_mode %d\nsong %d\ndisplay_offset %d\nusb_audio %d\nhw_volume %d\npc_in %d\nusb_volume %d\ninternal_on_usb %d\naudio_cores %d\nlanguage %d\nusb_net %d\nusb_audio_class %d\nusb_audio_send_only %d\nusb_audio_channels %d\nusb_host_multi %d\nusb_audio_interval %d\nusb_network_on %d\nusb_route %d %d %d %d %d %d %d %d %d %d %d\nproject %s\n",
+            cfg.dev, cfg.buf, cfg.midiIn, cfg.notesOut, cfg.clk, cfg.chm, cfg.usb, cfg.song, cfg.dispOff, cfg.usbAudio, cfg.hwVol, cfg.pcIn, cfg.usbVol, cfg.intUsb, cfg.cores, cfg.lang, cfg.usbNet, cfg.uac, cfg.uacSendOnly, cfg.usbCh, cfg.hostMc, cfg.usbBint, cfg.usbNetOn, cfg.usbRoute[0], cfg.usbRoute[1], cfg.usbRoute[2], cfg.usbRoute[3], cfg.usbRoute[4], cfg.usbRoute[5], cfg.usbRoute[6], cfg.usbRoute[7], cfg.usbRoute[8], cfg.usbRoute[9], cfg.usbRoute[10], cfg.project);
     fclose(f);
 }
 static void applyMidiSettings() {
@@ -3433,7 +3434,7 @@ static void editValue(int delta) {
         case SY_NOUT: cfg.notesOut = d > 0; break;
         case SY_CLK: cfg.clk = clampi(cfg.clk + d, 0, 2); break;
         case SY_MCH: cfg.chm = d > 0; break;
-        case SY_USB: usbMode = clampi(usbMode + d, 0, 2); usbApplyAt = SDL_GetTicks() + 1200; return;
+        case SY_USB: usbMode = clampi(usbMode + d, 0, 2); if (usbMode) { cfg.usbAudio = usbMode == 2; saveSettings(); } usbApplyAt = SDL_GetTicks() + 1200; return;
         default: return;
         }
         applyMidiSettings();
@@ -3670,7 +3671,8 @@ enum SetItem {
     SI_H_TRK, SI_LEN, SI_SPEED, SI_TMPL, SI_CLRTRK,
     SI_H_AUDIO, SI_OUT, SI_BUF, SI_VOL, SI_CORES,
     SI_H_MIDI, SI_MIN, SI_NOUT, SI_CLK, SI_MCH,
-    SI_H_USB, SI_USB, SI_USBAUDIO, SI_USBVOL, SI_INTUSB, SI_USBTONE, SI_PCIN, SI_PCREC, SI_IP, SI_USBNET, SI_UACVER, SI_UACDIR, SI_USBCH, SI_USBBINT, SI_HOSTMC, SI_MIDIINFO,
+    SI_H_USB, SI_USB, SI_USBNETON, SI_IP, SI_USBNET, SI_MIDIINFO, SI_HOSTMC,
+    SI_H_UAUD, SI_USBAUDIO, SI_USBCH, SI_UACDIR, SI_UACVER, SI_USBBINT, SI_USBVOL, SI_INTUSB, SI_USBTONE, SI_PCIN, SI_PCREC,
     SI_H_ROUTE, SI_RT0, SI_RT1, SI_RT2, SI_RT3, SI_RT4, SI_RT5, SI_RT6, SI_RT7, SI_RT8, SI_RT9, SI_RT10,
     SI_H_SMP, SI_SAMPLES, SI_WEB, SI_DRIVE, SI_OLDSMP,
     SI_H_SYS, SI_LANG, SI_DISP, SI_LEARN, SI_BENCH, SI_INFO, SI_BAT, SI_QUIT, SI_COUNT
@@ -3700,7 +3702,7 @@ static void applyRhythm(int k) {
     toast(TR("SPUR %d: %s (SELECT+B = RÜCKGÄNGIG)", "TRACK %d: %s (SELECT+B = UNDO)"), track + 1, RHY_NAMES[k]);
 }
 static float setScroll = 0;
-static bool setIsHeader(int i) { return i == SI_H_PAT || i == SI_H_TRK || i == SI_H_AUDIO || i == SI_H_MIDI || i == SI_H_USB || i == SI_H_ROUTE || i == SI_H_SMP || i == SI_H_SYS; }
+static bool setIsHeader(int i) { return i == SI_H_PAT || i == SI_H_TRK || i == SI_H_AUDIO || i == SI_H_MIDI || i == SI_H_USB || i == SI_H_UAUD || i == SI_H_ROUTE || i == SI_H_SMP || i == SI_H_SYS; }
 static int setCatOf(int i) { while (i > 0 && !setIsHeader(i)) i--; return i; }   // Bereich = vorangehende Ueberschrift
 static int setCatEnd(int h) { int e = h + 1; while (e < SI_COUNT && !setIsHeader(e)) e++; return e; }
 // kurze Erklaerung je Eintrag (unten in den Einstellungen)
@@ -3732,8 +3734,9 @@ static const char* setHelp(int i) {
     case SI_NOUT: return TR("Spuren senden ihre Noten als MIDI (Spur = Kanal)", "Tracks send their notes as MIDI (track = channel)");
     case SI_CLK: return TR("MIDI-Clock senden oder als Taktgeber folgen", "Send MIDI clock or follow it");
     case SI_MCH: return TR("Welche Spur MIDI-Noten spielt", "Which track plays incoming MIDI notes");
-    case SI_USB: return TR("HOST: Geräte am R36S. PC: Netzwerk, MIDI und Audio zum Computer", "HOST: devices on the R36S. PC: network, MIDI and audio to the computer");
-    case SI_USBAUDIO: return TR("Summe als USB-Audio an den PC", "Master as USB audio to the PC");
+    case SI_USB: return TR("HOST: Geräte am R36S (Keyboard, DAC, MPC). PC: R36S am Computer/Handy, MIDI immer, Netz/Audio einzeln", "HOST: devices on the R36S (keyboard, DAC, MPC). PC: R36S on computer/phone, MIDI always, network/audio separate");
+    case SI_USBNETON: return TR("Netzwerk im PC-Modus: Browser (Samples, Bildschirm, Logs), SSH, Netz-MIDI. AUS = nur MIDI/Audio", "Network in PC mode: browser (samples, screen, logs), SSH, network MIDI. OFF = MIDI/audio only");
+    case SI_USBAUDIO: return TR("R36S als Audio-Interface im PC-Modus (Summe bzw. Mehrkanal zum Computer)", "R36S as audio interface in PC mode (master or multichannel to the computer)");
     case SI_USBVOL: return TR("Lautstärke des USB-Audios zum PC", "Volume of the USB audio to the PC");
     case SI_INTUSB: return TR("Lautsprecher/Kopfhörer stumm, solange USB-Audio läuft", "Mute speaker/headphones while USB audio runs");
     case SI_USBTONE: return TR("Prüft, ob der PC Ton von der Groovebox bekommt", "Checks whether the PC receives sound from the groovebox");
@@ -3811,7 +3814,8 @@ static void setLabel(int i, char* l, int ln, char* v, int vn) {
     case SI_NOUT: snprintf(l, ln, TR("Noten ausgeben", "Send notes")); snprintf(v, vn, "%s", cfg.notesOut ? TR("AN (Spur = Kanal)", "ON (track = channel)") : TR("AUS", "OFF")); break;
     case SI_CLK: snprintf(l, ln, "Clock"); snprintf(v, vn, "%s", cfg.clk == 1 ? TR("SENDEN", "SEND") : (cfg.clk == 2 ? TR("EMPFANGEN", "RECEIVE") : TR("AUS", "OFF"))); break;
     case SI_MCH: snprintf(l, ln, TR("Eingangskanäle", "Input channels")); snprintf(v, vn, "%s", cfg.chm ? TR("Kanal 1-8 = Spur 1-8", "Channel 1-8 = track 1-8") : TR("AUTO (gewählte Spur)", "AUTO (selected track)")); break;
-    case SI_H_USB: snprintf(l, ln, "USB & PC"); break;
+    case SI_H_USB: snprintf(l, ln, TR("USB-VERBINDUNG", "USB CONNECTION")); break;
+    case SI_H_UAUD: snprintf(l, ln, "USB-AUDIO"); break;
     case SI_H_ROUTE: snprintf(l, ln, TR("USB-ROUTING", "USB ROUTING")); break;
     case SI_RT0: case SI_RT1: case SI_RT2: case SI_RT3: case SI_RT4: case SI_RT5: case SI_RT6: case SI_RT7: case SI_RT8: case SI_RT9: case SI_RT10: {
         int q = i - SI_RT0, ch = routeChannels();
@@ -3827,29 +3831,32 @@ static void setLabel(int i, char* l, int ln, char* v, int vn) {
         else snprintf(v, vn, "%s", to);
     } break;
     case SI_USB: snprintf(l, ln, TR("USB-Modus", "USB mode"));
-        snprintf(v, vn, "%s", usbMode == 0 ? TR("HOST (Geräte am R36S)", "HOST (devices on R36S)") : (usbMode == 1 ? TR("PC (Netz-MIDI, SSH)", "PC (network MIDI, SSH)") : "PC + AUDIO"));
+        snprintf(v, vn, "%s", usbMode == 0 ? TR("HOST (Geräte am R36S)", "HOST (devices on R36S)") : TR("PC (R36S am Computer)", "PC (R36S on computer)"));
         break;
-    case SI_USBAUDIO: snprintf(l, ln, TR("Audio an PC (USB)", "Audio to PC (USB)"));
+    case SI_USBNETON: snprintf(l, ln, TR("Netzwerk (Browser, SSH)", "Network (browser, SSH)"));
+        snprintf(v, vn, "%s", !cfg.usbNetOn ? TR("AUS", "OFF") : (usbMode == 0 ? TR("AN (im PC-Modus)", "ON (in PC mode)") : (netIp[0] ? TR("AN - VERBUNDEN", "ON - CONNECTED") : "AN")));
+        break;
+    case SI_USBAUDIO: snprintf(l, ln, TR("Audio-Interface", "Audio interface"));
         if (!cfg.usbAudio) snprintf(v, vn, TR("AUS", "OFF"));
-        else if (usbMode != 2) snprintf(v, vn, TR("AN (erst PC MIDI+Audio)", "ON (needs PC MIDI+audio)"));
-        else snprintf(v, vn, usbAudioStatus() == 2 ? TR("AN - PC LIEST MIT", "ON - PC IS LISTENING") : (usbAudioActive() ? TR("AN - WARTET AUF PC", "ON - WAITING FOR PC") : TR("AN - SUCHE GERÄT", "ON - SEARCHING DEVICE")));
+        else if (usbMode == 0) snprintf(v, vn, TR("AN (im PC-Modus)", "ON (in PC mode)"));
+        else snprintf(v, vn, usbAudioStatus() == 2 ? TR("AN - PC LIEST MIT", "ON - PC IS LISTENING") : (usbAudioActive() ? TR("AN - WARTET AUF PC", "ON - WAITING FOR PC") : TR("AN - STARTET ...", "ON - STARTING ...")));
         break;
-    case SI_USBVOL: snprintf(l, ln, TR("USB-Lautstärke", "USB volume")); snprintf(v, vn, "%d%%", cfg.usbVol); break;
-    case SI_INTUSB: snprintf(l, ln, TR("Intern bei USB-Audio", "Internal with USB audio")); snprintf(v, vn, "%s", cfg.intUsb ? (intMuted ? TR("STUMM (AKTIV)", "MUTED (ACTIVE)") : TR("STUMM", "MUTED")) : "AN"); break;
-    case SI_USBTONE: snprintf(l, ln, TR("Testton an PC (5 s, 1 kHz)", "Test tone to PC (5 s, 1 kHz)")); if (!usbAudioActive()) snprintf(v, vn, TR("erst Audio an PC", "needs audio to PC")); break;
-    case SI_PCIN: snprintf(l, ln, TR("PC-Ton über R36S", "PC audio through R36S"));
+    case SI_USBVOL: snprintf(l, ln, TR("Lautstärke", "Volume")); snprintf(v, vn, "%d%%", cfg.usbVol); break;
+    case SI_INTUSB: snprintf(l, ln, TR("Lautsprecher/Kopfhörer", "Speaker/headphones")); snprintf(v, vn, "%s", cfg.intUsb ? (intMuted ? TR("STUMM (USB-AUDIO LÄUFT)", "MUTED (USB AUDIO RUNNING)") : TR("STUMM BEI USB-AUDIO", "MUTED WITH USB AUDIO")) : TR("IMMER AN", "ALWAYS ON")); break;
+    case SI_USBTONE: snprintf(l, ln, TR("Testton (5 s, 1 kHz)", "Test tone (5 s, 1 kHz)")); if (!usbAudioActive()) snprintf(v, vn, TR("erst Audio-Interface", "needs audio interface")); break;
+    case SI_PCIN: snprintf(l, ln, TR("Ton vom PC hören", "Hear audio from PC"));
         if (!cfg.pcIn) snprintf(v, vn, TR("AUS", "OFF"));
-        else if (usbMode != 2) snprintf(v, vn, TR("AN (erst PC MIDI+Audio)", "ON (needs PC MIDI+audio)"));
+        else if (usbMode != 2) snprintf(v, vn, TR("AN (erst Audio-Interface)", "ON (needs audio interface)"));
         else snprintf(v, vn, pcInStatus() == 2 ? TR("AN - PC SPIELT", "ON - PC PLAYING") : TR("AN - STILL", "ON - SILENT"));
         break;
-    case SI_PCREC: snprintf(l, ln, TR("PC-Ton als Sample aufnehmen", "Record PC audio as sample"));
+    case SI_PCREC: snprintf(l, ln, TR("Ton vom PC aufnehmen", "Record audio from PC"));
         if (pcRecState() == 1) snprintf(v, vn, TR("WARTET AUF TON (A = ABBRECHEN)", "WAITING FOR SOUND (A = CANCEL)"));
         else if (pcRecState() == 2) snprintf(v, vn, TR("AUFNAHME %.1f s (A = STOP)", "RECORDING %.1f s (A = STOP)"), pcRecSeconds());
-        else if (usbMode != 2) snprintf(v, vn, TR("erst PC MIDI+Audio", "needs PC MIDI+audio"));
+        else if (usbMode != 2) snprintf(v, vn, TR("erst Audio-Interface", "needs audio interface"));
         break;
     case SI_USBBINT: {
         static const char* const BI[5] = {"AUTO", "0,125 ms", "0,25 ms", "0,5 ms", "1 ms"};
-        snprintf(l, ln, TR("USB-Paketabstand", "USB packet interval"));
+        snprintf(l, ln, TR("Paketabstand", "Packet interval"));
         snprintf(v, vn, "%s", BI[cfg.usbBint % 5]);
         if (cfg.uac == 1) { size_t k = strlen(v); snprintf(v + k, vn - k, TR(" (nur UAC2)", " (UAC2 only)")); }
     } break;
@@ -3859,14 +3866,14 @@ static void setLabel(int i, char* l, int ln, char* v, int vn) {
         else if (usbAudioHost()) snprintf(v, vn, "%.14s %dCH %s", usbAudioHostName(), usbAudioChannels(), usbAudioStatus() == 2 ? "OK" : "...");
         else snprintf(v, vn, TR("AN - kein Gerät", "ON - no device"));
         break;
-    case SI_USBCH: snprintf(l, ln, TR("USB-Kanäle zum PC", "USB channels to PC"));
+    case SI_USBCH: snprintf(l, ln, TR("Kanäle", "Channels"));
         if (cfg.uac == 1) { snprintf(v, vn, TR("2 (UAC1: nur Stereo)", "2 (UAC1: stereo only)")); break; }
         snprintf(v, vn, "%s", cfg.usbCh == 18 ? TR("18 (Master + 8 Paare)", "18 (master + 8 pairs)")
                                 : cfg.usbCh == 8 ? TR("8 (Master + 3 Paare)", "8 (master + 3 pairs)") : TR("2 (Master)", "2 (master)")); break;
-    case SI_UACDIR: snprintf(l, ln, TR("USB-Audio-Richtung", "USB audio direction"));
+    case SI_UACDIR: snprintf(l, ln, TR("Richtung", "Direction"));
         snprintf(v, vn, "%s", cfg.uacSendOnly ? TR("NUR SENDEN (Gerät behält Lautsprecher)", "SEND ONLY (device keeps speaker)") : TR("BEIDE (Standard)", "BOTH (default)")); break;
-    case SI_USBNET: snprintf(l, ln, TR("USB-Netzwerk", "USB network")); snprintf(v, vn, "%s", cfg.usbNet ? TR("RNDIS (altes Windows)", "RNDIS (old Windows)") : TR("NCM (Standard)", "NCM (standard)")); break;
-    case SI_UACVER: snprintf(l, ln, TR("USB-Audio-Klasse", "USB audio class"));
+    case SI_USBNET: snprintf(l, ln, TR("Netzwerk-Art", "Network type")); snprintf(v, vn, "%s", cfg.usbNet ? TR("RNDIS (altes Windows)", "RNDIS (old Windows)") : TR("NCM (Standard)", "NCM (standard)")); break;
+    case SI_UACVER: snprintf(l, ln, TR("Klasse", "Class"));
         snprintf(v, vn, "%s", cfg.uac == 1 ? TR("UAC1 (ältere Geräte)", "UAC1 (older devices)") : "UAC2 (44,1/48 kHz)");
         if (usbMode == 2 && usbAudioRate() > 0) { size_t k = strlen(v); snprintf(v + k, vn - k, " - PC: %d Hz", usbAudioRate()); }
         break;
@@ -3876,7 +3883,7 @@ static void setLabel(int i, char* l, int ln, char* v, int vn) {
         unsigned ni = 0, no = 0; midiCounts(&ni, &no);
         snprintf(v, vn, TR("%.40s  ein %u / aus %u", "%.40s  in %u / out %u"), nm, ni, no);
     } break;
-    case SI_IP: snprintf(l, ln, TR("Adresse", "Address")); snprintf(v, vn, "%s", usbMode && netIp[0] ? netIp : "-"); break;
+    case SI_IP: snprintf(l, ln, TR("Adresse", "Address")); snprintf(v, vn, "%s", usbMode && netIp[0] ? netIp : (cfg.usbNetOn ? "-" : TR("Netzwerk aus", "network off"))); break;
     case SI_WEB: snprintf(l, ln, TR("Samples per Browser", "Samples via browser"));
         if (!webPort()) snprintf(v, vn, "-");
         else if (usbMode && netIp[0]) snprintf(v, vn, webPort() == 80 ? "http://%s" : "http://%s:%d", netIp, webPort());
@@ -3952,8 +3959,12 @@ static void setChange(int i, int d) {
     case SI_NOUT: cfg.notesOut = !cfg.notesOut; applyMidiSettings(); saveSettings(); break;
     case SI_CLK: cfg.clk = (cfg.clk + (d > 0 ? 1 : 2)) % 3; applyMidiSettings(); saveSettings(); break;
     case SI_MCH: cfg.chm = !cfg.chm; applyMidiSettings(); saveSettings(); break;
-    case SI_USB: usbMode = clampi(usbMode + (d > 0 ? 1 : -1), 0, 2); usbApplyAt = SDL_GetTicks() + 1200; break;
-    case SI_USBAUDIO: cfg.usbAudio = !cfg.usbAudio; saveSettings(); break;
+    case SI_USB: usbMode = usbMode ? 0 : (cfg.usbAudio ? 2 : 1); usbApplyAt = SDL_GetTicks() + 1200; break;   // PC: mit/ohne Audio-Interface
+    case SI_USBNETON: cfg.usbNetOn = !cfg.usbNetOn; saveSettings(); if (usbMode) usbApplyAt = SDL_GetTicks() + 1200; break;   // Gadget neu aufbauen
+    case SI_USBAUDIO:
+        cfg.usbAudio = !cfg.usbAudio; saveSettings();
+        if (usbMode) { usbMode = cfg.usbAudio ? 2 : 1; usbAudioStop(); usbApplyAt = SDL_GetTicks() + 1200; }   // Interface an/ab
+        break;
     case SI_USBVOL: cfg.usbVol = clampi(cfg.usbVol + (d > 0 ? 5 : -5), 0, 100); saveSettings(); break;
     case SI_INTUSB: cfg.intUsb = !cfg.intUsb; saveSettings(); break;
     case SI_USBCH: {
@@ -4034,7 +4045,7 @@ static void reloadSamples();
 // Umgebung fuer pc-modus.sh: Netzwerk- und Audio-Klasse aus SET
 static const char* usbEnv() {
     static char e[96];
-    snprintf(e, sizeof e, "GB_USB_NET=%s GB_UAC=%d GB_UAC_IN=%d GB_UAC_CH=%d ", cfg.usbNet ? "rndis" : "ncm", cfg.uac == 1 ? 1 : 2, cfg.uacSendOnly ? 0 : 1, usbChannels());
+    snprintf(e, sizeof e, "GB_USB_NET=%s GB_UAC=%d GB_UAC_IN=%d GB_UAC_CH=%d ", !cfg.usbNetOn ? "off" : (cfg.usbNet ? "rndis" : "ncm"), cfg.uac == 1 ? 1 : 2, cfg.uacSendOnly ? 0 : 1, usbChannels());
     if (cfg.usbBint >= 1 && cfg.usbBint <= 4) { size_t l = strlen(e); snprintf(e + l, sizeof e - l, "GB_UAC_BINT=%d ", cfg.usbBint); }   // sonst Auto
     return e;
 }
@@ -5556,7 +5567,7 @@ int main(int argc, char** argv) {
     if (firstRun) msgUntil = SDL_GetTicks() + 6000;
     webStart(basePath);
     int webSeq = 0;
-    if (cfg.usb && !usbMode) { usbMode = cfg.usb; usbApplyAt = SDL_GetTicks() + 1500; }   // PC-Modus nach Neustart wiederherstellen
+    if (cfg.usb && !usbMode) { usbMode = cfg.usbAudio ? 2 : 1; usbApplyAt = SDL_GetTicks() + 1500; }   // PC-Modus nach Neustart wiederherstellen
     Uint32 lastAuto = SDL_GetTicks();
 
     Uint32 last = SDL_GetTicks();

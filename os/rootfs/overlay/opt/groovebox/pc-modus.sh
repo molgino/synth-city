@@ -6,7 +6,7 @@
 #   pc-modus.sh laufwerk       -> am PC: Datenpartition GROOVEBOX als USB-Laufwerk + Netzwerk
 #   pc-modus.sh laufwerk-aus   -> Laufwerk zurueck an die Groovebox, wieder "an audio"
 # Alles class compliant (keine Treiber am PC). Umschaltbar per Umgebung (setzt die App aus SET, oder config/groovebox.env):
-#   GB_USB_NET=ncm|rndis   Netzwerk: NCM (Standard: Windows 11/10 ab 2004, macOS, iPadOS, Linux, Android) oder RNDIS (aeltere Windows 10)
+#   GB_USB_NET=ncm|rndis|off   Netzwerk (off = kein Netzwerk, nur MIDI/Audio): NCM (Standard: Windows 11/10 ab 2004, macOS, iPadOS, Linux, Android) oder RNDIS (aeltere Windows 10)
 #   GB_UAC=2|1             Audio: UAC2 (Standard, 44,1 + 48 kHz) oder UAC1 (aeltere Geraete/Konsolen; braucht CONFIG_USB_CONFIGFS_F_UAC1)
 #   GB_UAC_RATES="44100,48000"   angebotene Abtastraten (der PC waehlt)
 #   GB_UAC_CH=2|8|18|24    Kanaele zum PC (UAC2): 1-2 Master, 8 = +FX A/B/C, 18 = +8 Spuren, 24 = Spuren + FX
@@ -52,7 +52,10 @@ setup() {   # $1 = audio (0/1), $2 = laufwerk-Geraet oder leer
     fi
 
     # Netzwerk - muss die erste Funktion sein (Schnittstelle usb0)
-    if [ "${GB_USB_NET:-ncm}" = rndis ]; then   # RNDIS: Windows erkennt es ueber os_desc ohne Treiber
+    NETON=1; [ "$GB_USB_NET" = off ] && [ -z "$2" ] && NETON=0   # Laufwerk-Modus behaelt das Netz
+    if [ $NETON = 0 ]; then
+        echo "Netz: aus"
+    elif [ "${GB_USB_NET:-ncm}" = rndis ]; then   # RNDIS: Windows erkennt es ueber os_desc ohne Treiber
         mkdir -p functions/rndis.usb0
         echo 1 > os_desc/use; echo 0xcd > os_desc/b_vendor_code; echo MSFT100 > os_desc/qw_sign
         echo RNDIS > functions/rndis.usb0/os_desc/interface.rndis/compatible_id
@@ -133,10 +136,14 @@ setup() {   # $1 = audio (0/1), $2 = laufwerk-Geraet oder leer
     UDC=$(ls /sys/class/udc | head -1)
     [ -n "$UDC" ] || { echo "FEHLER: kein USB-Geraete-Controller (udc)"; return 1; }
     echo "$UDC" > UDC || { echo "FEHLER: USB-Gadget laesst sich nicht aktivieren"; return 1; }
-    for i in $(seq 20); do ip link show usb0 >/dev/null 2>&1 && break; sleep 0.1; done
-    ip link set usb0 up; ip addr flush dev usb0; ip addr add $IP/24 dev usb0
-    setsid $DIR/groovebox --dhcpd usb0 >/dev/null 2>&1 < /dev/null &
-    echo "$IP" > $DIR/netmidi.ip
+    if [ $NETON = 1 ]; then
+        for i in $(seq 20); do ip link show usb0 >/dev/null 2>&1 && break; sleep 0.1; done
+        ip link set usb0 up; ip addr flush dev usb0; ip addr add $IP/24 dev usb0
+        setsid $DIR/groovebox --dhcpd usb0 >/dev/null 2>&1 < /dev/null &
+        echo "$IP" > $DIR/netmidi.ip
+    else
+        rm -f $DIR/netmidi.ip
+    fi
     return 0
 }
 
