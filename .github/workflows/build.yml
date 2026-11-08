@@ -75,7 +75,7 @@ jobs:
             git worktree add --orphan -b gh-pages pages
           fi
           if [ "$GITHUB_REF_NAME" = main ]; then
-            find pages -maxdepth 1 -type f -delete; cp -r dist/webapp/. pages/
+            find pages -maxdepth 1 -type f ! -name .git -delete; cp -r dist/webapp/. pages/   # .git = Verweis des Arbeitsverzeichnisses, nicht loeschen
           else
             rm -rf "pages/$GITHUB_REF_NAME"; mkdir -p "pages/$GITHUB_REF_NAME"; cp -r dist/webapp/. "pages/$GITHUB_REF_NAME/"
           fi
