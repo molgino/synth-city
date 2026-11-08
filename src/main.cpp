@@ -869,6 +869,7 @@ static const char* pageLong(int p) {
     }
     if (p == PG_SRC2 && m == M_SYNTH) return TR("OSZILLATOREN", "OSCILLATORS");
     if (p == PG_SRC2 && m == M_WTBL) return TR("OSZILLATOR + EIGENE WAVETABLE", "OSCILLATOR + USER WAVETABLE");
+    if (p == PG_SRC2 && (m == M_SAMPLE || m == M_CHOP)) return TR("TIME-WARP: SAMPLE FOLGT DEM TEMPO", "TIME WARP: SAMPLE FOLLOWS THE TEMPO");
     return PAGE_LONG[p];
 }
 static void gotoPage(int dir) {
@@ -1156,6 +1157,8 @@ static void knobText(const ParamDef& d, int val, char* b, int n, int k = -1) {
         else snprintf(b, n, "---");
         return;
     }
+    if (!strcmp(d.name, "BEATS")) { if (val > 0) snprintf(b, n, "%d ST", val); else snprintf(b, n, "AUTO"); return; }   // Laenge in Steps
+    if (!strcmp(d.name, "GRAIN")) { snprintf(b, n, "%.0fms", 20.f + val / 127.f * 180.f); return; }
     if (k >= 0 && trackPage(page) && isEnvTime(k)) {
         float s = envSec(val);
         if (s < 1.f) snprintf(b, n, "%.0fms", s * 1000.f); else snprintf(b, n, "%.1fs", s);
@@ -2924,6 +2927,7 @@ static const char* sigName(int p) {
     int m = curP().machine[track];
     if (m == M_FM) switch (p) { case PG_SRC: return "FM"; case PG_SRC2: return "OP 1"; case PG_SRC3: return "OP 2"; case PG_SRC4: return "OP 3"; case PG_SRC5: return "OP 4"; }
     if (p == PG_SRC2 && (m == M_SYNTH || m == M_WTBL)) return "OSC";
+    if (p == PG_SRC2 && (m == M_SAMPLE || m == M_CHOP)) return "WARP";
     switch (p) {
     case PG_SEND: return "SENDS";
     case PG_SRC: return TR("QUELLE", "SOURCE"); case PG_SRC2: return TR("QUELLE 2", "SOURCE 2"); case PG_FLT: return "FILTER 1"; case PG_FLT2: return "FILTER 2";
@@ -2944,6 +2948,7 @@ static void sigSummary(int p, char* b, int n) {
         if (m == M_FM) { int op = p == PG_SRC2 ? 0 : p - PG_SRC3 + 1; snprintf(b, n, "x%.3g", FM_RATIOS[q[FM_OPB[op] + OP_RAT] % FM_NRAT]); }
         else if (m == M_SYNTH) snprintf(b, n, "%+d/%+d", q[P_X0] - 3, q[P_X1] - 3);
         else if (m == M_WTBL) snprintf(b, n, "%s", q[P_S0] % 5 == 4 ? "USER" : "OCT");
+        else if (m == M_SAMPLE || m == M_CHOP) snprintf(b, n, "%s", q[P_X0] ? TR("AN", "ON") : TR("AUS", "OFF"));
         else snprintf(b, n, TR("MEHR", "MORE"));
     } break;
     case PG_SEND: snprintf(b, n, "%d/%d/%d", q[P_DLY], q[P_REV], q[P_SNDC]); break;

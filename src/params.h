@@ -311,14 +311,14 @@ static const ParamDef SRC2_DEFS[M_COUNT][8] = {
     {{"OCT1", K_OCT, 3, 6}, {"OCT2", K_OCT, 3, 6}, {"LVL1", K_NUM, 127, 127}, {"LVL2", K_NUM, 127, 127},
      {"SUB.O", K_SUBO, 0, 1}, {"SYNC", K_OFFON, 0, 1}, {"XMOD", K_NUM, 0, 127}, {"RING", K_NUM, 0, 127}},
     {PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE},   // FM: siehe FM_OP_DEFS
-    {PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE},
+    {{"TEMPO", K_OFFON, 0, 1}, {"BEATS", K_NUM, 0, 128}, {"GRAIN", K_NUM, 40, 127}, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE},   // Time-Warp
     {PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE},
     {PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE},
     {PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE},
     // WTBL (TABL = USER: Wavetable aus dem Sample UWAV, je 2048 bzw. 256 Werte ein Frame)
     {{"OCT", K_OCT, 3, 6}, {"LVL", K_NUM, 127, 127}, {"SUB.O", K_SUBO, 0, 1}, {"UWAV", K_SMPL, 0, 249},
      {"DRAW", K_WDRAW, 0, 0}, PDEF_NONE, PDEF_NONE, PDEF_NONE},
-    {PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE},
+    {{"TEMPO", K_OFFON, 0, 1}, {"BEATS", K_NUM, 0, 128}, {"GRAIN", K_NUM, 40, 127}, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE},   // Time-Warp
     {PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE},
 };
 // FM-Operatoren 1-4: Ratio (Tabelle FM_RATIOS), FINE = +-0,5 Ratio, DETN = +-50 Cent, Pegel, eigene Huellkurve
@@ -331,7 +331,7 @@ static const ParamDef FM_OP_DEFS[4][8] = {
      {"O.ATK", K_NUM, 0, 127}, {"O.DEC", K_NUM, 55, 127}, {"O.SUS", K_NUM, 30, 127}, {"O.REL", K_NUM, 50, 127}},
     {{"RAT", K_RATIO, 3, 27}, {"FINE", K_BIP, 64, 127}, {"DETN", K_BIP, 64, 127}, {"O.LVL", K_NUM, 0, 127},
      {"O.ATK", K_NUM, 0, 127}, {"O.DEC", K_NUM, 50, 127}, {"O.SUS", K_NUM, 20, 127}, {"O.REL", K_NUM, 50, 127}}};
-inline bool machineHasSrc2(int m) { return m == M_FM || m == M_SYNTH || m == M_WTBL; }
+inline bool machineHasSrc2(int m) { return m == M_FM || m == M_SYNTH || m == M_WTBL || m == M_SAMPLE || m == M_CHOP; }   // SMPL/CHOP: WARP
 inline bool machineHasSrc35(int m) { return m == M_FM; }   // Klangseiten 3-5 (FM: Operator 2-4)
 // Parameter, der ein Sample aus dem Pool waehlt (SMPL/CHOP/GRAN: SMPL, WTBL: UWAV = eigene Wavetable), sonst -1
 inline int machineSampleParam(int m) { return (m == M_SAMPLE || m == M_CHOP || m == M_GRAN) ? P_S0 : (m == M_WTBL ? P_X3 : -1); }

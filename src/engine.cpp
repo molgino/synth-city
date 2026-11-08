@@ -204,6 +204,7 @@ void Voice::noteOn(int m, const uint8_t* b, const uint8_t* locks, float velScale
         if (sStart == sEnd) { active = false; return; }
     }
     update(0, sr, 120);
+    if (warp) warpInit();
     aenv.on();
     fenv.on();
     env3.on();
@@ -278,6 +279,41 @@ void Voice::lfoAdvance(int n, float sr) {
         for (int j = 0; j < NMODT; j++) if (PR(LFO_DST[k][j]) != 0 && PR(LFO_DEP[k][j]) != 64) any = true;
         if (any) lfoStep(k, n, sr);
     }
+}
+
+// ---- Time-Warp (SMPL/CHOP): Abspielposition spos laeuft im Projekttempo (sinc = Zeitachse), die Tonhoehe
+// kommt aus zwei Lese-Koepfen mit Dreiecksfenster (50 % Ueberlappung, Summe = 1). Kosten: 2 Sample-Lesungen statt 1.
+void Voice::warpSetup(int regionLen, float sr) {
+    warp = P(P_X0) != 0 && smp && regionLen > 1 && stepSec > 0.f;
+    if (!warp) return;
+    float pitch = fabsf(sinc);                                 // Tonhoehe wie ohne Warp
+    int beats = P(P_X1);
+    float steps = beats > 0 ? (float)beats : regionLen / (smp->rate * stepSec);
+    if (beats <= 0) {   // AUTO: naechste Zweierpotenz an Steps (1, 2, 4 ... 512) - Loops sind fast immer 1/2/4 Takte
+        float l2 = log2f(steps < 1.f ? 1.f : steps);
+        steps = exp2f(floorf(l2 + 0.5f));
+    }
+    float inc = regionLen / (steps * stepSec * sr);             // Quell-Frames je Ausgabe-Sample
+    wPitch = pitch;
+    sinc = sRev ? -inc : inc;
+    wGr = (0.02f + P(P_X2) / 127.f * 0.18f) * sr;            // Korn 20 .. 200 ms
+}
+void Voice::warpInit() {   // Kopf 0 startet voll am Anfang (Anschlag bleibt erhalten), Kopf 1 blendet ein
+    float dir = sRev ? -1.f : 1.f;
+    wPh[0] = 0.5f; wSt[0] = sStart - dir * 0.5f * wGr * wPitch;
+    wPh[1] = 0.f;  wSt[1] = sStart;
+}
+float Voice::warpRead() {
+    float o = 0.f, dir = sRev ? -1.f : 1.f, st = 1.f / wGr, span = wGr * wPitch;
+    const double hi = (double)(smp->len - 2);
+    for (int k = 0; k < 2; k++) {
+        wPh[k] += st;
+        if (wPh[k] >= 1.f) { wPh[k] -= 1.f; wSt[k] = spos; }   // neues Korn an der aktuellen Zeitachse
+        float w = wPh[k] < 0.5f ? 2.f * wPh[k] : 2.f - 2.f * wPh[k];
+        double rp = wSt[k] + dir * wPh[k] * span;
+        if (w > 0.f && rp >= 0.0 && rp <= hi) o += smpRead(smp, rp) * w;
+    }
+    return o;
 }
 
 void Voice::addMod(int dest, float out, float noteSemi) {
@@ -485,6 +521,7 @@ void Voice::update(int n, float sr, float bpm) {
             float semis = (nn - 60.f) + (P(P_S3) - 24) + (P(P_S4) - 64) / 64.f;
             sinc = smp->rate / sr * fastExp2(semis / 12.f) * (sRev ? -1.f : 1.f);
             float g = P(P_S7) / 64.f; sGain = g * g;
+            warpSetup(smp->len, sr);   // BEATS gilt fuer das ganze Sample, jede Scheibe laeuft im selben Tempo
         }
         break;
     case M_GRAN:
@@ -505,6 +542,7 @@ void Voice::update(int n, float sr, float bpm) {
             sinc = smp->rate / sr * fastExp2(semis / 12.f) * (sRev ? -1.f : 1.f);
             float g = P(P_S6) / 64.f;
             sGain = g * g;
+            warpSetup(abs(sEnd - sStart) + 1, sr);   // BEATS = Laenge des Bereichs STRT..END
         }
         break;
     default:
@@ -816,7 +854,7 @@ void Voice::render(float* L, float* R, float (*S)[32], int n, float sr) {
             if (sDone || !smp || !smp->data || smp->len < 2) break;   // Pool-Platz kann waehrend des Spielens geleert werden
             float rem = (float)(sRev ? spos - sEnd : sEnd - spos);
             float fade = rem < 64.f ? rem / 64.f : 1.f;           // kein Knacken am Scheibenende
-            s = smpRead(smp, spos) * sGain * (fade < 0 ? 0 : fade);
+            s = (warp ? warpRead() : smpRead(smp, spos)) * sGain * (fade < 0 ? 0 : fade);
             spos += sinc;
             if (sRev ? spos <= sEnd : spos >= sEnd) sDone = true;
         } break;
@@ -850,7 +888,7 @@ void Voice::render(float* L, float* R, float (*S)[32], int n, float sr) {
             if (sDone || !smp || !smp->data || smp->len < 2) break;
             float rem = (float)(sRev ? spos - sEnd : sEnd - spos);
             float fade = sLoop || rem >= 64.f ? 1.f : (rem > 0.f ? rem / 64.f : 0.f);   // Ende (z. B. END < Dateiende) ohne Knacken
-            s = smpRead(smp, spos) * sGain * fade;
+            s = (warp ? warpRead() : smpRead(smp, spos)) * sGain * fade;
             spos += sinc;
             bool past = sRev ? spos <= sEnd : spos >= sEnd;
             if (past) {

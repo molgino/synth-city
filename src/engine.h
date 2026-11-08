@@ -139,6 +139,11 @@ struct Voice {
     // Sample-Wiedergabe
     const Sample* smp = nullptr;
     double spos = 0; float sinc = 0, sGain = 1; int sStart = 0, sEnd = 0; bool sRev = false, sLoop = false, sDone = false;
+    // Time-Warp (SMPL/CHOP): spos laeuft im Projekttempo, zwei Lese-Koepfe mit Dreiecksfenster spielen die Tonhoehe
+    bool warp = false; float wPitch = 1, wGr = 1800, wPh[2] = {0, 0.5f}; double wSt[2] = {0, 0};
+    float warpRead();
+    void warpInit();
+    void warpSetup(int regionLen, float sr);
     Rng rng;
     // pro Block berechnet
     float pitchHz = 100, gainL = 0, gainR = 0, snd[NBUS] = {0}, drive = 0, crushQ = 0;

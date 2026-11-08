@@ -533,6 +533,41 @@ static void testModTargets() {
     CHECK(pk > 0.05f && lastActive >= 0 && lastActive < 44100 / 4, "Gate-VCA falsch (Spitze %.2f, Ende %d)", pk, lastActive);
 }
 
+// Time-Warp: Sample von 2 s (= 16 Steps bei 120 BPM) bei 240 BPM -> ~1 s lang, Tonhoehe bleibt (Nulldurchgaenge)
+static void testWarp() {
+    curTest = "Time-Warp";
+    static Engine X; static float out[512];
+    Sample sm; memset(&sm, 0, sizeof sm);
+    snprintf(sm.name, sizeof sm.name, "test-warp");
+    sm.rate = 44100; sm.len = 88200; sm.data = (float*)malloc(sizeof(float) * sm.len);
+    for (int i = 0; i < sm.len; i++) sm.data[i] = 0.5f * sinf(6.2831853f * 220.f * i / 44100.f);
+    const int SL = 200;
+    poolSwap(SL, sm); sampleFree(sm);
+    for (int run = 0; run < 2; run++) {
+        X.init(44100); X.stop(); X.audioThreads = 1; X.defaultProject(false); X.proj.bpm = 240;
+        Pattern& P = X.proj.pat[0];
+        Engine::initTrack(P, 6, M_SAMPLE);
+        for (int t = 0; t < NTRACKS; t++) for (int s2 = 0; s2 < 64; s2++) P.s[t][s2].on = 0;
+        P.s[6][0].on = 1; P.len[6] = 64; P.p[6][P_LEN] = 127;
+        P.p[6][P_S0] = SL; P.p[6][P_X0] = run; P.p[6][P_X1] = 16; P.p[6][P_ASUS] = 127;
+        X.start();
+        int lastActive = 0, zc = 0, frames = 0; float prev = 0, pk = 0;
+        for (int i = 0; i < 44100 * 3; i += 256) {
+            X.render(out, 256);
+            if (X.v[6].active) lastActive = i + 256;
+            if (i > 4410 && i < 30870) for (int k = 0; k < 256; k++) { float y = out[k * 2]; if ((y > 0) != (prev > 0)) zc++; prev = y; frames++; pk = fmaxf(pk, fabsf(y)); }
+        }
+        float hz = zc / 2.f / (frames / 44100.f);
+        printf("  Warp %s: klingt %.2f s, Tonhoehe %.0f Hz, Spitze %.2f\n", run ? "AN " : "AUS", lastActive / 44100.f, hz, pk);
+        if (run) {
+            CHECK(lastActive > 44100 * 0.85f && lastActive < 44100 * 1.15f, "Warp: Dauer %.2f s statt ~1 s", lastActive / 44100.f);
+            CHECK(hz > 200.f && hz < 240.f, "Warp: Tonhoehe %.0f Hz statt ~220", hz);
+            CHECK(pk > 0.1f, "Warp: zu leise (%.2f)", pk);
+        } else CHECK(lastActive > 44100 * 1.8f, "ohne Warp: Dauer %.2f s statt 2 s", lastActive / 44100.f);
+    }
+    Sample e; memset(&e, 0, sizeof e); poolSwap(SL, e); sampleFree(e);
+}
+
 // LFO laeuft frei weiter, auch wenn die Stimme zwischen kurzen Noten stumm ist
 static void testLfoFreeRun() {
     curTest = "LFO frei";
@@ -753,6 +788,7 @@ int main(int argc, char** argv) {
     testMultiRoute();
     testLfoFreeRun();
     testModTargets();
+    testWarp();
     testPcm24(sdir);
     printf("%s: %d Pruefungen ok, %d Fehler\n", nFail ? "FEHLGESCHLAGEN" : "OK", nPass, nFail);
     return nFail ? 1 : 0;
