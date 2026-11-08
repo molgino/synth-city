@@ -285,8 +285,8 @@ static void uiScenarios() {
     tap(BT_L1); UCHECK(slot == 0, "L1: Regler 1 erwartet (Regler %d)", slot + 1);
     tap(BT_L2); UCHECK(page == PG_LFO3, "L2 von TRIG: Ring -> LFO3 erwartet (Seite %d)", page);
     tap(BT_SELECT); UCHECK(menuOpen, "SELECT oeffnet die Seitenkarte nicht");
-    tap(BT_DOWN); tap(BT_RIGHT);   // LFO3 (Zeile Modulation) -> Zeile Quelle
-    { int r, c; mapPos(menuSel, r, c); UCHECK(r == 2, "Karte: Steuerkreuz runter erreicht die Quell-Zeile nicht (Zeile %d)", r); }
+    tap(BT_UP); tap(BT_UP);   // LFO3 (unterste Zeile Modulation) -> Klangweg -> Quelle
+    { int r, c; mapPos(menuSel, r, c); UCHECK(r == 3, "Karte: Steuerkreuz hoch erreicht die Quell-Zeile nicht (Zeile %d)", r); }
     tap(BT_A); UCHECK(!menuOpen && trackPage(page), "Karte: A oeffnet keine Spurseite");
     page = PG_TRG; slot = 0; simWait(32);
     flickL(1, 0); UCHECK(slot == 1, "Linker Stick: Kachel %d statt 1", slot);
@@ -526,6 +526,12 @@ static void uiScenarios() {
         pgmSel = PM_ADD; tap(BT_A); UCHECK(P.len[0] == 48 && P.s[0][35].on == 0, "Page anhaengen (leer) falsch");
         combo(BT_SELECT, BT_L1); pgmSel = PM_DEL; tap(BT_A); UCHECK(P.len[0] == 32, "Letzte Page entfernen: %d", P.len[0]);
         combo(BT_SELECT, BT_L1); tap(BT_B); UCHECK(!pgmOpen, "B schliesst das PAGE-Menue nicht");
+        combo(BT_SELECT, BT_L1); pgmSel = PM_TCOPY; tap(BT_A);
+        goTrack(2); goPage(PG_TRG); combo(BT_SELECT, BT_L1); pgmSel = PM_TPASTE; tap(BT_A);
+        UCHECK(P.machine[2] == P.machine[0] && P.len[2] == P.len[0] && P.s[2][19].on == 1 && P.s[2][19].lock[P_NOTE] == 50, "Spur einfuegen falsch");
+        combo(BT_SELECT, BT_L1); pgmSel = PM_TCLEAR; tap(BT_A);
+        UCHECK(P.s[2][19].on == 0 && P.s[2][3].on == 0 && P.machine[2] == P.machine[0], "Spur leeren falsch");
+        lockA(); Engine::initTrack(P, 2, M_HAT); P.machine[2] = M_HAT; P.len[2] = 16; unlockA();
         cfg.newPage = 1; P.len[1] = 16; P.s[1][2].on = 1; P.s[1][18].on = 0;   // Verlaengern ueber LEN: Kopie
         lockA(); setTrackLen(P, 1, 17); unlockA(); UCHECK(P.s[1][16].on == 0, "LEN: Step 17 nicht von Step 1");
         lockA(); setTrackLen(P, 1, 19); unlockA(); UCHECK(P.s[1][18].on == 1, "LEN +: Step 19 keine Kopie von Step 3");

@@ -1060,7 +1060,10 @@ static void drawHeader() {
         text(310, 2, b, C_DIM);
     }
     if (trackPage(page)) {   // Signalweg-Oberflaeche: Pfad statt Reiter
-        snprintf(b, sizeof b, TR("SPUR %d > %s", "TRACK %d > %s"), track + 1, pageLong(page));
+        // Navigationspfad der Ebenen: Pattern > Spur > Page > Seite
+        int npg = (curP().len[track] + 15) / 16; if (npg < 1) npg = 1;
+        snprintf(b, sizeof b, "%s > T%d > P%d/%d > %s", PN(curPi()), track + 1, cursor / 16 + 1, npg, pageLong(page));
+        if (textW(b) > 612 - 334) snprintf(b, sizeof b, "%s>T%d>P%d/%d>%s", PN(curPi()), track + 1, cursor / 16 + 1, npg, pageLong(page));
         text(334, 4, b, C_TEXT);
     } else
     {   // Reiter nur der aktuellen Gruppe (Seitenmenue: SELECT kurz antippen)
@@ -2471,13 +2474,15 @@ static void drawMixer(int ox) {
 static const char* sigName(int p);
 static void sigSummary(int p, char* b, int n);
 enum { MAP_NR = 6 };
+// nach Ebenen: oben Projekt und global (Mix/Busse), darunter die Spur (Sequenz, Quelle -> Klangweg, Modulation)
 static const int MAP_ROWS[MAP_NR][6] = {
+    {PG_SONG, PG_PRJ, PG_SMPR, PG_MST, PG_SYS, -1},
+    {PG_LIVE, PG_MIX, PG_FX, PG_FXB, PG_FXC, PG_CMP},
     {PG_TRG, PG_SEQ, PG_ARP, -1, -1, -1},
-    {PG_ENV1, PG_ENV2, PG_ENV3, PG_LFO1, PG_LFO2, PG_LFO3},
     {PG_SRC, PG_SRC2, PG_SRC3, PG_SRC4, PG_SRC5, -1},
     {PG_FLT, PG_FLT2, PG_AMP, PG_INS, PG_SEND, -1},
-    {PG_LIVE, PG_MIX, PG_FX, PG_FXB, PG_FXC, PG_CMP},
-    {PG_SONG, PG_PRJ, PG_SMPR, PG_MST, PG_SYS, -1}};
+    {PG_ENV1, PG_ENV2, PG_ENV3, PG_LFO1, PG_LFO2, PG_LFO3}};
+static bool mapTrackRow(int r) { return r >= 2; }
 static const char* const PAGE_DESC_DE[NUI_PAGES] = {
     "Werte des Steps: Note, Anschlag, Länge, Wahrscheinlichkeit, Bedingung, Engine",
     "Laufrichtung, Länge, Tempo-Faktor, Euklid und Zufalls-Generator",
@@ -2544,7 +2549,7 @@ static const char* const PAGE_DESC_EN[NUI_PAGES] = {
 static void mapPos(int p, int& r, int& c) { r = c = 0; for (int i = 0; i < MAP_NR; i++) for (int k = 0; k < 6; k++) if (MAP_ROWS[i][k] == p) { r = i; c = k; } }
 static int mapCols(int r) { int n = 0; while (n < 6 && MAP_ROWS[r][n] >= 0) n++; return n; }
 static void mapBox(int r, int c, int& x, int& y, int& w, int& h) {   // Raster mit 6 Spalten
-    static const int RY[MAP_NR] = {78, 132, 186, 240, 306, 360};
+    static const int RY[MAP_NR] = {82, 136, 206, 256, 306, 356};
     h = 38; y = RY[r];
     w = 88; x = 26 + c * (w + 12);
 }
@@ -2583,30 +2588,30 @@ static void drawMenu() {
     char b[64];
     textC(320, 40, TR("SEITEN", "PAGES"), C_ACC, 2);
     Col tc = TCOL[track];
-    snprintf(b, sizeof b, TR("SPUR %d - %s - %s", "TRACK %d - %s - %s"), track + 1, MACHINE_NAMES[curP().machine[track] % M_COUNT], PN(curPi()));
+    snprintf(b, sizeof b, TR("PROJEKT > %s > SPUR %d %s", "PROJECT > %s > TRACK %d %s"), PN(curPi()), track + 1, MACHINE_NAMES[curP().machine[track] % M_COUNT]);
     text(26, 46, b, tc);
-    static const char* const RL_DE[MAP_NR] = {"SEQUENZ", "MODULATION: HÜLLKURVEN + LFOS", "QUELLE", "KLANGWEG", "LIVE, MIX & EFFEKT-BUSSE", "PROJEKT"};
-    static const char* const RL_EN[MAP_NR] = {"SEQUENCE", "MODULATION: ENVELOPES + LFOS", "SOURCE", "SOUND PATH", "LIVE, MIX & EFFECT BUSES", "PROJECT"};
+    static const char* const RL_DE[MAP_NR] = {"PROJEKT", "LIVE, MIX & EFFEKT-BUSSE", "SPUR: SEQUENZ", "SPUR: QUELLE", "SPUR: KLANGWEG", "SPUR: MODULATION (HÜLLKURVEN + LFOS)"};
+    static const char* const RL_EN[MAP_NR] = {"PROJECT", "LIVE, MIX & EFFECT BUSES", "TRACK: SEQUENCE", "TRACK: SOURCE", "TRACK: SOUND PATH", "TRACK: MODULATION (ENVELOPES + LFOS)"};
     for (int r = 0; r < MAP_NR; r++) {
         int x, y, w, h; mapBox(r, 0, x, y, w, h);
-        text(26, y - 14, g_lang ? RL_EN[r] : RL_DE[r], r <= 3 ? dimC(tc, 0.85f) : C_DIM);
-        if (r == 4) fill(26, y - 20, 588, 1, C_OFF2);
+        text(26, y - 14, g_lang ? RL_EN[r] : RL_DE[r], mapTrackRow(r) ? dimC(tc, 0.85f) : C_DIM);
+        if (r == 2) fill(26, y - 20, 588, 1, C_OFF2);
         for (int c = 0; c < mapCols(r); c++) {
             int p = MAP_ROWS[r][c];
             mapBox(r, c, x, y, w, h);
             bool av = pageAvail(p), sel = p == menuSel, cur = p == page;
             if (!av) continue;   // Seite gibt es bei dieser Engine nicht
-            if ((r == 2 || r == 3) && c > 0) {   // Pfeil im Signalweg
+            if ((r == 3 || r == 4) && c > 0) {   // Pfeil im Signalweg
                 Col ac = av ? tc : C_OFF2;
                 fill(x - 11, y + h / 2, 9, 2, ac); fill(x - 5, y + h / 2 - 2, 2, 6, ac); fill(x - 4, y + h / 2 - 1, 2, 4, ac);
             }
-            Col bg = sel ? (r <= 3 ? tc : C_ACC) : (cur ? C_SEL : C_PANEL);
+            Col bg = sel ? (mapTrackRow(r) ? tc : C_ACC) : (cur ? C_SEL : C_PANEL);
             hitAdd(x, y, w, h, HK_MENU, p);
             rrect(x, y, w, h, 7, av ? bg : C_BG);
-            if (cur && !sel) { Col fc = r <= 3 ? tc : C_ACC; rrect(x, y, w, 2, 1, fc); rrect(x, y + h - 2, w, 2, 1, fc); }
-            if (!av) { rrect(x, y, w, h, 7, C_DARK); text(x + 8, y + 4, r <= 3 ? sigName(p) : mapName(p), C_OFF2); continue; }
-            const char* nm = r <= 3 ? sigName(p) : mapName(p);
-            text(x + 8, y + 4, nm, sel ? C_BG : (cur ? (r <= 2 ? tc : C_ACC) : C_TEXT));
+            if (cur && !sel) { Col fc = mapTrackRow(r) ? tc : C_ACC; rrect(x, y, w, 2, 1, fc); rrect(x, y + h - 2, w, 2, 1, fc); }
+            if (!av) { rrect(x, y, w, h, 7, C_DARK); text(x + 8, y + 4, mapTrackRow(r) ? sigName(p) : mapName(p), C_OFF2); continue; }
+            const char* nm = mapTrackRow(r) ? sigName(p) : mapName(p);
+            text(x + 8, y + 4, nm, sel ? C_BG : (cur ? (mapTrackRow(r) ? tc : C_ACC) : C_TEXT));
             mapSummary(p, b, sizeof b);
             char sb[40]; snprintf(sb, sizeof sb, "%.*s", (w - 14) / FONT_W, b);
             text(x + 8, y + 20, sb, sel ? C_BG : C_DIM);

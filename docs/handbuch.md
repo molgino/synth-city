@@ -2,7 +2,7 @@
 
 Groovebox für die Hosentasche: Step-Sequencer mit Parameter-Locks, 13 Klangerzeuger und USB-Audio-Interface auf dem Handheld R36S (eigenes SYNTH CITY OS oder ArkOS 2.0; läuft auch auf dem Linux-Desktop).
 Neo-Noir-Optik in Neon-Magenta und Cyan; beim Start erscheint ein Splashscreen mit Synthwave-Skyline (beliebige Taste überspringt).
-8 Spuren, 16 Patterns mit bis zu 128 Steps pro Spur, Parameter-Locks, Akkorde, Sample-Spuren, LIVE-Seite mit WAV-Aufnahme, USB-Audio, USB-MIDI, Ping-Pong-Delay, Reverb und ein DJ-Filter. Technische Daten: [docs/SPECS.md](docs/SPECS.md).
+8 Spuren, 128 Patterns (8 Bänke A–H à 16) mit bis zu 128 Steps pro Spur, Parameter-Locks, Akkorde, Sample-Spuren, LIVE-Seite mit WAV-Aufnahme, USB-Audio, USB-MIDI, Ping-Pong-Delay, Reverb und ein DJ-Filter. Technische Daten: [docs/SPECS.md](docs/SPECS.md).
 Sie startet als App aus dem Ports-Menü oder auf Wunsch direkt beim Booten statt EmulationStation.
 
 ## Schnellstart
@@ -24,6 +24,8 @@ Sie startet als App aus dem Ports-Menü oder auf Wunsch direkt beim Booten statt
 ![Tastenhilfe (SELECT halten)](shot:20)
 
 **Animationen:** Leere Flächen zeigen das echte Audiosignal: Oszilloskop, Spektrum und Takt-Ringe in freien Kacheln, eine Piano-Roll auf TRIG, die Oszillatoren auf der OSC-Seite, fließende Partikel zu den Effekt-Bussen auf SENDS, und je Effekt-Bus eine eigene Animation (Delay-Echos, Tonband-Spulen, Hall-Ringe, schwingende Feder, Chorus-Stimmen). Auch Einstellungen, Song, LIVE und Projekt haben passende Bilder. Jede Regler-Kachel zeigt oben Name und Wert und darunter ein bewegtes Bild des Werts (Hüllkurve, Welle, Oktav-Treppe, Akkord, Arp-Folge, Lautsprecher, Hall-Ringe …).
+
+**Aufbau in Ebenen:** PROJEKT (Tempo, Master, Effekt-Busse, Sample-Slots, Song) → BANK A–H → PATTERN A01 … H16 → SPUR 1–8 (SOUND und SEQUENZ) → PAGE (16 Steps = 1 Takt) → TRIG. Die Kopfzeile zeigt auf den Spurseiten den Pfad, z. B. `A01 > T5 > P2/4 > FILTER 1` (Pattern, Spur, Page unter dem Cursor / Pages der Spur, Seite). Die Seitenkarte (SELECT antippen) ist genauso geordnet: oben PROJEKT und LIVE/MIX/BUSSE, darunter die Seiten der Spur (Sequenz, Quelle, Klangweg, Modulation). Jede Ebene lässt sich kopieren: siehe „Kopieren und Einfügen“.
 
 Auf den Spurseiten zeigt die Oberfläche den Weg des Klangs: links alle 8 Spuren mit Mini-Steps und Pegel, oben die Blöcke **QUELLE → FILTER → AMP → INSERT** (zusammengehörige Seiten untereinander: QUELLE/QUELLE 2, FILTER 1/FILTER 2), darunter die Reihe **SEQ**: TRIG · SEQ · ARP, rechts die Modulation **ENV1–3 / LFO1–3** (Hüllkurve n und LFO n nebeneinander, hell = hat ein Ziel). **L2/R2** gehen alle Spurseiten der Reihe nach durch (TRIG → SEQ → ARP → QUELLE → QUELLE 2 → FILTER 1 → FILTER 2 → AMP → INSERT → SENDS → HÜLLKURVE 1–3 → LFO 1–3, im Kreis), direkt springen über die Seitenkarte (SELECT). **L1/R1** wählen den Regler. Der gewählte Block zeigt Grafik, 8 Regler (Hüllkurven und LFOs: 12) und eine Erklärung des gewählten Reglers, unten liegen die 16 Steps der Spur.
 
@@ -165,6 +167,7 @@ Dazu kommen die globalen Seiten (in der Leiste oben grauer dargestellt):
 * **PAGE-Menü** (TRIG-Seite, **SELECT + L1/R1**; eine Page = 16 Steps = ein Takt): ▲▼ wählen, A ausführen, B schließt.
   * **PAGE KOPIEREN / EINFÜGEN / LEEREN** – die Page unter dem Cursor (mit allen Trigs und Locks). Eingefügt wird in die Page unter dem Cursor, auch auf einer anderen Spur oder in einem anderen Pattern.
   * **PAGE ANHÄNGEN** verlängert die Spur um eine Page, **LETZTE PAGE ENTFERNEN** kürzt um eine.
+  * **SPUR KOPIEREN / EINFÜGEN** – die ganze Spur (Engine, Sound, Länge, Tempo, alle Steps), auch in eine andere Spur oder ein anderes Pattern; **SPUR LEEREN** löscht alle Steps, der Sound bleibt.
   * **BEREICH**: NUR SPUR oder ALLE SPUREN (gilt für Kopieren, Leeren, Anhängen, Entfernen; eine Kopie aller Spuren fügt auch in alle ein).
   * **NEUE PAGE** (bleibt gespeichert): **KOPIE DER VORIGEN** (Standard) oder **LEER**. Gilt fürs Anhängen und auch, wenn die Spur über LEN länger wird: neue Steps bekommen dann die Steps eine Page davor (bereits vorhandene, versteckte Steps bleiben erhalten). Rückgängig wie immer mit SELECT + B.
 * **Tempo-Faktor pro Spur** (SET → „Tempo-Faktor Spur“): 1/8×, 1/4×, 1/2×, 3/4×, 1×, 3/2× und 2×.
@@ -197,7 +200,9 @@ Dazu kommen die globalen Seiten (in der Leiste oben grauer dargestellt):
 |---|---|---|
 | **Trig** (mit allen Locks, auch trigless) | Step mit **A halten** (oder im Lock-Modus) **+ SELECT + L1** | Ziel-Step **A halten + SELECT + R1** – geht auch auf anderen Spuren; im Lock-Modus mit ←/→ weiterspringen und mehrfach einfügen |
 | **Seite** (die 8 Werte einer Spurseite) | Seitenkarte (SELECT antippen), Seite markieren, **X** | Zur Ziel-Spur wechseln, Seitenkarte, gleiche Seite markieren, **Y** |
-| **Pattern** | SET → „Pattern kopieren“ | SET → „Pattern einfügen“ |
+| **Page** (16 Steps, eine Spur oder alle) | TRIG-Seite: **SELECT + L1/R1** → PAGE KOPIEREN | Cursor auf die Ziel-Page → PAGE EINFÜGEN |
+| **Spur** (Engine, Sound, Länge, Tempo, alle Steps) | TRIG-Seite: **SELECT + L1/R1** → SPUR KOPIEREN | Ziel-Spur (auch in einem anderen Pattern) → SPUR EINFÜGEN; SPUR LEEREN löscht nur die Steps |
+| **Pattern** | PRJ: A aufs Pattern → KOPIEREN | PRJ: A aufs Ziel (auch andere Bank) → EINFÜGEN |
 
 Die Seite SRC/SR2 lässt sich nur zwischen Spuren mit gleicher Engine übertragen (die Regler sind je Engine verschieden). Bei SEQ werden Länge und Tempo mitkopiert.
 
@@ -418,11 +423,11 @@ Die PRJ-Seite hat drei Bereiche. Das **Steuerkreuz** wählt ein Feld, **A** füh
 | **NEU** | Name eingeben, dann leeres Projekt anlegen |
 | **DEMO** | „Neon Nights“ als neues Projekt anlegen |
 
-**PATTERN** – 16 Felder (je Spur mit Trigs ein farbiger Punkt; der Balken links = spielt, blinkend = kommt als nächstes):
+**PATTERN** – oben die **Bänke A–H** (A auf eine Bank zeigt ihre 16 Patterns; Punkt = Bank hat belegte Patterns), darunter die 16 Felder der Bank (je Spur mit Trigs ein farbiger Punkt; der Balken links = spielt, blinkend = kommt als nächstes):
 
 | Feld | Funktion |
 |---|---|
-| **P01 … P16** | **A** wählt das Pattern: es spielt (beim Abspielen am Pattern-Ende) und ist das **Ziel** (cyan unterstrichen) für die Funktionen darunter |
+| **A01 … H16** | **A** wählt das Pattern: es spielt (beim Abspielen am Pattern-Ende) und ist das **Ziel** (cyan unterstrichen) für die Funktionen darunter |
 | **KOPIEREN** | Ziel-Pattern in die Ablage (komplett: Steps, Locks, Klänge, Längen) |
 | **EINFÜGEN** | Ablage ins Ziel-Pattern (überschreibt mit Rückfrage, leere Patterns ohne) |
 | **LEEREN** | alle Steps des Ziel-Patterns löschen (Klänge bleiben) |
@@ -431,6 +436,10 @@ Die PRJ-Seite hat drei Bereiche. Das **Steuerkreuz** wählt ein Feld, **A** füh
 | **WECHSEL NACH** | nach wie vielen Steps ein Pattern-Wechsel greift: **AUTO** = wenn die längste Spur durchgelaufen ist, sonst fest (z. B. 16, auch wenn eine Spur 64 Steps hat). Gilt je Pattern |
 
 **Pattern kopieren in 4 Tipps:** A auf das Quell-Pattern → KOPIEREN → A auf das Ziel-Pattern → EINFÜGEN.
+
+**Neue Patterns:** Ein unbenutztes Pattern übernimmt beim ersten Besuch die Sounds (Engines, Regler, Längen) des Patterns, von dem du kommst – die Steps sind leer. Belegt (und gespeichert) ist es, sobald du darin etwas änderst. **SELECT + ←/→** geht durch alle 128 Patterns (A16 → B01), im Song-Editor springt X/Y **halten** eine ganze Bank weiter.
+
+**Projektformat v16:** Gespeichert werden nur belegte Patterns, komprimiert – ein Projekt hat meist nur wenige KB (vorher 2,8 MB), Speichern und Handy-Sync gehen schneller. Ältere Projekte landen beim Laden in Bank A (A01–A16); ältere Firmware kann v16-Projekte nicht lesen.
 
 **SOUND DER SPUR** – SPUR (X/Y wählt die Spur), **LADEN** (Sound-Explorer: Werksklänge und je Engine deine Sounds), **SPEICHERN** (Klang der Spur unter einem Namen), **INIT** (Grundwerte der Engine).
 

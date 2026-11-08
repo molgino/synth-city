@@ -1,13 +1,16 @@
 // PAGE-Menue (TRIG-Seite, SELECT + L1/R1): Step-Page (16 Steps) der Spur oder aller Spuren kopieren, einfuegen,
 // leeren, eine Page anhaengen/entfernen und festlegen, ob eine neue Page leer oder eine Kopie der vorigen ist
 // (cfg.newPage, gilt auch beim Verlaengern ueber LEN). Eingebunden in main.cpp nach smpedit.inc.
-enum { PM_COPY, PM_PASTE, PM_CLEAR, PM_ADD, PM_DEL, PM_ALL, PM_NEW, PM_COUNT };
+enum { PM_COPY, PM_PASTE, PM_CLEAR, PM_ADD, PM_DEL, PM_TCOPY, PM_TPASTE, PM_TCLEAR, PM_ALL, PM_NEW, PM_COUNT };
 static bool pgmOpen = false;
 static int pgmSel = 0;
 static bool pgmAll = false;                // Bereich: nur Spur bzw. alle 8 Spuren
 static Step pgClip[NTRACKS][16];
 static int pgClipState = 0;                // 0 leer, 1 eine Spur, 2 alle Spuren
 static int pgClipTrack = 0, pgClipPage = 0;
+// Spur-Ablage: ganze Spur (Engine, Sound, Laenge, Tempo, alle Steps)
+static struct { uint8_t machine, len, speed; uint8_t p[NPARAMS]; Step s[NSTEPS]; } trkClip;
+static int trkClipFrom = -1, trkClipPat = 0;
 
 static void openPageMenu() { pgmOpen = true; pgmSel = 0; }
 static int pgmPage() { return cursor / 16; }
@@ -56,6 +59,27 @@ static void pgmRun(int it) {
         if (cursor >= P.len[track]) cursor = P.len[track] - 1;
         toast(TR("LETZTE PAGE ENTFERNT - %d STEPS", "LAST PAGE REMOVED - %d STEPS"), P.len[track]);
     } break;
+    case PM_TCOPY:
+        trkClip.machine = P.machine[track]; trkClip.len = P.len[track]; trkClip.speed = P.speed[track];
+        memcpy(trkClip.p, P.p[track], NPARAMS); memcpy(trkClip.s, P.s[track], sizeof trkClip.s);
+        trkClipFrom = track; trkClipPat = curPi();
+        toast(TR("SPUR %d KOPIERT (SOUND + STEPS)", "TRACK %d COPIED (SOUND + STEPS)"), track + 1);
+        break;
+    case PM_TPASTE:
+        if (trkClipFrom < 0) { toast(TR("SPUR-ABLAGE LEER (ERST KOPIEREN)", "TRACK CLIPBOARD EMPTY (COPY FIRST)")); return; }
+        lockA();
+        P.machine[track] = trkClip.machine; P.len[track] = trkClip.len; P.speed[track] = trkClip.speed;
+        memcpy(P.p[track], trkClip.p, NPARAMS); memcpy(P.s[track], trkClip.s, sizeof trkClip.s);
+        unlockA();
+        if (cursor >= P.len[track]) cursor = P.len[track] - 1;
+        toast(TR("%s T%d -> %s T%d EINGEFÜGT", "%s T%d -> %s T%d PASTED"), PN(trkClipPat), trkClipFrom + 1, PN(curPi()), track + 1);
+        break;
+    case PM_TCLEAR:
+        lockA();
+        for (int i = 0; i < NSTEPS; i++) { Step& st = P.s[track][i]; st.on = 0; memset(st.lock, NO_LOCK, NPARAMS); }
+        unlockA();
+        toast(TR("ALLE STEPS VON SPUR %d GELEERT (SOUND BLEIBT)", "ALL STEPS OF TRACK %d CLEARED (SOUND STAYS)"), track + 1);
+        break;
     case PM_ALL: pgmAll = !pgmAll; return;
     case PM_NEW: cfg.newPage = !cfg.newPage; saveSettings(); return;
     }
@@ -71,7 +95,7 @@ static void pgmInput(Input& I, Uint32 now) {
 static void drawPageMenu() {
     if (!pgmOpen) return;
     const Pattern& P = curP();
-    int w = 400, rh = 28, h = 64 + PM_COUNT * rh + 30, x0 = (640 - w) / 2, y0 = (480 - h) / 2 - 10;
+    int w = 400, rh = 26, h = 64 + PM_COUNT * rh + 30, x0 = (640 - w) / 2, y0 = (480 - h) / 2 - 10;
     rrect(x0, y0, w, h, 12, C_ACC);
     rrect(x0 + 2, y0 + 2, w - 4, h - 4, 11, C_BG);
     char b[96];
@@ -83,6 +107,7 @@ static void drawPageMenu() {
         int y = y0 + 50 + i * rh;
         bool sel = i == pgmSel;
         if (sel) rrect(x0 + 10, y - 3, w - 20, rh - 4, 6, C_SEL);
+        if (i == PM_TCOPY || i == PM_ALL) fill(x0 + 16, y - 5, w - 32, 1, C_OFF2);
         const char* l = "";
         b[0] = 0;
         switch (i) {
@@ -95,6 +120,11 @@ static void drawPageMenu() {
         case PM_CLEAR: l = TR("PAGE LEEREN", "CLEAR PAGE"); break;
         case PM_ADD: l = TR("PAGE ANHÄNGEN", "ADD PAGE"); snprintf(b, sizeof b, "%d -> %d", P.len[track], (P.len[track] + 15) / 16 * 16 + 16 > NSTEPS ? P.len[track] : (P.len[track] + 15) / 16 * 16 + 16); break;
         case PM_DEL: l = TR("LETZTE PAGE ENTFERNEN", "REMOVE LAST PAGE"); break;
+        case PM_TCOPY: l = TR("SPUR KOPIEREN", "COPY TRACK"); snprintf(b, sizeof b, TR("SOUND + STEPS", "SOUND + STEPS")); break;
+        case PM_TPASTE: l = TR("SPUR EINFÜGEN", "PASTE TRACK");
+            if (trkClipFrom >= 0) snprintf(b, sizeof b, "%s T%d", PN(trkClipPat), trkClipFrom + 1); else snprintf(b, sizeof b, TR("(LEER)", "(EMPTY)"));
+            break;
+        case PM_TCLEAR: l = TR("SPUR LEEREN", "CLEAR TRACK"); snprintf(b, sizeof b, TR("NUR STEPS", "STEPS ONLY")); break;
         case PM_ALL: l = TR("BEREICH", "SCOPE"); snprintf(b, sizeof b, "%s", pgmAll ? TR("ALLE SPUREN", "ALL TRACKS") : TR("NUR SPUR", "TRACK ONLY")); break;
         case PM_NEW: l = TR("NEUE PAGE", "NEW PAGE"); snprintf(b, sizeof b, "%s", cfg.newPage ? TR("KOPIE DER VORIGEN", "COPY OF PREVIOUS") : TR("LEER", "EMPTY")); break;
         }
