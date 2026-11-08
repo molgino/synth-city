@@ -53,12 +53,12 @@ Im ARP-Modus **AKKD** spielt ein Trig alle Töne des gewählten Akkords (**CHRD*
 | CLAP  | TUNE, DCAY, SPRD (Abstand), RPTS (Anzahl Schläge) |
 | SYNTH | WAV1, WAV2 (SAW/SQR/TRI/SIN), DETN, MIX, SUB, NOIS, PW, GLID. Seite **OSC**: OCT1, OCT2 (±3 Oktaven), LVL1, LVL2 (Pegel je Oszillator), SUB.O (Sub −1/−2 Oktaven), SYNC (Hard-Sync OSC2 → OSC1), XMOD (OSC2 moduliert OSC1), RING (Ringmodulation) |
 | FM    | **4 Operatoren, 8 Algorithmen.** Seite FM: ALGO, FBK (Feedback OP4), VELO (Anschlag → Modulation), PITCH/P.DEC (Tonhöhen-Hüllkurve ±24 Halbtöne), NOIS. Je Operator eine eigene Seite **OPERATOR 1–4**: RAT (0,25–16), FINE (±0,5 für unharmonische Glocken), DETN (±50 Cent), O.LVL (Träger: Lautstärke, Modulator: Helligkeit), O.ATK/O.DEC/O.SUS/O.REL (eigene Hüllkurve) |
-| SMPL  | SMPL (Sample-Auswahl), TUNE (±24 Halbtöne), FINE, STRT, END (END < STRT = rückwärts), LOOP, GAIN |
+| SMPL  | SMPL (Sample-Auswahl), TUNE (±24 Halbtöne), FINE, STRT, END (END < STRT = rückwärts), LOOP, GAIN. Seite **WARP**: Time-Warp (siehe unten) |
 | TOM   | TUNE, DCAY, SWEP (Pitch-Abfall), NOIS (Anschlag), BODY |
 | RIM   | TUNE, DCAY, TONE, CLCK |
 | SHKR  | TONE, DCAY, ATK (Ausholen), GRIT (Körnigkeit) |
 | WTBL  | **Wavetable**: TABL (BASIC Sinus→Dreieck→Säge→Rechteck, PWM, VOKAL A→U, OBERTÖNE, **USER** = eigene), POS (Position in der Tabelle, auch als LFO-Ziel), WARP (Phasenverbiegung), DETN (Unisono), SUB, NOIS, P.ENV (Filterhüllkurve → Position), GLID. Seite **OSC**: OCT, LVL, SUB.O, **UWAV** (eigene Wavetable aus einer WAV-Datei, X = Explorer), **DRAW** (X = Wavetable selbst zeichnen) |
-| CHOP  | **Sample-Chopper**: SMPL, SLCS (2–64 Scheiben), SLIC (AUTO = Scheibe nach Step-Nummer, oder feste Scheibe, pro Step lockbar), TUNE, FINE, LEN (Anteil der Scheibe), REV, GAIN |
+| CHOP  | **Sample-Chopper**: SMPL, SLCS (2–64 Scheiben), SLIC (AUTO = Scheibe nach Step-Nummer, oder feste Scheibe, pro Step lockbar), TUNE, FINE, LEN (Anteil der Scheibe), REV, GAIN. Seite **WARP**: Time-Warp (siehe unten) |
 | GRAN  | **Granulator**: SMPL, POS, SPRY (Streuung), SIZE (10–500 ms), DENS (2–128 Körner/s), PTCH, P.SPR (Tonhöhen-Streuung), GAIN |
 
 **Klangcharakter:** KICK, SNARE, HAT, CLAP und RIM sind an die klassischen analogen Drumcomputer angelehnt (Kick: Sinus mit schnellem Pitch-Sweep und Sättigung über BODY, Klick über CLCK; Snare: zwei verstimmte Töne mit eigenem Pitch-Abfall plus gefiltertes Rauschen, TONE = Helligkeit; Hihat: sechs Rechteck-Oszillatoren durch Bandpass + Hochpass; Clap: sägezahnförmige Einzelschläge vor der Fahne).
@@ -254,6 +254,27 @@ COND auf der TRG-Seite gilt für die Spur. Meist lockst du COND aber pro Step: A
 | `PRE` / `!PRE` | die vorige Bedingung auf dieser Spur erfüllt war bzw. nicht |
 | `NEI` / `!NEI` | die letzte Bedingung der Nachbarspur (Spur davor) erfüllt war bzw. nicht |
 | `1ST` / `!1ST` | nur im ersten Durchlauf nach Start bzw. Pattern-Wechsel, bzw. in allen außer dem ersten |
+
+## Time-Warp (SMPL, CHOP)
+
+Auf der Seite **WARP** (zweite Klangseite von SMPL und CHOP) folgt das Sample dem Song-Tempo, ohne dass sich die Tonhöhe ändert – wie Warp bei MPC/Ableton.
+
+| Regler | Funktion |
+|---|---|
+| TEMPO | AN = Sample läuft im Song-Tempo (BPM ändern = Loop wird schneller/langsamer, Tonhöhe bleibt; TUNE verstimmt weiterhin) |
+| BEATS | Länge des Samples in Steps (16 = 1 Takt). AUTO schätzt 4, 8, 16, 32 … aus der Länge. Bei SMPL zählt der Bereich STRT–END, bei CHOP das ganze Sample (jede Scheibe läuft im selben Tempo) |
+| GRAIN | Korngröße 20–200 ms: klein = Drums knackig, groß = Flächen/Gesang weicher |
+
+Technik: Die Abspielposition läuft im Projekttempo, zwei überlappende Lese-Köpfe spielen die Tonhöhe (granulares Overlap-Add). Kosten: etwa doppelt so viel wie normales Sample-Abspielen – auf dem R36S grob +1 % CPU je Stimme mit Warp.
+
+## Sampler (Seite SMPR)
+
+Aufnehmen, schneiden, in Chops zerlegen und speichern – direkt auf dem R36S. Zu finden in der Projekt-Reihe (SONG → PRJ → **SMPR** → MST → SET) bzw. über die Seitenkarte.
+
+* **QUELLE**: **USB** = Ton vom PC/Handy (USB-Modus PC mit Audio-Interface AN, dort abspielen) oder **MASTER** = was die Groovebox selbst spielt (Resampling). Die Aufnahme startet mit dem ersten Signal, max. 60 s.
+* **A** = Aufnahme starten/stoppen, **B** = Auswahl vorhören, **◀ ▶** = einzelne Chops vorhören, **▲** = speichern, **▼** = Vorhören stoppen. Regler wie überall: L1/R1 wählen, X/Y ändern (halten = schneller). Alles auch per Touch.
+* **START / ENDE**: Auswahl (grüne/rote Linie). **CHOPS**: AUS oder 2–64 Scheiben, **CHOP-ART**: GLEICH (gleich lang) oder TRANSIENT (an den Einsätzen, ideal für Drum-Loops). **NORMAL.**: auf −0,3 dB bringen. **FADE**: Ein-/Ausblenden an den Schnitten.
+* **Speichern** legt `samples/sampler/smp-NN.wav` an, bei Chops zusätzlich jede Scheibe einzeln (`smp-NN/01.wav` …). **ZIEL**: NUR DATEI, oder gleich in die aktuelle Spur als **SMPL** oder **CHOP** (SLCS = Anzahl Chops; bei TRANSIENT werden die Scheiben auf gleiche Länge gebracht, damit CHOP sie genau trifft). Vom MASTER aufgenommen wird BEATS für den Time-Warp gleich passend gesetzt.
 
 ## Hüllkurven (EN1, EN2, EN3)
 

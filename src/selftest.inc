@@ -604,6 +604,30 @@ static void uiScenarios() {
     tap(BT_X); tap(BT_SELECT);
     UCHECK(!fbOpen && curP().machine[2] == M_FM, "Abbruch aendert die Engine");
 
+    uiCase = "Sampler";
+    {
+        simReset(); goPage(PG_SMPR);
+        UCHECK(page == PG_SMPR, "Sampler-Seite nicht erreichbar (Seite %d)", page);
+        smpSrc = 1; smpState = 0; smpFromPc = false;
+        tap(BT_A); UCHECK(smpState == 1, "A startet die Master-Aufnahme nicht (%d)", smpState);
+        tap(BT_A); UCHECK(smpState == 0, "A bricht die wartende Aufnahme nicht ab (%d)", smpState);
+        smpDemo(); smpDest = 2; track = 7; smpSavedNo = 0;
+        UCHECK(smpNCut == 8, "Transienten-Chops: %d statt 8", smpNCut);
+        tap(BT_RIGHT); UCHECK(pvOn && smpChopPv == 0, "Chop-Vorhoeren startet nicht");
+        tap(BT_UP);
+        int no = smpSavedNo;
+        UCHECK(no > 0 && curP().machine[7] == M_CHOP && curP().p[7][P_S1] == smpNCut - 1 && sampleGet(curP().p[7][P_S0]),
+               "Speichern in CHOP-Spur: Nr %d, Engine %d, SLCS %d", no, curP().machine[7], curP().p[7][P_S1]);
+        char f[800]; struct stat st2;
+        snprintf(f, sizeof f, "%ssamples/sampler/smp-%02d/08.wav", basePath, no);
+        UCHECK(stat(f, &st2) == 0, "Chop-Datei fehlt: %s", f);
+        for (int i = 1; i <= 64; i++) { snprintf(f, sizeof f, "%ssamples/sampler/smp-%02d/%02d.wav", basePath, no, i); unlink(f); }   // aufraeumen
+        snprintf(f, sizeof f, "%ssamples/sampler/smp-%02d", basePath, no); rmdir(f);
+        snprintf(f, sizeof f, "%ssamples/sampler/smp-%02d.wav", basePath, no); unlink(f);
+        snprintf(f, sizeof f, "%ssamples/sampler", basePath); rmdir(f);
+        pvOn = false; reloadSamples();
+    }
+
     uiCase = "LFO-Ziel-Liste";
     simReset(); goTrack(4); goPage(PG_LFO1); slot = LF_DEST;
     curP().p[4][P_L1 + LF_DEST] = 0;

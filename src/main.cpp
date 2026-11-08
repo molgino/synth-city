@@ -421,6 +421,9 @@ static char batPath[300] = "";
 
 // Aufnahme vom PC als Sample speichern: samples/pc/pc-NN.wav (24 Bit Stereo, Engine-Rate), danach Samples neu laden
 static void reloadSamples();
+static bool smpTakePc(const float* d, int n);   // sampler.inc
+static void smpUpdate();
+static float smpSeconds();
 static void savePcRecording(const float* d, int frames) {
     char dir[700], path[760];
     snprintf(dir, sizeof dir, "%ssamples/pc", basePath);
@@ -712,8 +715,9 @@ static void animate() {
         {   // fertige PC-Aufnahme als Sample speichern
             float* d = nullptr;
             int n = pcRecTake(&d);
-            if (n > 0) savePcRecording(d, n);
+            if (n > 0) { if (!smpTakePc(d, n)) savePcRecording(d, n); pcRecDone(); }
             else if (pcRecState() == 3) pcRecDone();
+            smpUpdate();
         }
     }
 }
@@ -851,10 +855,10 @@ static bool pageAvail(int p) {
 static const int RING_TRK[] = {PG_TRG, PG_SEQ, PG_ARP, PG_SRC, PG_SRC2, PG_SRC3, PG_SRC4, PG_SRC5, PG_FLT, PG_FLT2, PG_AMP, PG_INS, PG_SEND, PG_ENV1, PG_ENV2, PG_ENV3, PG_LFO1, PG_LFO2, PG_LFO3};
 enum { RING_TRK_N = sizeof RING_TRK / sizeof *RING_TRK };
 static const int RING_MIX[] = {PG_LIVE, PG_MIX, PG_FX, PG_FXB, PG_FXC, PG_CMP};
-static const int RING_PRJ[] = {PG_SONG, PG_PRJ, PG_MST, PG_SYS};
+static const int RING_PRJ[] = {PG_SONG, PG_PRJ, PG_SMPR, PG_MST, PG_SYS};
 static void pageRing(int p, const int*& r, int& n) {
     for (int i = 0; i < 6; i++) if (RING_MIX[i] == p) { r = RING_MIX; n = 6; return; }
-    for (int i = 0; i < 4; i++) if (RING_PRJ[i] == p) { r = RING_PRJ; n = 4; return; }
+    for (int i = 0; i < 5; i++) if (RING_PRJ[i] == p) { r = RING_PRJ; n = 5; return; }
     r = RING_TRK; n = RING_TRK_N;
 }
 // Seitentitel je Engine (FM: Operatoren, SYNTH/WTBL: Oszillatoren)
@@ -2415,7 +2419,7 @@ static const int MAP_ROWS[MAP_NR][6] = {
     {PG_SRC, PG_SRC2, PG_SRC3, PG_SRC4, PG_SRC5, -1},
     {PG_FLT, PG_FLT2, PG_AMP, PG_INS, PG_SEND, -1},
     {PG_LIVE, PG_MIX, PG_FX, PG_FXB, PG_FXC, PG_CMP},
-    {PG_SONG, PG_PRJ, PG_MST, PG_SYS, -1, -1}};
+    {PG_SONG, PG_PRJ, PG_SMPR, PG_MST, PG_SYS, -1}};
 static const char* const PAGE_DESC_DE[NUI_PAGES] = {
     "Werte des Steps: Note, Anschlag, Länge, Wahrscheinlichkeit, Bedingung, Engine",
     "Laufrichtung, Länge, Tempo-Faktor, Euklid und Zufalls-Generator",
@@ -2445,7 +2449,8 @@ static const char* const PAGE_DESC_DE[NUI_PAGES] = {
     "Effekt-Bus C: Effekt frei wählbar (Delay, Tape, Reverb, Spring, Chorus)",
     "Hüllkurve 1 mit 3 Zielen (Standard: Lautstärke/VCA)",
     "Hüllkurve 2 mit 3 Zielen (Standard: Filterfrequenz)",
-    "Hüllkurve 3 mit 3 frei wählbaren Zielen"};
+    "Hüllkurve 3 mit 3 frei wählbaren Zielen",
+    "Sampler: Aufnahme von USB oder Master, schneiden, Chops, speichern"};
 static const char* const PAGE_DESC_EN[NUI_PAGES] = {
     "Step values: note, velocity, length, probability, condition, engine",
     "Direction, length, tempo factor, Euclid and random generator",
@@ -2475,7 +2480,8 @@ static const char* const PAGE_DESC_EN[NUI_PAGES] = {
     "Effect bus C: any effect (delay, tape, reverb, spring, chorus)",
     "Envelope 1 with 3 targets (default: volume/VCA)",
     "Envelope 2 with 3 targets (default: filter cutoff)",
-    "Envelope 3 with 3 free targets"};
+    "Envelope 3 with 3 free targets",
+    "Sampler: record from USB or master, trim, chops, save"};
 #define PAGE_DESC (g_lang ? PAGE_DESC_EN : PAGE_DESC_DE)
 static void mapPos(int p, int& r, int& c) { r = c = 0; for (int i = 0; i < MAP_NR; i++) for (int k = 0; k < 6; k++) if (MAP_ROWS[i][k] == p) { r = i; c = k; } }
 static int mapCols(int r) { int n = 0; while (n < 6 && MAP_ROWS[r][n] >= 0) n++; return n; }
@@ -2489,6 +2495,7 @@ static const char* mapName(int p) {   // kurze Namen der globalen Seiten (88 px)
     case PG_LIVE: return "LIVE"; case PG_MIX: return "MIXER"; case PG_FX: return "FX A"; case PG_FXB: return "FX B"; case PG_FXC: return "FX C";
     case PG_CMP: return TR("KOMPR.", "COMP"); case PG_SONG: return "SONG"; case PG_PRJ: return TR("PROJEKT", "PROJECT"); case PG_MST: return "MASTER";
     case PG_SYS: return TR("SETUP", "SETUP");
+    case PG_SMPR: return "SAMPLER";
     }
     return PAGE_NAMES[p];
 }
@@ -2503,6 +2510,7 @@ static void mapSummary(int p, char* b, int n) {
     case PG_PRJ: snprintf(b, n, "%.15s", cfg.project); break;
     case PG_MST: snprintf(b, n, "%d BPM", eng.proj.bpm); break;
     case PG_SYS: snprintf(b, n, TR("AUDIO, USB", "AUDIO, USB")); break;
+    case PG_SMPR: if (smpSeconds() > 0.f) snprintf(b, n, "%.1f s", smpSeconds()); else snprintf(b, n, TR("AUFNAHME", "RECORD")); break;
     default: b[0] = 0;
     }
 }
@@ -3200,6 +3208,8 @@ static void drawSigB() {
     hint(6, 452, h, C_ACC, C_DIM);
 }
 
+#include "sampler.inc"
+
 // ---------------------------------------------------------------- LIVE-Seite: 8 Mutes auf den Tasten (Lage wie am Geraet)
 static const int LIVE_BTN[NTRACKS] = {BT_UP, BT_RIGHT, BT_DOWN, BT_LEFT, BT_X, BT_A, BT_B, BT_Y};
 static const char* const LIVE_KEY[NTRACKS] = {"^", ">", "v", "<", "X", "A", "B", "Y"};
@@ -3278,6 +3288,7 @@ static void drawAll(bool help) {
     if (page == PG_SYS) drawSettings();
     else if (page == PG_SONG) drawSong();
     else if (page == PG_LIVE) { drawLive(); drawOverlays(); }
+    else if (page == PG_SMPR) { drawSampler(); drawOverlays(); }
     else if (trackPage(page)) { drawSigB(); drawOverlays(); }
     else { drawKnobs(); drawGrid(); drawSteps(); }
     if (help) drawHelp();
@@ -4735,6 +4746,7 @@ static void handleInput(Uint32 now, float dt) {
     if (page == PG_SYS && !func) { settingsInput(I, now, dt); return; }
     if (page == PG_SONG && !func) { songInput(I, now); return; }
     if (page == PG_LIVE && !func) { liveInput(I, now, dt); return; }
+    if (page == PG_SMPR && !func) { samplerInput(I, now); return; }
 
     if (func) {
         if (I.pressed(BT_LEFT) || I.pressed(BT_RIGHT)) {
@@ -5072,7 +5084,9 @@ static void audioCb(void*, Uint8* stream, int len) {
     eng.render((float*)stream, frames);
     if (multi) usbAudioPushMulti(multiBuf, frames);
     else usbAudioPush((const float*)stream, frames);   // parallel an den PC (falls aktiv)
+    smpPush((const float*)stream, frames);        // Sampler: Master mitschneiden (vor PC-Ton und Vorhoeren)
     pcInMix((float*)stream, frames, pcInGain);    // PC-Ton dazumischen (nach dem Senden: kein Echo zum PC)
+    smpPreviewMix((float*)stream, frames);        // Sampler: Vorhoeren
     recPush((const float*)stream, frames);
     scopePush((const float*)stream, frames);      // fuer Oszilloskop/Spektrum der Oberflaeche
     remoteAudioPush((const float*)stream, frames, eng.sr);   // Ton in den Browser (nur bei Zuhoerern)
@@ -5426,6 +5440,7 @@ int main(int argc, char** argv) {
             Pp.s[4][37].on = 1; Pp.s[4][37].lock[P_COND] = CND_AB + 35 + 5; slot = 7; editSlot = 7; editAt = 1;
             holdPat = curPi(); holdTrack = 4; holdStep = 37; aHeld = true; eng.fill = true;
         }
+        if (page == PG_SMPR) { smpDemo(); slot = SK_CHOPS; }
         if (page == PG_SYS) { setSel = getenv("GB_SETSEL") ? atoi(getenv("GB_SETSEL")) : SI_OUT; setIn = true; setScroll = setSel - 7.5f; if (getenv("GB_USBCH")) cfg.usbCh = atoi(getenv("GB_USBCH")); animate(); }
         if (page == PG_CMP) {   // Sidechain-Beispiel
             eng.proj.cmp[CM_SRC] = 1; eng.proj.cmp[CM_THR] = 40; eng.proj.cmp[CM_RAT] = 6; slot = 5;

@@ -15,12 +15,12 @@ enum { NENV = 3, NMODT = 3 };   // Huellkurven je Spur, Ziele je Huellkurve/LFO
 // Oberflaechen-Seiten (Reihenfolge = Navigation). Spurseiten zuerst.
 // neue Seiten nur hinten anfuegen (Nummern dienen auch als Screenshot-Seiten)
 enum UiPage { PG_TRG, PG_SEQ, PG_ARP, PG_SRC, PG_SRC2, PG_FLT, PG_FLT2, PG_AMP, PG_LFO1, PG_LFO2, PG_LFO3, PG_INS, PG_MIX, PG_FX, PG_CMP, PG_PRJ, PG_SONG, PG_MST, PG_SYS, PG_LIVE,
-              PG_SRC3, PG_SRC4, PG_SRC5, PG_SEND, PG_FXB, PG_FXC, PG_ENV1, PG_ENV2, PG_ENV3, NUI_PAGES };
+              PG_SRC3, PG_SRC4, PG_SRC5, PG_SEND, PG_FXB, PG_FXC, PG_ENV1, PG_ENV2, PG_ENV3, PG_SMPR, NUI_PAGES };
 enum { PG_LFO = PG_LFO1 };
 enum { PAGE_INS = PG_INS, PAGE_FX = PG_FX, PAGE_CMP = PG_CMP, PAGE_MST = PG_MST, PAGE_SYS = PG_SYS, PAGE_MIX = PG_MIX, PAGE_PRJ = PG_PRJ,
        FIRST_GLOBAL_PAGE = PG_MIX };
-static const int PG_STORE[NUI_PAGES] = {0, 9, 11, 1, 6, 2, 10, 3, 4, 7, 8, 5, -1, -1, -1, -1, -1, -1, -1, -1, 12, 13, 14, 15, -1, -1, 16, 17, 18};   // Spurseite -> (erste) Speicherseite; Regler: uiParam()
-static const int PG_GROUP[NUI_PAGES] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 2, 2, 2, 2, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0};
+static const int PG_STORE[NUI_PAGES] = {0, 9, 11, 1, 6, 2, 10, 3, 4, 7, 8, 5, -1, -1, -1, -1, -1, -1, -1, -1, 12, 13, 14, 15, -1, -1, 16, 17, 18, -1};   // Spurseite -> (erste) Speicherseite; Regler: uiParam()
+static const int PG_GROUP[NUI_PAGES] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 2, 2, 2, 2, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 2};
 inline int busOfPage(int p) { return p == PG_FX ? 0 : (p == PG_FXB ? 1 : (p == PG_FXC ? 2 : -1)); }
 static const char* const GROUP_NAMES_DE[3] = {"SPUR", "LIVE, MIX & FX", "PROJEKT"};
 static const char* const GROUP_NAMES_EN[3] = {"TRACK", "LIVE, MIX & FX", "PROJECT"};
@@ -40,15 +40,15 @@ static const uint8_t MACHINE_ORDER[M_COUNT] = {M_KICK, M_SNARE, M_HAT, M_CLAP, M
 inline bool machineIsDrum(int m) { return m <= M_CLAP || m == M_TOM || m == M_RIM || m == M_SHKR; }
 inline bool machineUsesSample(int m) { return m == M_SAMPLE || m == M_CHOP || m == M_GRAN; }
 static const char* const PAGE_NAMES[NUI_PAGES] = {"TRG", "SEQ", "ARP", "SRC", "SR2", "FLT", "FL2", "AMP", "LF1", "LF2", "LF3", "INS", "MIX", "FX A", "CMP", "PRJ", "SNG", "MST", "SET", "LIVE",
-                                                  "SR3", "SR4", "SR5", "SND", "FX B", "FX C", "EN1", "EN2", "EN3"};
+                                                  "SR3", "SR4", "SR5", "SND", "FX B", "FX C", "EN1", "EN2", "EN3", "SMPR"};
 static const char* const PAGE_LONG_DE[NUI_PAGES] = {"TRIG", "SEQUENCER", "ARPEGGIATOR", "KLANG", "KLANG 2", "FILTER", "FILTER 2 (BASE-WIDTH)", "VERSTÄRKER", "LFO 1", "LFO 2", "LFO 3", "INSERT-FX",
                                                     "MIXER", "EFFEKT-BUS A", "KOMPRESSOR", "PROJEKT", "SONG", "MASTER", "EINSTELLUNGEN", "LIVE",
                                                     "KLANG 3", "KLANG 4", "KLANG 5", "SENDS", "EFFEKT-BUS B", "EFFEKT-BUS C",
-                                                    "HÜLLKURVE 1", "HÜLLKURVE 2", "HÜLLKURVE 3"};
+                                                    "HÜLLKURVE 1", "HÜLLKURVE 2", "HÜLLKURVE 3", "SAMPLER"};
 static const char* const PAGE_LONG_EN[NUI_PAGES] = {"TRIG", "SEQUENCER", "ARPEGGIATOR", "SOUND", "SOUND 2", "FILTER", "FILTER 2 (BASE-WIDTH)", "AMPLIFIER", "LFO 1", "LFO 2", "LFO 3", "INSERT FX",
                                                     "MIXER", "EFFECT BUS A", "COMPRESSOR", "PROJECT", "SONG", "MASTER", "SETTINGS", "LIVE",
                                                     "SOUND 3", "SOUND 4", "SOUND 5", "SENDS", "EFFECT BUS B", "EFFECT BUS C",
-                                                    "ENVELOPE 1", "ENVELOPE 2", "ENVELOPE 3"};
+                                                    "ENVELOPE 1", "ENVELOPE 2", "ENVELOPE 3", "SAMPLER"};
 #define PAGE_LONG (g_lang ? PAGE_LONG_EN : PAGE_LONG_DE)
 
 // Filter-1-Typen (Werte nur hinten anfuegen: 0..2 = alte LP/BP/HP)
