@@ -461,7 +461,16 @@ SET → **Samples** zeigt: Dateien in der Bibliothek, Samples im Projekt, fehlen
 
 **Auswahllisten:** Wie beim Sample gibt es auch für die **Ziele** der LFOs und Hüllkurven (ZIEL-Regler auf LF1–LF3 und EN1–EN3) eine Liste: **X** öffnet sie, die Wurzel zeigt „--- (kein Ziel)“ und einen Ordner je Seite (SRC, FLT, AMP …), darin die Parameter mit kurzer Erklärung. Sie startet beim aktuellen Ziel. Im Lock-Modus wird das Ziel als Lock gesetzt.
 
-**Sample-Explorer:** Auf dem Regler **SMPL** (Seite QUELLE von SMPL, CHOP, GRAN) öffnet **X** den Explorer mit allen Ordnern und Unterordnern (bis 8 Ebenen). Er startet im Ordner des aktuellen Samples. Steuerkreuz ↑/↓ wählt, **A** oder → öffnet einen Ordner bzw. übernimmt das Sample, **X** hört vorab hinein, **B** oder ← geht einen Ordner zurück, L1/R1 blättert seitenweise, SELECT bricht ab (das vorher eingestellte Sample bleibt). Im Lock-Modus (A lang halten) wird das gewählte Sample als **Lock auf den Step** gesetzt. Der rechte Stick blättert direkt durch die Samples des Projekts; „(leer)“ heißt, auf diesem Platz liegt kein Sample.
+**Sample-Slots:** Jedes Projekt hat bis zu 253 **Sample-Slots** (Plätze im Speicher). Eine Spur spielt immer einen Slot – neue Spuren und neue Projekte haben **kein Sample** („---“), bis du eins zuweist. Auf dem Regler **SMPL** (Seite QUELLE von SMPL, CHOP, GRAN; UWAV bei WTBL) öffnet **X** (oder zweimal antippen) die **Slot-Liste**: Nummer, Sample, Mono/Stereo, Länge und welche Spuren den Slot nutzen.
+
+* **A** auf einem belegten Slot: die Spur spielt diesen Slot. **X** hört ihn an.
+* **A** auf einem leeren Slot oder **Y** auf einem belegten: Sample **aus dem Speicher** in genau diesen Slot laden. Ersetzt du ein Sample, spielen alle Spuren und Steps, die den Slot nutzen, das neue.
+* **+ AUS DEM SPEICHER:** Sample wählen, es landet in einem freien Slot (liegt es schon in einem Slot, wird der genutzt).
+* **--- KEIN SAMPLE:** die Spur bleibt stumm.
+
+![Sample-Slots](shot:57)
+
+**Speicher (Bibliothek):** Die Auswahl aus dem Speicher zeigt alle Ordner und Unterordner (bis 8 Ebenen) und startet im Ordner des aktuellen Samples. Steuerkreuz ↑/↓ wählt, **A** oder → öffnet einen Ordner bzw. übernimmt das Sample, **X** hört vorab hinein, **B** oder ← geht einen Ordner zurück, L1/R1 blättert seitenweise, SELECT bricht ab (das vorher eingestellte Sample bleibt). Im Lock-Modus (A lang halten) wird die Auswahl als **Lock auf den Step** gesetzt. Der rechte Stick bzw. X/Y-Drehen blättert direkt durch die Slots; unter Slot 1 kommt „---“ (kein Sample).
 
 ### Samples per Browser hochladen (ohne SD-Karte)
 

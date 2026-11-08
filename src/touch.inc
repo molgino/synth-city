@@ -90,7 +90,7 @@ static void touchUp(TouchPtr& t, Uint32 now) {
         if (t.kind == HK_PRJ) { if (t.b) prjValue(t.a, t.b); else if (!prjIsValue(t.a) || t.a == PI_MUTATE) prjActivate(t.a); }   // +/- bzw. Feld antippen = ausfuehren
         if (t.kind == HK_FBROW && fbOpen && t.a < fbN) {   // Liste: nochmal antippen = waehlen/oeffnen, erstes Antippen bei Samples = vorhoeren
             if (t.wasSel) fbPick();
-            else if (fbMode == FB_SAMPLE && !fbEnt[t.a].dir) fbPreview();
+            else if ((fbMode == FB_SAMPLE || fbMode == FB_SLOT) && !fbEnt[t.a].dir) fbPreview();
         }
         if (t.kind == HK_SLOT && t.wasSel && trackPage(page)) {   // nochmal antippen: Liste wie X (nur Sonderregler)
             ParamDef d; int v, bv; bool lk; char lb[24];

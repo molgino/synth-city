@@ -1140,7 +1140,7 @@ static bool knobInfo(int k, ParamDef& d, int& val, bool& locked, int& baseVal, c
             const char* sn = sampleGet(val) ? sampleName(val) : nullptr;
             const char* sl = sn ? strrchr(sn, '/') : nullptr;   // nur der Dateiname, Ordner zeigt der Explorer
             if (sn) snprintf(label, ln, "%.19s", sl ? sl + 1 : sn);
-            else snprintf(label, ln, "%s", libCount() ? TR("(leer)", "(empty)") : TR("KEINE SAMPLES", "NO SAMPLES"));
+            else snprintf(label, ln, "%s", val >= MAX_SAMPLES ? TR("KEIN SAMPLE (X)", "NO SAMPLE (X)") : TR("(leerer Slot)", "(empty slot)"));
         }
     }
     baseVal = (trackPage(page) && d.kind != K_MACH && d.kind != K_TLEN && d.kind != K_TSPD) ? P.p[track][slotParam(k)] : val;
@@ -1169,7 +1169,7 @@ static void knobText(const ParamDef& d, int val, char* b, int n, int k = -1) {
         if (s < 1.f) snprintf(b, n, "%.0fms", s * 1000.f); else snprintf(b, n, "%.1fs", s);
     } else if (k >= 0 && trackPage(page) && isEnvSus(k)) snprintf(b, n, "%d%%", val * 100 / 127);
     else if (d.kind == K_GR) snprintf(b, n, "-%.1f", grDisp);
-    else if (d.kind == K_SMPL) snprintf(b, n, "%d", val + 1);
+    else if (d.kind == K_SMPL) { if (val >= MAX_SAMPLES) snprintf(b, n, "---"); else snprintf(b, n, "%d", val + 1); }
     else if (d.kind == K_DEV) { if (val) snprintf(b, n, "#%d", val); else snprintf(b, n, "STD"); }
     else fmtParam(d, val, b, n);
 }
@@ -3431,6 +3431,12 @@ static void runSplash() {
 
 // ---------------------------------------------------------------- Bedienung
 
+// Sample-Slot weiterdrehen: unter Slot 1 kommt "kein Sample", von dort nach oben wieder Slot 1
+static int smpStep(int cur, int delta, int mx) {
+    if (cur >= MAX_SAMPLES) return delta > 0 ? 0 : SMP_NONE;
+    int n = cur + delta;
+    return n < 0 ? SMP_NONE : clampi(n, 0, mx);
+}
 static void editValue(int delta) {
     editAt = SDL_GetTicks(); editSlot = slot;
     if (page == PG_MIX) {
@@ -3536,9 +3542,9 @@ static void editValue(int delta) {
         if (idx == P_NOTE) {   // in Skalenschritten
             int sv = curScale();
             if (sv > 0) { int n = quantizeNote(cur, sv); for (int i = 0; i < abs(delta); i++) n = stepScale(n, delta > 0 ? 1 : -1, sv); s.lock[idx] = (uint8_t)n; }
-            else s.lock[idx] = (uint8_t)clampi(cur + delta, 0, d.max);
+            else s.lock[idx] = (uint8_t)(d.kind == K_SMPL ? smpStep(cur, delta, d.max) : clampi(cur + delta, 0, d.max));
         } else
-        s.lock[idx] = (uint8_t)clampi(cur + delta, 0, d.max);
+        s.lock[idx] = (uint8_t)(d.kind == K_SMPL ? smpStep(cur, delta, d.max) : clampi(cur + delta, 0, d.max));
         aEdited = true;
     } else {
         int sv = curScale();
@@ -3547,7 +3553,7 @@ static void editValue(int delta) {
             for (int i = 0; i < abs(delta); i++) n = stepScale(n, delta > 0 ? 1 : -1, sv);
             P.p[track][idx] = (uint8_t)n;
         } else
-        P.p[track][idx] = (uint8_t)clampi(P.p[track][idx] + delta, 0, d.max);
+        P.p[track][idx] = (uint8_t)(d.kind == K_SMPL ? smpStep(P.p[track][idx], delta, d.max) : clampi(P.p[track][idx] + delta, 0, d.max));
     }
     if (idx == P_NOTE || d.kind == K_SMPL) { lockA(); eng.preview(track, aHeld ? &holdS() : nullptr); unlockA(); }
 }
@@ -4950,7 +4956,7 @@ static void handleInput(Uint32 now, float dt) {
             if (I.pressed(BT_X) && trackPage(page)) {   // Sample-Regler: X oeffnet den Explorer (mit Unterordnern)
                 ParamDef sd; int sv, sb; bool sl; char slab[24];
                 if (knobInfo(slot, sd, sv, sl, sb, slab, sizeof slab)) {
-                    if (sd.kind == K_SMPL) { fbSmpIdx = slotParam(slot); openBrowser(FB_SAMPLE); return; }
+                    if (sd.kind == K_SMPL) { fbSmpIdx = slotParam(slot); openBrowser(FB_SLOT); return; }
                     if (sd.kind == K_WDRAW && !aHeld) { openWtEditor(); return; }
                     if (sd.kind == K_LDEST || sd.kind == K_EDEST) { fbParam = slotParam(slot); openBrowser(FB_LDEST); return; }
                     if (sd.kind == K_MACH && !aHeld) { openBrowser(FB_MACH); return; }
@@ -5359,11 +5365,9 @@ static void poolLoadForProject(const char* path, int force) {
 static void poolDefaults() {
     poolLegacy = -1;
     for (int i = 0; i < MAX_SAMPLES; i++) if (sampleName(i)[0]) poolSetSlot(i, "");
-    const char* def = libFind("keys/stab-minor") >= 0 ? "keys/stab-minor" : (libCount() ? libName(0) : nullptr);
-    int sl = def ? poolAssign(def) : -1;
-    lockA();
+    lockA();   // neues Projekt: kein Sample vorbelegt (Slots fuellst du selbst)
     for (int p = 0; p < NPATTERNS; p++) for (int t = 0; t < NTRACKS; t++)
-        if (machineUsesSample(eng.proj.pat[p].machine[t] % M_COUNT)) eng.proj.pat[p].p[t][P_S0] = (uint8_t)(sl >= 0 ? sl : 0);
+        if (machineUsesSample(eng.proj.pat[p].machine[t] % M_COUNT)) eng.proj.pat[p].p[t][P_S0] = SMP_NONE;
     unlockA();
 }
 // nach Upload/Loeschen im Browser oder USB-Laufwerk: Bibliothek neu einlesen, geaenderte Pool-Samples neu laden
@@ -5523,6 +5527,7 @@ int main(int argc, char** argv) {
             if (shotPage == 53) { page = PG_PRJ; track = 4; openBrowser(FB_PRESET); fbPick(); fbSel = 3; }
         }
         if (shotPage == 54) { page = PG_TRG; track = 4; slot = 6; openBrowser(FB_MACH); }   // Engine-Liste
+        if (shotPage == 57) { page = PG_SRC; track = 7; Engine::setMachine(curP(), 7, M_SAMPLE); curP().p[7][P_S0] = 2; slot = 0; fbSmpIdx = P_S0; openBrowser(FB_SLOT); fbSel = 4; }   // Sample-Slots
         if (shotPage == 56) { page = PG_TRG; track = 4; slot = 7; curP().p[4][P_COND] = CND_AB + 1; fbParam = P_COND; openBrowser(FB_COND); }   // Bedingungs-Liste
         if (shotPage == 55) { page = PG_LFO1; track = 4; slot = LF_DEST; fbParam = P_L1 + LF_DEST; openBrowser(FB_LDEST); }   // LFO-Ziel-Liste
         if (shotPage == 26) { page = PG_PRJ; slot = 1; askConfirm(ACT_LOAD, 2, "SONG 03 LADEN? UNGESPEICHERTES GEHT VERLOREN"); }
@@ -5636,7 +5641,7 @@ int main(int argc, char** argv) {
     printf("Audio-Rechenkerne: %d\n", eng.audioThreads);
     if (eng.load(projPath)) { printf("Projekt geladen: %s\n", projPath); poolLoadForProject(projPath); }
     else if (firstRun) { buildDemo(eng); eng.songOn = true; eng.songStart(0); poolDefaults(); printf("Erster Start: Demo-Song angelegt\n"); }
-    else poolDefaults();   // Einsteiger: sofort etwas zum Hoeren
+    else poolDefaults();
     memcpy(&lastSaved, &eng.proj, sizeof(Project));
     applyMidiSettings();
     eng.midiOut = midiOutHook;

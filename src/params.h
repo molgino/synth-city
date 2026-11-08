@@ -25,7 +25,7 @@ inline int busOfPage(int p) { return p == PG_FX ? 0 : (p == PG_FXB ? 1 : (p == P
 static const char* const GROUP_NAMES_DE[3] = {"SPUR", "LIVE, MIX & FX", "PROJEKT"};
 static const char* const GROUP_NAMES_EN[3] = {"TRACK", "LIVE, MIX & FX", "PROJECT"};
 #define GROUP_NAMES (g_lang ? GROUP_NAMES_EN : GROUP_NAMES_DE)
-enum { NO_LOCK = 255 };
+enum { NO_LOCK = 255, SMP_NONE = 254 };   // SMP_NONE: Sample-Regler (SMPL/UWAV) ohne Sample (>= Pool-Groesse)
 
 // Reihenfolge = gespeicherter Wert (neue Engines nur hinten anfuegen!)
 enum Machine { M_KICK, M_SNARE, M_HAT, M_CLAP, M_SYNTH, M_FM, M_SAMPLE, M_TOM, M_RIM, M_SHKR, M_WTBL, M_CHOP, M_GRAN, M_COUNT };
@@ -278,7 +278,7 @@ static const ParamDef SRC_DEFS[M_COUNT][8] = {
     {{"ALGO", K_ALGO, 0, 7}, {"FBK", K_NUM, 0, 127}, {"VELO", K_NUM, 64, 127}, {"PITCH", K_BIP, 64, 127},
      {"P.DEC", K_NUM, 40, 127}, {"NOIS", K_NUM, 0, 127}, PDEF_NONE, PDEF_NONE},
     // SAMPLE (END < STRT = rueckwaerts)
-    {{"SMPL", K_SMPL, 0, 249}, {"TUNE", K_SEMI, 24, 48}, {"FINE", K_BIP, 64, 127}, {"STRT", K_NUM, 0, 127},
+    {{"SMPL", K_SMPL, SMP_NONE, 249}, {"TUNE", K_SEMI, 24, 48}, {"FINE", K_BIP, 64, 127}, {"STRT", K_NUM, 0, 127},
      {"END", K_NUM, 127, 127}, {"LOOP", K_OFFON, 0, 1}, {"GAIN", K_NUM, 64, 127}, PDEF_NONE},
     // TOM
     {{"TUNE", K_NUM, 50, 127}, {"DCAY", K_NUM, 70, 127}, {"SWEP", K_NUM, 40, 127}, {"NOIS", K_NUM, 30, 127},
@@ -293,10 +293,10 @@ static const ParamDef SRC_DEFS[M_COUNT][8] = {
     {{"TABL", K_WTAB, 0, 4}, {"POS", K_NUM, 0, 127}, {"WARP", K_BIP, 64, 127}, {"DETN", K_NUM, 0, 127},
      {"SUB", K_NUM, 0, 127}, {"NOIS", K_NUM, 0, 127}, {"P.ENV", K_BIP, 64, 127}, {"GLID", K_NUM, 0, 127}},
     // CHOP (Sample in gleiche Scheiben, SLIC 0 = AUTO: Step-Nummer waehlt die Scheibe)
-    {{"SMPL", K_SMPL, 0, 249}, {"SLCS", K_NUM, 15, 63}, {"SLIC", K_SLICE, 0, 64}, {"TUNE", K_SEMI, 24, 48},
+    {{"SMPL", K_SMPL, SMP_NONE, 249}, {"SLCS", K_NUM, 15, 63}, {"SLIC", K_SLICE, 0, 64}, {"TUNE", K_SEMI, 24, 48},
      {"FINE", K_BIP, 64, 127}, {"LEN", K_PCT, 100, 100}, {"REV", K_OFFON, 0, 1}, {"GAIN", K_NUM, 64, 127}},
     // GRAN
-    {{"SMPL", K_SMPL, 0, 249}, {"POS", K_NUM, 30, 127}, {"SPRY", K_NUM, 10, 127}, {"SIZE", K_NUM, 50, 127},
+    {{"SMPL", K_SMPL, SMP_NONE, 249}, {"POS", K_NUM, 30, 127}, {"SPRY", K_NUM, 10, 127}, {"SIZE", K_NUM, 50, 127},
      {"DENS", K_NUM, 60, 127}, {"PTCH", K_SEMI, 24, 48}, {"P.SPR", K_NUM, 0, 127}, {"GAIN", K_NUM, 64, 127}},
 };
 
@@ -319,7 +319,7 @@ static const ParamDef SRC2_DEFS[M_COUNT][8] = {
     {PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE},
     {PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE},
     // WTBL (TABL = USER: Wavetable aus dem Sample UWAV, je 2048 bzw. 256 Werte ein Frame)
-    {{"OCT", K_OCT, 3, 6}, {"LVL", K_NUM, 127, 127}, {"SUB.O", K_SUBO, 0, 1}, {"UWAV", K_SMPL, 0, 249},
+    {{"OCT", K_OCT, 3, 6}, {"LVL", K_NUM, 127, 127}, {"SUB.O", K_SUBO, 0, 1}, {"UWAV", K_SMPL, SMP_NONE, 249},
      {"DRAW", K_WDRAW, 0, 0}, PDEF_NONE, PDEF_NONE, PDEF_NONE},
     {{"TEMPO", K_OFFON, 0, 1}, {"BEATS", K_NUM, 0, 128}, {"GRAIN", K_NUM, 40, 127}, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE},   // Time-Warp
     {PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE},

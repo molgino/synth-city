@@ -625,8 +625,11 @@ static void uiScenarios() {
     uiCase = "Sample-Explorer";
     if (libCount() > 1) {
         simReset(); goTrack(7); Engine::setMachine(curP(), 7, M_SAMPLE); goPage(PG_SRC); goSlot(0);
+        UCHECK(curP().p[7][P_S0] == SMP_NONE, "neue SMPL-Spur hat schon ein Sample (%d)", curP().p[7][P_S0]);
         tap(BT_X);
-        UCHECK(fbOpen && fbMode == FB_SAMPLE, "X auf SMPL oeffnet keinen Explorer");
+        UCHECK(fbOpen && fbMode == FB_SLOT && fbEnt[0].idx == -2, "X auf SMPL oeffnet keine Slot-Liste");
+        fbSel = 0; tap(BT_A);   // "+ aus dem Speicher" -> Bibliothek
+        UCHECK(fbOpen && fbMode == FB_SAMPLE, "Slot-Liste: Bibliothek oeffnet nicht");
         while (fbDir[0]) tap(BT_B);   // zur Wurzel
         int dirs = 0; for (int i = 0; i < fbN; i++) dirs += fbEnt[i].dir;
         UCHECK(dirs > 0, "keine Unterordner sichtbar");
@@ -635,11 +638,25 @@ static void uiScenarios() {
         tap(BT_A);
         int got = curP().p[7][P_S0];
         UCHECK(!fbOpen && want >= 0 && sampleGet(got) && !strcmp(sampleName(got), libName(want)), "Sample nicht gewaehlt ('%s' statt '%s')", sampleName(got), libName(want));
-        tap(BT_X);   // oeffnet im Ordner des gewaehlten Samples
-        for (int i = 0; i < fbN; i++) if (!fbEnt[i].dir) { fbSel = i; break; }
-        tap(BT_X);   // Vorhoeren laedt in den Vorhoer-Platz (oder nutzt den Pool-Platz) ...
-        tap(BT_SELECT);   // ... Abbruch stellt das alte Sample wieder her
-        UCHECK(!fbOpen && curP().p[7][P_S0] == got && !sampleName(PREVIEW_SLOT)[0], "Abbruch nach Vorhoeren: Platz %d statt %d", curP().p[7][P_S0], got);
+        // leeren Slot gezielt belegen
+        tap(BT_X);
+        int empty = -1; for (int i = 0; i < fbN; i++) if (fbEnt[i].idx >= 0 && fbEnt[i].idx < PREVIEW_SLOT && !sampleGet(fbEnt[i].idx)) { fbSel = i; empty = fbEnt[i].idx; break; }
+        tap(BT_A);
+        UCHECK(fbOpen && fbMode == FB_SAMPLE && fbAssign == empty, "leerer Slot oeffnet keine Bibliothek fuer diesen Slot");
+        while (fbDir[0]) tap(BT_B);
+        fbSel = 0; tap(BT_A);
+        int want2 = -1; for (int i = fbN - 1; i >= 0; i--) if (!fbEnt[i].dir) { fbSel = i; want2 = fbEnt[i].idx; break; }
+        tap(BT_A);
+        UCHECK(!fbOpen && curP().p[7][P_S0] == empty && want2 >= 0 && !strcmp(sampleName(empty), libName(want2)), "Slot %d nicht belegt ('%s')", empty + 1, sampleName(empty));
+        // Vorhoeren + Abbruch stellt den Slot der Spur wieder her
+        tap(BT_X);
+        for (int i = 0; i < fbN; i++) if (fbEnt[i].idx == got) fbSel = i;
+        tap(BT_X); tap(BT_SELECT);
+        UCHECK(!fbOpen && curP().p[7][P_S0] == empty, "Abbruch nach Vorhoeren: Slot %d statt %d", curP().p[7][P_S0], empty);
+        // kein Sample
+        tap(BT_X); fbSel = 1; tap(BT_A);
+        UCHECK(!fbOpen && curP().p[7][P_S0] == SMP_NONE, "KEIN SAMPLE nicht gesetzt (%d)", curP().p[7][P_S0]);
+        poolSetSlot(empty, "");
     }
 
     uiCase = "Engine-Liste";

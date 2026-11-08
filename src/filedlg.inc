@@ -193,7 +193,8 @@ static void drawKeyboard() {
 
 // ---------------------------------------------------------------- Explorer
 
-enum { FB_SAMPLE = 1, FB_PROJECT, FB_PRESET, FB_LDEST, FB_MACH, FB_COND };
+enum { FB_SAMPLE = 1, FB_PROJECT, FB_PRESET, FB_LDEST, FB_MACH, FB_COND, FB_SLOT };
+static int fbAssign = -1;   // FB_SAMPLE aus der Slot-Liste: in diesen Pool-Platz laden (-1 = freien Platz suchen)
 struct FbEnt { char name[96]; bool dir; int idx; };
 static int fbMode = 0, fbSel = 0, fbN = 0, fbOrig = -1, fbOrigLib = -1;   // Samples: Pool-Platz bzw. Bibliotheksindex beim Oeffnen
 static float fbScroll = 0;
@@ -237,6 +238,7 @@ static int ldestUiPage(int pi) {   // Spurseite, auf der Parameter pi liegt (-1 
 static bool fbEnvDest() { return fbMode == FB_LDEST && paramDef(curP().machine[track], fbParam).kind == K_EDEST; }
 static int fbCurValue() {   // aktueller Wert des Reglers, fuer den die Liste offen ist (Lock bei gehaltenem Step)
     if (fbMode == FB_MACH) return curP().machine[track];
+    if (fbMode == FB_SLOT) return aHeld && holdS().lock[fbSmpIdx] != NO_LOCK ? holdS().lock[fbSmpIdx] : curP().p[track][fbSmpIdx];
     return aHeld && holdS().lock[fbParam] != NO_LOCK ? holdS().lock[fbParam] : curP().p[track][fbParam];
 }
 // Trig-Bedingungen: Erklaerung je Wert (Liste FB_COND)
@@ -261,6 +263,17 @@ static const char* condHelp(int v) {
 }
 static void fbBuild() {
     fbN = 0;
+    if (fbMode == FB_SLOT) {   // Sample-Slots des Projekts: belegte Plaetze + ein paar freie
+        fbAdd(TR("+ AUS DEM SPEICHER (FREIER SLOT)", "+ FROM STORAGE (FREE SLOT)"), false, -2);
+        fbAdd(TR("--- KEIN SAMPLE", "--- NO SAMPLE"), false, SMP_NONE);
+        int last = -1; for (int i = 0; i < PREVIEW_SLOT; i++) if (sampleGet(i)) last = i;
+        int n = last + 5; if (n < 8) n = 8; if (n > PREVIEW_SLOT) n = PREVIEW_SLOT;
+        for (int i = 0; i < n; i++) {
+            char nm[96]; const char* sn = sampleName(i);
+            if (sampleGet(i)) snprintf(nm, sizeof nm, "%03d  %.80s", i + 1, sn); else snprintf(nm, sizeof nm, "%03d  %s", i + 1, TR("(leer)", "(empty)"));
+            fbAdd(nm, false, i);
+        }
+    }
     if (fbMode == FB_COND) {   // Wurzel: einfache Bedingungen + je Zyklus (x:2 .. x:8) ein Ordner
         if (!fbDir[0]) {
             for (int v = CND_NONE; v < CND_AB; v++) { char b[16]; fmtParam(paramDef(0, P_COND), v, b, sizeof b); fbAdd(b, false, v); }
@@ -324,7 +337,7 @@ static void fbBuild() {
         }
     }
     bool factoryDir = fbMode == FB_PRESET && fbDir[0] && !strncmp(fbDir, FB_FACTORY, strlen(FB_FACTORY));
-    if (!factoryDir && !(fbMode == FB_PRESET && !fbDir[0]) && fbMode != FB_LDEST && fbMode != FB_MACH && fbMode != FB_COND) qsort(fbEnt, fbN, sizeof(FbEnt), fbCmp);
+    if (!factoryDir && !(fbMode == FB_PRESET && !fbDir[0]) && fbMode != FB_LDEST && fbMode != FB_MACH && fbMode != FB_COND && fbMode != FB_SLOT) qsort(fbEnt, fbN, sizeof(FbEnt), fbCmp);
     if (fbSel >= fbN) fbSel = fbN ? fbN - 1 : 0;
 }
 static void openBrowser(int mode) {
@@ -350,6 +363,11 @@ static void openBrowser(int mode) {
     } else if (mode == FB_MACH) {
         fbBuild();
         for (int i = 0; i < fbN; i++) if (fbEnt[i].idx == curP().machine[track]) fbSel = i;
+    } else if (mode == FB_SLOT) {
+        fbOrig = curP().p[track][fbSmpIdx];
+        fbBuild();
+        int cur = fbCurValue();
+        for (int i = 0; i < fbN; i++) if (fbEnt[i].idx == cur) fbSel = i;
     } else if (mode == FB_COND) {   // im Ordner der aktuellen Bedingung starten
         int cur = fbCurValue();
         if (condIsAB(cur)) { int a, bb; bool ng; condDecode(cur, a, bb, ng); snprintf(fbDir, sizeof fbDir, "x:%d/", bb); }
@@ -368,7 +386,8 @@ static void openBrowser(int mode) {
     fbScroll = fbSel > 6 ? fbSel - 6.f : 0.f;
 }
 static void fbClose(bool cancel) {
-    if (cancel && fbMode == FB_SAMPLE && fbOrig >= 0) { lockA(); curP().p[track][fbSmpIdx] = (uint8_t)fbOrig; unlockA(); }   // Vorhoeren zuruecknehmen
+    if (cancel) fbAssign = -1;
+    if (cancel && (fbMode == FB_SAMPLE || fbMode == FB_SLOT) && fbOrig >= 0) { lockA(); curP().p[track][fbSmpIdx] = (uint8_t)fbOrig; unlockA(); }   // Vorhoeren zuruecknehmen
     if (fbMode == FB_SAMPLE && sampleName(PREVIEW_SLOT)[0]) poolSetSlot(PREVIEW_SLOT, "");   // Speicher des Vorhoer-Platzes freigeben
     fbOpen = false;
 }
@@ -405,8 +424,36 @@ static void fbPick() {
         unlockA();
         fbClose(false);
         break;
+    case FB_SLOT:
+        if (e.idx == -2 || (e.idx >= 0 && e.idx < PREVIEW_SLOT && !sampleGet(e.idx))) {   // aus dem Speicher laden (leerer Slot: genau dorthin)
+            lockA(); curP().p[track][fbSmpIdx] = (uint8_t)fbOrig; unlockA();
+            int keep = fbOrig;
+            fbAssign = e.idx >= 0 ? e.idx : -1;
+            openBrowser(FB_SAMPLE); fbOrig = keep;
+            return;
+        }
+        lockA();
+        if (aHeld || lockLatch) { holdS().lock[fbSmpIdx] = (uint8_t)e.idx; aEdited = true; }
+        else curP().p[track][fbSmpIdx] = (uint8_t)e.idx;
+        if (fbSmpIdx == P_X3 && curP().machine[track] == M_WTBL && e.idx < MAX_SAMPLES) curP().p[track][P_S0] = 4;
+        unlockA();
+        fbOpen = false;
+        if (e.idx < MAX_SAMPLES) toast("SLOT %03d: %s", e.idx + 1, sampleName(e.idx)); else toast(TR("KEIN SAMPLE", "NO SAMPLE"));
+        break;
     case FB_SAMPLE: {
         lockA(); curP().p[track][fbSmpIdx] = (uint8_t)fbOrig; unlockA();   // Vorhoer-Platz nicht stehen lassen
+        if (fbAssign >= 0) {   // aus der Slot-Liste: in genau diesen Platz laden (ersetzt ihn fuer alle Spuren, die ihn nutzen)
+            int sl = fbAssign; fbAssign = -1;
+            if (!poolSetSlot(sl, libName(e.idx))) { toast(TR("NICHT LESBAR: %s", "CANNOT READ: %s"), sampleLastError()); return; }
+            lockA();
+            if (aHeld || lockLatch) { holdS().lock[fbSmpIdx] = (uint8_t)sl; aEdited = true; }
+            else curP().p[track][fbSmpIdx] = (uint8_t)sl;
+            if (fbSmpIdx == P_X3 && curP().machine[track] == M_WTBL) curP().p[track][P_S0] = 4;
+            unlockA();
+            fbClose(false);
+            toast("SLOT %03d: %s", sl + 1, libName(e.idx));
+            break;
+        }
         int sl = poolAssign(libName(e.idx));
         if (sl < 0) return;   // Pool voll oder Datei nicht lesbar (Meldung kommt von poolAssign)
         lockA();
@@ -438,6 +485,11 @@ static void fbPick() {
 }
 static void fbPreview() {
     if (fbN == 0 || fbEnt[fbSel].dir) return;
+    if (fbMode == FB_SLOT) {   // belegten Slot anhoeren
+        int i = fbEnt[fbSel].idx;
+        if (i >= 0 && sampleGet(i)) { lockA(); curP().p[track][fbSmpIdx] = (uint8_t)i; eng.preview(track, nullptr); unlockA(); }
+        return;
+    }
     if (fbMode == FB_SAMPLE) {   // schon im Pool: diesen Platz spielen, sonst in den Vorhoer-Platz laden
         const char* n = libName(fbEnt[fbSel].idx);
         int sl = poolFind(n);
@@ -454,9 +506,29 @@ static void fbInput(Input& I, Uint32 now) {
     if (d && fbN) { fbSel = clampi(fbSel + d, 0, fbN - 1); if (fbMode == FB_SAMPLE && aHeld == false && false) fbPreview(); }
     if (I.pressed(BT_A) || I.pressed(BT_RIGHT) || I.pressed(BT_START)) fbPick();
     else if (I.pressed(BT_X)) fbPreview();
+    else if (I.pressed(BT_Y) && fbMode == FB_SLOT && fbN && fbEnt[fbSel].idx >= 0 && fbEnt[fbSel].idx < PREVIEW_SLOT) {   // Slot neu belegen
+        int keep = fbOrig, sl = fbEnt[fbSel].idx;
+        lockA(); curP().p[track][fbSmpIdx] = (uint8_t)fbOrig; unlockA();
+        fbAssign = sl; openBrowser(FB_SAMPLE); fbOrig = keep;
+    }
     else if (I.pressed(BT_B) || I.pressed(BT_LEFT)) { if (fbDir[0]) fbUp(); else fbClose(true); }
     else if (I.pressed(BT_SELECT)) fbClose(true);
 }
+// Slot-Liste: Laenge, Stereo, welche Spuren (aktuelles Pattern) den Platz nutzen
+static void slotInfo(int i, char* out, int n) {
+    out[0] = 0;
+    if (i == -2) return;
+    if (i < 0 || i >= MAX_SAMPLES) { snprintf(out, n, "%s", TR("Spur bleibt stumm", "track stays silent")); return; }
+    const Sample* sm = sampleGet(i);
+    if (!sm) { snprintf(out, n, "%s", TR("A = Sample laden", "A = load sample")); return; }
+    int l = snprintf(out, n, "%s %.1fs", sm->dataR ? "ST" : "MO", sm->len / (float)(sm->rate > 0 ? sm->rate : 44100));
+    const Pattern& P = curP(); bool any = false;
+    for (int t = 0; t < NTRACKS && l < n - 4; t++) {
+        int si = machineSampleParam(P.machine[t] % M_COUNT);
+        if (si >= 0 && P.p[t][si] == i) { l += snprintf(out + l, n - l, "%s%d", any ? "," : TR(" Spur ", " trk "), t + 1); any = true; }
+    }
+}
+static int fbOrigOrCur() { return fbMode == FB_SLOT && fbOrig >= 0 && !aHeld ? fbOrig : fbCurValue(); }
 static void drawBrowser() {
     int x0 = 30, y0 = 34, w = 580, h = 412;
     rrect(x0, y0, w, h, 14, C_CYAN);
@@ -464,12 +536,13 @@ static void drawBrowser() {
     const char* title = fbMode == FB_SAMPLE ? TR("SAMPLE WÄHLEN", "CHOOSE SAMPLE")
                       : fbMode == FB_PROJECT ? TR("PROJEKT LADEN", "LOAD PROJECT")
                       : fbMode == FB_LDEST ? (fbEnvDest() ? TR("HÜLLKURVEN-ZIEL WÄHLEN", "CHOOSE ENVELOPE TARGET") : TR("LFO-ZIEL WÄHLEN", "CHOOSE LFO TARGET"))
-                      : fbMode == FB_MACH ? TR("ENGINE WÄHLEN", "CHOOSE ENGINE") : fbMode == FB_COND ? TR("BEDINGUNG WÄHLEN", "CHOOSE CONDITION") : TR("SOUND LADEN", "LOAD SOUND");
+                      : fbMode == FB_MACH ? TR("ENGINE WÄHLEN", "CHOOSE ENGINE") : fbMode == FB_SLOT ? TR("SAMPLE-SLOT WÄHLEN", "CHOOSE SAMPLE SLOT")
+                      : (fbMode == FB_SAMPLE && fbAssign >= 0) ? TR("SAMPLE FÜR SLOT", "SAMPLE FOR SLOT") : fbMode == FB_COND ? TR("BEDINGUNG WÄHLEN", "CHOOSE CONDITION") : TR("SOUND LADEN", "LOAD SOUND");
     text(x0 + 16, y0 + 10, title, C_CYAN, 2);
     // Pfad
     char path[160];
     const char* root = fbMode == FB_SAMPLE ? "samples" : fbMode == FB_PROJECT ? "projects" : fbMode == FB_LDEST ? TR("ziel", "target")
-                     : fbMode == FB_MACH ? "engine" : fbMode == FB_COND ? "cond" : "sounds";
+                     : fbMode == FB_MACH ? "engine" : fbMode == FB_COND ? "cond" : fbMode == FB_SLOT ? "slots" : "sounds";
     char shown[128]; snprintf(shown, sizeof shown, "%s", fbDir);
     if (fbMode == FB_PRESET && !strncmp(shown, FB_FACTORY, strlen(FB_FACTORY))) snprintf(shown, sizeof shown, "%s/", TR("WERKSKLÄNGE", "FACTORY SOUNDS"));
     snprintf(path, sizeof path, "/%s/%s", root, shown);
@@ -489,12 +562,13 @@ static void drawBrowser() {
         FbEnt& e = fbEnt[i];
         bool sel = i == fbSel;
         bool cur = (fbMode == FB_PROJECT && !strcmp(e.name, cfg.project)) || (fbMode == FB_SAMPLE && !e.dir && e.idx == fbOrigLib) ||
-                   ((fbMode == FB_LDEST || fbMode == FB_MACH || fbMode == FB_COND) && !e.dir && e.idx == fbCurValue());
+                   ((fbMode == FB_LDEST || fbMode == FB_MACH || fbMode == FB_COND || fbMode == FB_SLOT) && !e.dir && e.idx == fbOrigOrCur());
         const char* info = nullptr;   // zweite Spalte: Langname bzw. Erklaerung
         char cinfo[48];
         if (fbMode == FB_MACH) info = MACHINE_LONG[e.idx];
         else if (fbMode == FB_COND && e.dir) { snprintf(cinfo, sizeof cinfo, TR("Zyklus aus %d Durchläufen", "cycle of %d passes"), e.idx); info = cinfo; }
         else if (fbMode == FB_COND) info = condHelp(e.idx);
+        else if (fbMode == FB_SLOT) { slotInfo(e.idx, cinfo, sizeof cinfo); info = cinfo; }
         else if (fbMode == FB_LDEST && e.dir) info = PAGE_LONG[e.idx];
         else if (fbMode == FB_LDEST) info = e.idx == MOD_VCA ? TR("Lautstärke der Stimme (Verstärker)", "Voice volume (amplifier)")
                                            : e.idx ? paramHelp(e.name) : TR("kein Ziel (aus)", "no target (off)");
@@ -507,6 +581,7 @@ static void drawBrowser() {
             if (info) text(x0 + 130, y + 1, info, C_DIM);
             text(x0 + w - 30, y + 1, ">", C_DIM);
         } else {
+            if (fbMode == FB_SLOT) { text(x0 + 22, y + 1, e.name, sel ? C_PLAY : (e.idx >= 0 && e.idx < MAX_SAMPLES && !sampleGet(e.idx) ? C_DIM : C_TEXT)); if (info && info[0]) text(x0 + w - 30 - (cur ? textW(TR("AKTIV", "ACTIVE")) + 12 : 0) - textW(info), y + 1, info, C_DIM); if (cur) text(x0 + w - 24 - textW(TR("AKTIV", "ACTIVE")), y + 1, TR("AKTIV", "ACTIVE"), C_GREEN); continue; }
             if (fbMode != FB_MACH) { fill(x0 + 22, y + 4, 10, 13, sel ? C_CYAN : C_OFF2); fill(x0 + 24, y + 7, 6, 1, C_BG); fill(x0 + 24, y + 10, 6, 1, C_BG); }
             if (fbMode == FB_MACH) { drawIcon(e.idx, x0 + 19, y + 1, 18, sel ? C_CYAN : TCOL[track]); }
             text(x0 + 42, y + 1, e.name, sel ? C_PLAY : C_TEXT);
@@ -520,7 +595,8 @@ static void drawBrowser() {
     }
     char cnt[32]; snprintf(cnt, sizeof cnt, "%d/%d", fbN ? fbSel + 1 : 0, fbN);
     text(x0 + w - 16 - textW(cnt), y0 + h - 26, cnt, C_DIM);
-    const char* h1 = (fbMode == FB_LDEST || fbMode == FB_MACH || fbMode == FB_COND) ? TR("[A]WÄHLEN [B]ZURÜCK [L1/R1]SEITE [SEL]ABBRUCH", "[A]PICK [B]BACK [L1/R1]PAGE [SEL]CANCEL")
+    const char* h1 = fbMode == FB_SLOT ? TR("[A]WÄHLEN [X]HÖREN [Y]SAMPLE LADEN [B]ZURÜCK [L1/R1]SEITE", "[A]PICK [X]LISTEN [Y]LOAD SAMPLE [B]BACK [L1/R1]PAGE")
+                   : (fbMode == FB_LDEST || fbMode == FB_MACH || fbMode == FB_COND) ? TR("[A]WÄHLEN [B]ZURÜCK [L1/R1]SEITE [SEL]ABBRUCH", "[A]PICK [B]BACK [L1/R1]PAGE [SEL]CANCEL")
                    : fbMode == FB_SAMPLE ? TR("[A]WÄHLEN [X]HÖREN [B]ZURÜCK [L1/R1]SEITE [SEL]ABBRUCH", "[A]PICK [X]LISTEN [B]BACK [L1/R1]PAGE [SEL]CANCEL")
                                          : TR("[A]ÖFFNEN/LADEN [B]ZURÜCK [L1/R1]SEITE [SEL]ABBRUCH", "[A]OPEN/LOAD [B]BACK [L1/R1]PAGE [SEL]CANCEL");
     hitAdd(x0, y0, w, 46, HK_FBBACK);   // Titel/Pfad antippen = eine Ebene zurueck
