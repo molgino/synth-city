@@ -370,6 +370,9 @@ public:
     float* multiBuf = nullptr;
     // Sampler: Spur tapTrack (nach Insert/VOL/PAN, ohne Busse) zusaetzlich als Stereo nach tapOut (frames x 2), -1 = aus
     float* tapOut = nullptr; int tapTrack = -1;
+    // Sampler: Frame im zuletzt gerenderten Block, an dem eine Page (16 Steps ab Pattern-Anfang) beginnt, sonst -1
+    // (der Sampler setzt es nach jedem Block im Audio-Callback zurueck)
+    int barOff = -1;
     int multiCh = 2;
     signed char multiRoute[NTRACKS + NBUS] = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
     bool helperReady() const { return wkOn; }

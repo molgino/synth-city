@@ -697,6 +697,31 @@ static void uiScenarios() {
         tap(BT_A); smpSrc = 1;
         tap(BT_A); UCHECK(smpState == 1, "A startet die Master-Aufnahme nicht (%d)", smpState);
         tap(BT_A); UCHECK(smpState == 0, "A bricht die wartende Aufnahme nicht ab (%d)", smpState);
+        {   // feste Laenge: 2 Pages, Start am Page-Anfang, genau 32 Steps lang
+            int keep = cfg.recPages; cfg.recPages = 0;
+            slot = SK_LEN; tap(BT_X); tap(BT_X);
+            UCHECK(cfg.recPages == 2, "LAENGE nicht einstellbar (%d)", cfg.recPages);
+            tap(BT_A);
+            int want = (int)(2 * 16.0 * 60.0 * eng.sr / (eng.proj.bpm * 4.0) + 0.5);
+            UCHECK(smpState == 1 && smpTarget == want, "feste Laenge: Ziel %d statt %d", (int)smpTarget, want);
+            lockA(); eng.start(); unlockA();
+            static float blk[512 * 2];
+            for (int k = 0; k < 4000 && smpState != 3; k++) { lockA(); eng.render(blk, 512); unlockA(); smpPush(blk, 512); }
+            UCHECK(smpState == 3 && smpLen == want, "feste Laenge: %d Frames statt %d (Zustand %d)", (int)smpLen, want, (int)smpState);
+            smpUpdate();
+            UCHECK(smpEnd == want, "feste Laenge: Ende gekuerzt (%d)", smpEnd);
+            lockA(); eng.stop(); unlockA();
+            cfg.recPages = keep; smpTarget = 0;
+        }
+        {   // Start-Schwelle: -40 dB -> -37 dB, ganz runter = SOFORT
+            int keep = cfg.recThr; cfg.recThr = -40;
+            slot = SK_THR; tap(BT_X);
+            UCHECK(cfg.recThr == -37 && fabsf(recThrLin() - 0.01413f) < 0.0005f, "SCHWELLE: %d dB", cfg.recThr);
+            for (int k = 0; k < 30; k++) tap(BT_Y);
+            UCHECK(cfg.recThr == -99 && recThrLin() < 0.f, "SCHWELLE SOFORT nicht erreichbar (%d)", cfg.recThr);
+            tap(BT_X); UCHECK(cfg.recThr == -60, "SCHWELLE nach SOFORT: %d", cfg.recThr);
+            cfg.recThr = keep;
+        }
         smpDemo(); smpDest = 2; track = 7; smpSavedNo = 0;
         UCHECK(smpNCut == 8, "Transienten-Chops: %d statt 8", smpNCut);
         tap(BT_RIGHT); UCHECK(pvOn && smpChopPv == 0, "Chop-Vorhoeren startet nicht");

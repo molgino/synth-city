@@ -5,11 +5,13 @@
 // Chops zusaetzlich einzeln (smp-NN/01.wav ...), auf Wunsch direkt in die aktuelle Spur (SMPL oder CHOP).
 static bool writeWav(const char* path, const float* data, int frames, int sr);
 enum { SMP_SEC = 60, SMP_MAXCHOP = 64, SMP_COLS = 600 };
-enum { SK_SRC, SK_START, SK_END, SK_CHOPS, SK_MODE, SK_NORM, SK_FADE, SK_DEST };
+enum { SK_SRC, SK_START, SK_END, SK_CHOPS, SK_MODE, SK_NORM, SK_FADE, SK_DEST, SK_LEN, SK_THR, SK_COUNT };
 static float* smpBuf = nullptr;                  // Stereo verschraenkt
 static int smpCap = 0, smpRate = 44100;
 static volatile int smpLen = 0;                  // Frames der Aufnahme
-static volatile int smpState = 0;                // 0 bereit, 1 wartet auf Signal (Master), 2 nimmt auf (Master), 3 fertig (Master)
+static volatile int smpState = 0;                // 0 bereit, 1 wartet auf Signal bzw. Page-Anfang (Master), 2 nimmt auf (Master), 3 fertig (Master)
+static volatile float smpThr = 0.01f;           // Start-Schwelle (linear, < 0 = sofort)
+static volatile int smpTarget = 0;               // feste Laenge in Frames (LAENGE = N Pages), 0 = FREI
 static bool smpFromPc = false;                   // USB-Aufnahme laeuft ueber pcRec
 static int smpSrc = 0, smpStart = 0, smpEnd = 0, smpChops = 0, smpMode = 0, smpNorm = 1, smpFade = 5, smpDest = 0;
 static int smpCut[SMP_MAXCHOP + 1], smpNCut = 0;  // Grenzen der Chops (Frames), smpNCut Chops
@@ -39,16 +41,25 @@ static const float* smpAudioPre(int frames) {
 // Audio-Thread: Master bzw. Spur mitschneiden (startet mit dem ersten Signal)
 static void smpPush(const float* st, int frames) {
     int s = smpState;
+    int n = smpLen, tg = smpTarget, bar = eng.barOff;
+    eng.barOff = -1;
     if (s != 1 && s != 2) return;
-    int n = smpLen;
+    int cap = tg > 0 && tg < smpCap ? tg : smpCap;
     for (int i = 0; i < frames; i++) {
         float L = st[i * 2], R = st[i * 2 + 1];
-        if (s == 1) { if (fabsf(L) > 0.01f || fabsf(R) > 0.01f) s = 2; else continue; }
-        if (n >= smpCap) { s = 3; break; }
+        if (s == 1) {
+            if (tg > 0) { if (bar >= 0 && i >= bar) s = 2; else continue; }   // feste Laenge: ab Page-Anfang
+            else if (fabsf(L) > smpThr || fabsf(R) > smpThr) s = 2; else continue;
+        }
+        if (n >= cap) { s = 3; break; }
         smpBuf[n * 2] = L; smpBuf[n * 2 + 1] = R; n++;
     }
+    if (s == 2 && n >= cap) s = 3;
     smpLen = n; smpState = s;
 }
+// Laenge LAENGE in Frames bei Rate sr (Pages zu 16 Steps im aktuellen Tempo), 0 = FREI
+static int smpPagesFrames(int sr) { return cfg.recPages ? (int)(cfg.recPages * 16.0 * 60.0 * sr / (eng.proj.bpm * 4.0) + 0.5) : 0; }
+static float recThrLin() { return cfg.recThr <= -61 ? -1.f : powf(10.f, cfg.recThr / 20.f); }   // Schwelle dB -> linear
 static float smpGain() { return smpNorm && smpPeak > 0.0001f ? 0.966f / smpPeak : 1.f; }   // -0,3 dB
 // Audio-Thread: Vorhoeren
 static void smpPreviewMix(float* st, int frames) {
@@ -102,7 +113,7 @@ static void smpChopCalc() {
 }
 static void smpTakeReady() {   // neue Aufnahme liegt in smpBuf: Bereich, Chops, Wellenform
     smpStart = 0; smpEnd = smpLen;
-    while (smpEnd > smpRate / 10 && fabsf(smpBuf[(smpEnd - 1) * 2]) < 0.003f && fabsf(smpBuf[(smpEnd - 1) * 2 + 1]) < 0.003f) smpEnd--;   // Stille am Ende
+    if (!cfg.recPages) while (smpEnd > smpRate / 10 && fabsf(smpBuf[(smpEnd - 1) * 2]) < 0.003f && fabsf(smpBuf[(smpEnd - 1) * 2 + 1]) < 0.003f) smpEnd--;   // Stille am Ende
     smpPeakCalc(); smpChopCalc(); smpWLen = -1; smpChopPv = -1;
     toast(TR("AUFNAHME: %.1f s", "RECORDED: %.1f s"), smpLen / (float)smpRate);
 }
@@ -112,12 +123,15 @@ static bool smpTakePc(const float* d, int n) {
     smpFromPc = false;
     if (!smpAlloc()) return true;
     if (n > smpCap) n = smpCap;
+    int tg = smpPagesFrames(pcRecRate());
+    if (tg > 0 && n > tg) n = tg;
     memcpy(smpBuf, d, sizeof(float) * 2 * (size_t)n);
     smpRate = pcRecRate(); smpLen = n;
     smpTakeReady();
     return true;
 }
 static void smpUpdate() {
+    if (smpFromPc && cfg.recPages && pcRecState() == 2 && pcRecSeconds() * pcRecRate() >= smpPagesFrames(pcRecRate())) pcRecStop();   // USB: feste Laenge
     if (smpState == 3) { smpState = 0; if (smpLen > 0) smpTakeReady(); }
 }
 static float smpSeconds() { return smpLen > 0 ? smpLen / (float)smpRate : 0.f; }
@@ -132,13 +146,17 @@ static void smpRecToggle() {
     if (smpSrc == 0) {   // USB vom PC/Handy
         if (usbMode != 2) { toast(TR("ERST USB-MODUS PC + AUDIO-INTERFACE", "SET USB MODE PC + AUDIO INTERFACE FIRST")); return; }
         if (pcRecState() == 3) pcRecDone();
-        if (!pcRecStart()) { toast(TR("KEIN SPEICHER", "OUT OF MEMORY")); return; }
+        if (!pcRecStart(recThrLin())) { toast(TR("KEIN SPEICHER", "OUT OF MEMORY")); return; }
         smpFromPc = true;
         toast(TR("AM PC/HANDY ABSPIELEN - AUFNAHME STARTET MIT DEM TON", "PLAY ON PC/PHONE - RECORDING STARTS WITH THE SOUND"));
     } else {
         if (!smpAlloc()) { toast(TR("KEIN SPEICHER", "OUT OF MEMORY")); return; }
-        smpRate = eng.sr; smpLen = 0; smpState = 1;
-        toast(eng.playing ? TR("AUFNAHME STARTET MIT DEM TON", "RECORDING STARTS WITH THE SOUND") : TR("START DRÜCKEN - AUFNAHME STARTET MIT DEM TON", "PRESS START - RECORDING STARTS WITH THE SOUND"));
+        int tg = smpPagesFrames(eng.sr);
+        if (tg > smpCap) tg = smpCap;
+        lockA(); smpRate = eng.sr; smpLen = 0; smpTarget = tg; smpThr = recThrLin(); eng.barOff = -1; smpState = 1; unlockA();
+        if (tg) toast(eng.playing ? TR("AUFNAHME STARTET AM NÄCHSTEN PAGE-ANFANG", "RECORDING STARTS AT THE NEXT PAGE")
+                                  : TR("START DRÜCKEN - AUFNAHME STARTET MIT DEM PATTERN", "PRESS START - RECORDING STARTS WITH THE PATTERN"));
+        else toast(eng.playing ? TR("AUFNAHME STARTET MIT DEM TON", "RECORDING STARTS WITH THE SOUND") : TR("START DRÜCKEN - AUFNAHME STARTET MIT DEM TON", "PRESS START - RECORDING STARTS WITH THE SOUND"));
     }
 }
 static void smpPreview(int a, int b) {
@@ -162,6 +180,12 @@ static void smpEdit(int k, int d) {
     case SK_NORM: smpNorm = !smpNorm; break;
     case SK_FADE: smpFade = clampi(smpFade + d, 0, 100); break;
     case SK_DEST: smpDest = (smpDest + (d > 0 ? 1 : 2)) % 3; break;
+    case SK_THR: {   // SOFORT, -60 ... -6 dB in 3-dB-Schritten
+        int t = cfg.recThr <= -61 ? -63 : cfg.recThr;
+        t = clampi(t + (d > 0 ? 3 : -3), -63, -6);
+        cfg.recThr = t < -60 ? -99 : t; saveSettings();
+    } break;
+    case SK_LEN: cfg.recPages = clampi(cfg.recPages + (d > 0 ? 1 : -1), 0, 16); saveSettings(); break;
     }
 }
 // Bereich a..b mit Verstaerkung und Fades in out (Stereo) schreiben, liefert Frames
@@ -256,8 +280,10 @@ static void drawSampler() {
     if (rec) {
         float sec = smpFromPc ? pcRecSeconds() : smpLen / (float)(smpRate > 0 ? smpRate : 44100);
         bool wait = smpFromPc ? pcRecState() == 1 : smpState == 1;
-        if (wait) snprintf(b, sizeof b, TR("WARTET AUF SIGNAL ...", "WAITING FOR SIGNAL ..."));
-        else snprintf(b, sizeof b, TR("AUFNAHME %.1f s / %d s", "RECORDING %.1f s / %d s"), sec, SMP_SEC);
+        float tot = smpFromPc ? (cfg.recPages ? smpPagesFrames(44100) / 44100.f : (float)SMP_SEC) : (smpTarget ? smpTarget / (float)smpRate : (float)SMP_SEC);
+        if (wait && !smpFromPc && smpTarget) snprintf(b, sizeof b, TR("WARTET AUF PAGE-ANFANG ...", "WAITING FOR PAGE START ..."));
+        else if (wait) snprintf(b, sizeof b, TR("WARTET AUF SIGNAL ...", "WAITING FOR SIGNAL ..."));
+        else snprintf(b, sizeof b, TR("AUFNAHME %.1f s / %.1f s", "RECORDING %.1f s / %.1f s"), sec, tot);
         text(140, 50, b, (SDL_GetTicks() / 300) % 2 ? C_TRIG : C_TEXT);
     } else if (smpLen > 0) {
         snprintf(b, sizeof b, TR("%.2f s von %.1f s, %d Hz", "%.2f s of %.1f s, %d Hz"), (smpEnd - smpStart) / (float)smpRate, smpLen / (float)smpRate, smpRate);
@@ -270,9 +296,9 @@ static void drawSampler() {
     int cy = wy + wh / 2;
     fill(wx + 6, cy, ww - 12, 1, C_OFF2);
     if (rec && !smpFromPc && smpBuf) {   // Master: wachsende Wellenform auf fester Skala (60 s)
-        int n = smpLen, cols = ww - 12;
+        int n = smpLen, cols = ww - 12, sc = smpTarget > 0 ? smpTarget : smpCap;   // Skala: feste Laenge bzw. 60 s
         for (int c = 0; c < cols; c++) {
-            int a = (int)((long long)smpCap * c / cols), e = (int)((long long)smpCap * (c + 1) / cols);
+            int a = (int)((long long)sc * c / cols), e = (int)((long long)sc * (c + 1) / cols);
             if (a >= n) break;
             if (e > n) e = n;
             float mx = 0.f; for (int i = a; i < e; i += 8) mx = fmaxf(mx, fabsf(smpBuf[i * 2]));
@@ -317,11 +343,11 @@ static void drawSampler() {
         filler(wx + 2, wy + 2, ww - 4, wh - 4, dimC(C_ACC, 0.8f), 77);
     }
     // Regler
-    static const char* const NM_DE[8] = {"QUELLE", "START", "ENDE", "CHOPS", "CHOP-ART", "NORMAL.", "FADE", "ZIEL"};
-    static const char* const NM_EN[8] = {"SOURCE", "START", "END", "CHOPS", "CHOP MODE", "NORMAL.", "FADE", "TARGET"};
-    int tw = 151, th = 40, ty = 248;
-    for (int k = 0; k < 8; k++) {
-        int x = 10 + (k % 4) * (tw + 6), y = ty + (k / 4) * (th + 6);
+    static const char* const NM_DE[SK_COUNT] = {"QUELLE", "START", "ENDE", "CHOPS", "CHOP-ART", "NORMAL.", "FADE", "ZIEL", "LÄNGE", "SCHWELLE"};
+    static const char* const NM_EN[SK_COUNT] = {"SOURCE", "START", "END", "CHOPS", "CHOP MODE", "NORMAL.", "FADE", "TARGET", "LENGTH", "THRESHOLD"};
+    int tw = 119, th = 40, ty = 248;
+    for (int k = 0; k < SK_COUNT; k++) {
+        int x = 10 + (k % 5) * (tw + 6), y = ty + (k / 5) * (th + 6);
         bool sel = k == slot;
         rrect(x, y, tw, th, 6, sel ? C_SEL : C_PANEL);
         if (sel) { rrect(x, y, tw, 2, 1, C_ACC); rrect(x, y + th - 2, tw, 2, 1, C_ACC); }
@@ -330,7 +356,7 @@ static void drawSampler() {
         switch (k) {
         case SK_SRC:
             if (smpSrc >= 2) snprintf(b, sizeof b, TR("SPUR %d %s", "TRACK %d %s"), smpSrc - 1, MACHINE_NAMES[curP().machine[smpSrc - 2] % M_COUNT]);
-            else snprintf(b, sizeof b, "%s", smpSrc ? "MASTER" : TR("USB (PC/HANDY)", "USB (PC/PHONE)"));
+            else snprintf(b, sizeof b, "%s", smpSrc ? "MASTER" : TR("USB PC/HANDY", "USB PC/PHONE"));
             break;
         case SK_START: snprintf(b, sizeof b, "%.2f s", smpStart / (float)smpRate); break;
         case SK_END: snprintf(b, sizeof b, "%.2f s", smpEnd / (float)smpRate); break;
@@ -338,6 +364,11 @@ static void drawSampler() {
         case SK_MODE: snprintf(b, sizeof b, "%s", smpMode ? "TRANSIENT" : TR("GLEICH", "EQUAL")); break;
         case SK_NORM: snprintf(b, sizeof b, "%s", smpNorm ? TR("AN", "ON") : TR("AUS", "OFF")); break;
         case SK_FADE: snprintf(b, sizeof b, "%d ms", smpFade); break;
+        case SK_THR: if (cfg.recThr <= -61) snprintf(b, sizeof b, TR("SOFORT", "INSTANT")); else snprintf(b, sizeof b, "%d dB", cfg.recThr); break;
+        case SK_LEN:
+            if (!cfg.recPages) snprintf(b, sizeof b, TR("FREI", "FREE"));
+            else snprintf(b, sizeof b, "%d P  %.1fs", cfg.recPages, smpPagesFrames(44100) / 44100.f);
+            break;
         default: snprintf(b, sizeof b, "%s", smpDest == 0 ? TR("NUR DATEI", "FILE ONLY") : (smpDest == 1 ? TR("SPUR %d SMPL", "TRACK %d SMPL") : TR("SPUR %d CHOP", "TRACK %d CHOP")), track + 1); break;
         }
         text(x + 7, y + 20, b, sel ? C_PLAY : C_TEXT);
@@ -355,15 +386,19 @@ static void drawSampler() {
         hitAdd(x, y, 151, 30, HK_BTN, BTN[i].bt);
     }
     // Erklaerung
-    static const char* const HL_DE[8] = {"USB: PC/Handy. MASTER: Summe. SPUR 1-8: eine Spur (nach Insert/VOL/PAN, ohne FX-Busse)",
+    static const char* const HL_DE[SK_COUNT] = {"USB: PC/Handy. MASTER: Summe. SPUR 1-8: eine Spur (nach Insert/VOL/PAN, ohne FX-Busse)",
         "Anfang der Auswahl (grüne Linie)", "Ende der Auswahl (rote Linie)", "Anzahl Chops (Scheiben), AUS = ganzes Sample",
         "GLEICH: gleich lange Chops. TRANSIENT: an den Einsätzen (Drums)", "Auf volle Lautstärke bringen (-0,3 dB)",
-        "Ein-/Ausblenden an den Schnitten gegen Knacken", "Nach dem Speichern in die aktuelle Spur laden (SMPL bzw. CHOP mit Chops)"};
-    static const char* const HL_EN[8] = {"USB: PC/phone. MASTER: the mix. TRACK 1-8: one track (after insert/VOL/PAN, no FX buses)",
+        "Ein-/Ausblenden an den Schnitten gegen Knacken", "Nach dem Speichern in die aktuelle Spur laden (SMPL bzw. CHOP mit Chops)",
+        "FREI: bis Stopp. 1-16 PAGES: genau N x 16 Steps, ab Page-Anfang",
+        "Startpegel: Aufnahme beginnt erst über diesem Pegel. SOFORT = ohne Warten"};
+    static const char* const HL_EN[SK_COUNT] = {"USB: PC/phone. MASTER: the mix. TRACK 1-8: one track (after insert/VOL/PAN, no FX buses)",
         "Start of the selection (green line)", "End of the selection (red line)", "Number of chops (slices), OFF = whole sample",
         "EQUAL: equal-length chops. TRANSIENT: at the hits (drums)", "Bring to full volume (-0.3 dB)",
-        "Fade in/out at the cuts against clicks", "After saving, load into the current track (SMPL or CHOP with chops)"};
-    text(10, 384, g_lang ? HL_EN[slot % 8] : HL_DE[slot % 8], C_TEXT);
+        "Fade in/out at the cuts against clicks", "After saving, load into the current track (SMPL or CHOP with chops)",
+        "FREE: until stop. 1-16 PAGES: exactly N x 16 steps, from a page start",
+        "Start level: recording begins above this level. INSTANT = no waiting"};
+    text(10, 384, g_lang ? HL_EN[slot % SK_COUNT] : HL_DE[slot % SK_COUNT], C_TEXT);
     text(10, 404, TR("Speichern: samples/sampler/smp-NN.wav (+ Chops im Ordner smp-NN/)",
                      "Save: samples/sampler/smp-NN.wav (+ chops in folder smp-NN/)"), C_DIM);
     hint(6, 452, TR("[L1/R1]REGLER [X/Y]WERT [A]AUFNAHME [B]HÖREN [<>]CHOP [^]SPEICHERN [L2/R2]SEITE",
@@ -371,9 +406,9 @@ static void drawSampler() {
 }
 
 static void samplerInput(Input& I, Uint32 now) {
-    if (slot > 7) slot = 0;
+    if (slot >= SK_COUNT) slot = 0;
     int dl = (I.repeat(BT_R1, now, 300, 110) ? 1 : 0) - (I.repeat(BT_L1, now, 300, 110) ? 1 : 0);
-    if (dl) slot = (slot + 8 + dl) % 8;
+    if (dl) slot = (slot + SK_COUNT + dl) % SK_COUNT;
     int mul = (I.heldMs(BT_X, now) > 1200 || I.heldMs(BT_Y, now) > 1200) ? 8 : 1;
     if (I.repeat(BT_X, now, 300, 45)) smpEdit(slot, mul);
     if (I.repeat(BT_Y, now, 300, 45)) smpEdit(slot, -mul);

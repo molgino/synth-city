@@ -1686,6 +1686,7 @@ void Engine::stepTrack(int t) {
 
 // ein Tick (12 pro 16tel): Spuren mit eigener Geschwindigkeit, Pattern-Ende = laengste Spur
 void Engine::doTick() {
+    if (patTick % 192 == 0 && barOff < 0) barOff = curOff;   // Page-Anfang (16 Steps x 12 Ticks)
     if (patTick == 0) {
         if (songActive() && rowPending) {   // Song: Pattern je Spur aus der neuen Zeile
             rowPending = false;

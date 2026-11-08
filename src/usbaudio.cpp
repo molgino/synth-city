@@ -419,6 +419,7 @@ static volatile double g_ibase = 1.0;     // USB-Frames je Engine-Frame (48 kHz 
 static volatile int g_ireset = 0;         // Rate gewechselt: Mischer faengt neu an
 static float* g_rec = nullptr;            // Aufnahme in Float (Stereo), Rate = Engine-Rate
 static volatile int g_recLen = 0, g_recState = 0;   // 0 aus, 1 wartet auf Signal, 2 nimmt auf, 3 fertig
+static volatile float g_recThr = 0.01f;   // Start-Schwelle (linear, < 0 = sofort)
 static volatile int g_recRate = 44100;
 enum { REC_SEC = 60 };
 static int g_recAlloc = 0;                // Frames im Puffer
@@ -510,13 +511,14 @@ void pcInMix(float* st, int frames, float gain) {   // nur aus dem Audio-Callbac
     double pos = g_ifrac;
     int rs = g_recState;
     const int recMax = g_recAlloc;
+    const float thr = g_recThr;
     for (int i = 0; i < frames; i++, pos += g_iratio) {
         unsigned ip = (unsigned)pos;
         float f = (float)(pos - ip);
         float L = hermite(g_iring, r + ip, f, 0, IMASK), R = hermite(g_iring, r + ip, f, 1, IMASK);   // kubisch statt linear
         st[i * 2] += L * gain;
         st[i * 2 + 1] += R * gain;
-        if (rs == 1 && (fabsf(L) > 0.01f || fabsf(R) > 0.01f)) rs = 2;   // Aufnahme beginnt mit dem ersten Signal
+        if (rs == 1 && (fabsf(L) > thr || fabsf(R) > thr)) rs = 2;   // Aufnahme beginnt mit dem ersten Signal ueber der Schwelle
         if (rs == 2 && g_rec) {
             int n = g_recLen;
             if (n >= recMax) rs = 3;
@@ -529,8 +531,9 @@ void pcInMix(float* st, int frames, float gain) {   // nur aus dem Audio-Callbac
     __atomic_store_n(&g_ir, r + used, __ATOMIC_RELEASE);
 }
 
-bool pcRecStart() {
+bool pcRecStart(float thr) {
     if (g_recState == 1 || g_recState == 2) return true;
+    g_recThr = thr;
     const int need = g_srcRate * REC_SEC;
     if (g_rec && g_recAlloc < need) { free(g_rec); g_rec = nullptr; g_recAlloc = 0; }
     if (!g_rec) { g_rec = (float*)malloc(sizeof(float) * 2 * (size_t)need); if (g_rec) g_recAlloc = need; }
@@ -558,7 +561,7 @@ void pcInStop() {}
 bool pcInActive() { return false; }
 int pcInStatus() { return 0; }
 void pcInMix(float*, int, float) {}
-bool pcRecStart() { return false; }
+bool pcRecStart(float) { return false; }
 void pcRecStop() {}
 int pcRecState() { return 0; }
 float pcRecSeconds() { return 0; }

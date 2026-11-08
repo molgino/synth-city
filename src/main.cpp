@@ -86,8 +86,8 @@ static bool selfTesting = false;   // --selftest/--bench: keine Systemaktionen (
 static Project lastSaved;
 
 // System-Einstellungen (settings.cfg)
-struct Settings { char dev[128]; int buf, midiIn, notesOut, clk, chm, usb, song, dispOff, usbAudio, hwVol, pcIn, usbVol, intUsb, cores, lang, usbNet, uac, uacSendOnly, usbCh, hostMc, usbBint, usbNetOn; signed char usbRoute[NTRACKS + NBUS]; char project[64]; };   // usbRoute: 0 Auto, 1 nur Master, 2+k Paar k (USB 3-4 ...)   // usbNet 0 NCM / 1 RNDIS, uac 2 / 1
-static Settings cfg = {"", 1, 1, 0, 0, 0, 0, 0, 277, 1, 80, 1, 100, 1, 2, 0, 0, 2, 0, 2, 0, 0, 1, {0}, ""};
+struct Settings { char dev[128]; int buf, midiIn, notesOut, clk, chm, usb, song, dispOff, usbAudio, hwVol, pcIn, usbVol, intUsb, cores, lang, usbNet, uac, uacSendOnly, usbCh, hostMc, usbBint, usbNetOn; signed char usbRoute[NTRACKS + NBUS]; char project[64]; int recPages, newPage, recThr; };   // usbRoute: 0 Auto, 1 nur Master, 2+k Paar k (USB 3-4 ...)   // usbNet 0 NCM / 1 RNDIS, uac 2 / 1
+static Settings cfg = {"", 1, 1, 0, 0, 0, 0, 0, 277, 1, 80, 1, 100, 1, 2, 0, 0, 2, 0, 2, 0, 0, 1, {0}, "", 0, 1, -40};   // recPages 0 = FREI, newPage 1 = Kopie der vorigen Page, recThr Start-Schwelle dB (-99 = sofort)
 // Kanaele zum PC (USB-Audio): Mehrkanal nur mit UAC2
 static int usbChannels() { return cfg.uac == 1 ? 2 : (cfg.usbCh == 8 || cfg.usbCh == 18 ? cfg.usbCh : 2); }
 // Kanaele, mit denen gerade gesendet wird (Host-Modus: was das Geraet annimmt), sonst die PC-Einstellung
@@ -194,14 +194,17 @@ static void loadSettings() {
         else if (!strcmp(line, "usb_audio_channels")) { int c = atoi(v); cfg.usbCh = c >= 18 ? 18 : (c == 8 ? 8 : 2); }   // 24 gab es kurz: stockte am R36S
         else if (!strcmp(line, "usb_route")) { const char* p = v; for (int q = 0; q < NTRACKS + NBUS && *p; q++) { cfg.usbRoute[q] = (signed char)clampi(atoi(p), 0, 9); while (*p && *p != ' ') p++; while (*p == ' ') p++; } }
         else if (!strcmp(line, "display_offset")) cfg.dispOff = clampi(atoi(v), -1920, 1920);
+        else if (!strcmp(line, "rec_pages")) cfg.recPages = clampi(atoi(v), 0, 16);
+        else if (!strcmp(line, "new_page")) cfg.newPage = clampi(atoi(v), 0, 1);
+        else if (!strcmp(line, "rec_threshold")) { int t = atoi(v); cfg.recThr = t <= -61 ? -99 : clampi(t, -60, -6); }
     }
     fclose(f);
 }
 static void saveSettings() {
     FILE* f = fopen(setPath, "w");
     if (!f) return;
-    fprintf(f, "# Groovebox Systemeinstellungen\naudio_device %s\nbuffer %d\nmidi_in %d\nmidi_notes_out %d\nmidi_clock %d\nmidi_channels %d\nusb_mode %d\nsong %d\ndisplay_offset %d\nusb_audio %d\nhw_volume %d\npc_in %d\nusb_volume %d\ninternal_on_usb %d\naudio_cores %d\nlanguage %d\nusb_net %d\nusb_audio_class %d\nusb_audio_send_only %d\nusb_audio_channels %d\nusb_host_multi %d\nusb_audio_interval %d\nusb_network_on %d\nusb_route %d %d %d %d %d %d %d %d %d %d %d\nproject %s\n",
-            cfg.dev, cfg.buf, cfg.midiIn, cfg.notesOut, cfg.clk, cfg.chm, cfg.usb, cfg.song, cfg.dispOff, cfg.usbAudio, cfg.hwVol, cfg.pcIn, cfg.usbVol, cfg.intUsb, cfg.cores, cfg.lang, cfg.usbNet, cfg.uac, cfg.uacSendOnly, cfg.usbCh, cfg.hostMc, cfg.usbBint, cfg.usbNetOn, cfg.usbRoute[0], cfg.usbRoute[1], cfg.usbRoute[2], cfg.usbRoute[3], cfg.usbRoute[4], cfg.usbRoute[5], cfg.usbRoute[6], cfg.usbRoute[7], cfg.usbRoute[8], cfg.usbRoute[9], cfg.usbRoute[10], cfg.project);
+    fprintf(f, "# Groovebox Systemeinstellungen\naudio_device %s\nbuffer %d\nmidi_in %d\nmidi_notes_out %d\nmidi_clock %d\nmidi_channels %d\nusb_mode %d\nsong %d\ndisplay_offset %d\nusb_audio %d\nhw_volume %d\npc_in %d\nusb_volume %d\ninternal_on_usb %d\naudio_cores %d\nlanguage %d\nusb_net %d\nusb_audio_class %d\nusb_audio_send_only %d\nusb_audio_channels %d\nusb_host_multi %d\nusb_audio_interval %d\nusb_network_on %d\nusb_route %d %d %d %d %d %d %d %d %d %d %d\nproject %s\nrec_pages %d\nnew_page %d\nrec_threshold %d\n",
+            cfg.dev, cfg.buf, cfg.midiIn, cfg.notesOut, cfg.clk, cfg.chm, cfg.usb, cfg.song, cfg.dispOff, cfg.usbAudio, cfg.hwVol, cfg.pcIn, cfg.usbVol, cfg.intUsb, cfg.cores, cfg.lang, cfg.usbNet, cfg.uac, cfg.uacSendOnly, cfg.usbCh, cfg.hostMc, cfg.usbBint, cfg.usbNetOn, cfg.usbRoute[0], cfg.usbRoute[1], cfg.usbRoute[2], cfg.usbRoute[3], cfg.usbRoute[4], cfg.usbRoute[5], cfg.usbRoute[6], cfg.usbRoute[7], cfg.usbRoute[8], cfg.usbRoute[9], cfg.usbRoute[10], cfg.project, cfg.recPages, cfg.newPage, cfg.recThr);
     fclose(f);
 }
 static void applyMidiSettings() {
@@ -844,7 +847,7 @@ static void redoStep() {
 // Seiten: Spurseiten haben eine Speicherseite (je 8 Parameter), globale nicht
 static bool trackPage(int p) { return p >= 0 && p < NUI_PAGES && PG_STORE[p] >= 0; }
 static int sp() { return PG_STORE[page]; }
-static int nSlots() { return trackPage(page) ? uiSlots(page) : 8; }   // Regler der aktuellen Seite (Huellkurven/LFO: 12)
+static int nSlots() { return trackPage(page) ? uiSlots(page) : (page == PG_SMPR ? 10 : 8); }   // Sampler: 10 (mit LAENGE, SCHWELLE)   // Regler der aktuellen Seite (Huellkurven/LFO: 12)
 static int slotParam(int k) { return trackPage(page) ? uiParam(page, k) : -1; }
 static bool pageAvail(int p) {
     if (p == PG_SRC2) return machineHasSrc2(curP().machine[track]);
@@ -4196,7 +4199,7 @@ static void setAction(int i) {
     case SI_PCREC:
         if (pcRecState() == 1 || pcRecState() == 2) { pcRecStop(); toast(pcRecState() ? TR("AUFNAHME BEENDET", "RECORDING FINISHED") : TR("ABGEBROCHEN", "CANCELLED")); }
         else if (usbMode != 2) toast(TR("ERST USB = PC (MIDI + AUDIO)", "SET USB = PC (MIDI + AUDIO) FIRST"));
-        else if (pcRecStart()) toast(TR("AM PC ABSPIELEN - AUFNAHME STARTET MIT DEM TON", "PLAY ON THE PC - RECORDING STARTS WITH THE SOUND"));
+        else if (pcRecStart(recThrLin())) toast(TR("AM PC ABSPIELEN - AUFNAHME STARTET MIT DEM TON", "PLAY ON THE PC - RECORDING STARTS WITH THE SOUND"));
         break;
     case SI_USBTONE: if (usbAudioActive()) { usbAudioTestTone(5000); toast(TR("TESTTON 5 S AN DEN PC", "TEST TONE 5 S TO PC")); } else toast(TR("ERST USB = PC (MIDI + AUDIO)", "SET USB = PC (MIDI + AUDIO) FIRST")); break;
     case SI_QUIT: askConfirm(ACT_QUIT, 0, TR("GROOVEBOX BEENDEN? (PROJEKT WIRD GESPEICHERT)", "QUIT GROOVEBOX? (PROJECT WILL BE SAVED)")); break;

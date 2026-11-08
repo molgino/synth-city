@@ -128,7 +128,7 @@ void pcInStop() {}
 bool pcInActive() { return false; }
 int pcInStatus() { return 0; }
 void pcInMix(float*, int, float) {}
-bool pcRecStart() { return false; }
+bool pcRecStart(float) { return false; }
 void pcRecStop() {}
 int pcRecState() { return 0; }
 float pcRecSeconds() { return 0.f; }
