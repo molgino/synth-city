@@ -11,6 +11,7 @@ window.GB_SYNC = (function () {
 #gbs h2{margin:0 0 8px;font-size:16px;letter-spacing:.15em;color:#fff}#gbs p{margin:6px 0;color:#8a80b0}
 #gbs button,#gbs .fl{display:inline-block;background:#20183a;color:#d6eeff;border:1px solid #3a2f60;border-radius:10px;font:inherit;padding:9px 14px;margin:6px 6px 0 0;cursor:pointer}
 #gbs button.go{background:#ff2e88;border-color:#ff2e88;color:#fff;font-weight:700}#gbs button:disabled{opacity:.45}
+#gbs select{background:#080612;color:#d6eeff;border:1px solid #3a2f60;border-radius:8px;font:inherit;padding:5px}
 #gbs input[type=text]{background:#080612;color:#d6eeff;border:1px solid #3a2f60;border-radius:8px;font:inherit;padding:7px 9px;width:12em}
 #gbs label{color:#8a80b0;margin-right:12px}#gbs progress{width:100%;height:10px;accent-color:#ff2e88}
 #gbsLog{white-space:pre-wrap;font-size:13px;max-height:34vh;overflow:auto}#gbsLog .ok{color:#2bff9a}#gbsLog .bad{color:#ff4f6a}#gbsLog .hi{color:#00e0ff}
@@ -26,7 +27,7 @@ window.GB_SYNC = (function () {
 <p>R36S per USB anschließen (SET → USB-Modus = PC) oder ins selbe WLAN. Es öffnet sich ein zweites Fenster vom Gerät – dort „Erlauben“ tippen.
 Hält das Handy ein Fenster an, einfach zwischen beiden hin- und herwechseln.</p>
 <div>Gerät <input type="text" id="gbsIp" autocomplete="off" autocapitalize="off" spellcheck="false"></div>
-<div style="margin-top:6px"><label><input type="checkbox" id="gbsSmp" checked> Samples</label><label><input type="checkbox" id="gbsRec"> Aufnahmen (rec)</label></div>
+<div style="margin-top:6px"><label>Samples <select id="gbsSmp"><option value="used">nur benutzte</option><option value="all">alle</option><option value="none">keine</option></select></label><label><input type="checkbox" id="gbsRec"> Aufnahmen (rec)</label></div>
 <button class="go" data-dir="up">Handy → Gerät</button><button class="go" data-dir="down">Gerät → Handy</button><button class="go" data-dir="both">Beides abgleichen</button>
 <p style="font-size:12px">Handy → Gerät: das Gerät bekommt alle Stände vom Handy. Gerät → Handy: umgekehrt. Beides: Neues wird in beide Richtungen kopiert,
 wurde eine Datei auf beiden Seiten geändert, bleiben beide erhalten („Name (Handy)“). Gelöscht wird nichts.</p></div>
@@ -36,6 +37,9 @@ wurde eine Datei auf beiden Seiten geändert, bleiben beide erhalten („Name (H
     document.body.appendChild(el);
     const ip = el.querySelector('#gbsIp');
     try { ip.value = localStorage.gbSyncIp || '192.168.77.1'; } catch (e) { ip.value = '192.168.77.1'; }
+    const sm = el.querySelector('#gbsSmp');
+    try { if (localStorage.gbSyncSmp) sm.value = localStorage.gbSyncSmp; } catch (e) {}
+    sm.onchange = () => { try { localStorage.gbSyncSmp = sm.value; } catch (e) {} };
     el.querySelector('#gbsX').onclick = () => { if (!busy) el.classList.remove('on'); };
     el.querySelectorAll('[data-dir]').forEach(b => b.onclick = () => run(b.dataset.dir));
     el.querySelector('#gbsZip').onclick = zipOut;
@@ -44,7 +48,7 @@ wurde eine Datei auf beiden Seiten geändert, bleiben beide erhalten („Name (H
   }
   function log(t, cls) { const d = document.createElement('div'); if (cls) d.className = cls; d.textContent = t; const L = el.querySelector('#gbsLog'); L.appendChild(d); L.scrollTop = 1e9; }
   function prog(v) { const p = el.querySelector('#gbsPr'); p.hidden = v < 0; if (v >= 0) p.value = v; }
-  function lock(on) { busy = on; el.querySelectorAll('button,input').forEach(b => { if (b.id !== 'gbsX') b.disabled = on; }); }
+  function lock(on) { busy = on; el.querySelectorAll('button,input,select').forEach(b => { if (b.id !== 'gbsX') b.disabled = on; }); }
 
   // ---------------------------------------------------------------- Dateien im Handy (/data)
   const FSm = () => Module.FS;
@@ -98,14 +102,39 @@ wurde eine Datei auf beiden Seiten geändert, bleiben beide erhalten („Name (H
     return { put, get, check, rename };
   }
 
+  // Sample-Namen aus Projekten/Sounds (Trailer "SPL1" + u16 Anzahl + je u8 Platz, u8 Laenge, Name ohne .wav)
+  function trailerNames(buf) {
+    const u = new Uint8Array(buf), out = [], td = new TextDecoder();
+    for (let i = u.length - 6; i >= Math.max(0, u.length - 70000); i--) {
+      if (u[i] !== 83 || u[i + 1] !== 80 || u[i + 2] !== 76 || u[i + 3] !== 49) continue;   // "SPL1"
+      const n = u[i + 4] | (u[i + 5] << 8); let p = i + 6; const names = [];
+      for (let k = 0; k < n && p + 2 <= u.length; k++) { const l = u[p + 1]; names.push(td.decode(u.subarray(p + 2, p + 2 + l))); p += 2 + l; }
+      if (p === u.length) { out.push(...names); break; }   // Trailer muss genau bis zum Dateiende reichen
+    }
+    return out;
+  }
+  const stem = p => p.replace(/\.wav$/i, '');
+  function usedSamples() {   // alle Samples, die Projekte oder Sounds auf dem Handy brauchen
+    const set = new Set();
+    for (const f of localList(false, false)) { try { trailerNames(readLocal(f.r, f.p)).forEach(n => set.add(n)); } catch (e) {} }
+    return set;
+  }
+
   // Fenster zum Geraet: Nachrichten mit Antwort (wartet auch, wenn das Fenster gerade angehalten ist)
   function bridge(ip) {
-    let w = null, origin = 'http://' + ip, waiters = [];
-    const onMsg = e => { if (e.origin !== origin || e.source !== w) return; const m = e.data; if (!m || !m.t) return; const ws = waiters; waiters = []; ws.forEach(f => f(m)); };
+    let w = null, origin = 'http://' + ip, waiters = [], onChunk = null, lastMsg = 0;
+    const onMsg = e => {
+      if (e.origin !== origin || e.source !== w) return; const m = e.data; if (!m || !m.t) return;
+      lastMsg = Date.now();
+      if (m.t === 'chunk') { if (onChunk) onChunk(m); return; }
+      const ws = waiters; waiters = []; ws.forEach(f => f(m));
+    };
     addEventListener('message', onMsg);
+    // Zeitlimit zaehlt ab der letzten Nachricht (grosse Uebertragungen duerfen dauern, solange etwas kommt)
     const next = (pred, ms) => new Promise((res, rej) => {
-      const tm = setTimeout(() => rej(new Error('Keine Antwort vom Gerät')), ms);
-      const f = m => { if (m.t === 'error') { clearTimeout(tm); rej(new Error(m.text)); } else if (m.t === 'denied') { clearTimeout(tm); rej(new Error('Am Gerät abgelehnt')); } else if (pred(m)) { clearTimeout(tm); res(m); } else waiters.push(f); };
+      lastMsg = Date.now();
+      const tm = setInterval(() => { if (Date.now() - lastMsg > ms) { clearInterval(tm); rej(new Error('Keine Antwort vom Gerät')); } }, 1000);
+      const f = m => { if (m.t === 'error') { clearInterval(tm); rej(new Error(m.text)); } else if (m.t === 'denied') { clearInterval(tm); rej(new Error('Am Gerät abgelehnt')); } else if (pred(m)) { clearInterval(tm); res(m); } else waiters.push(f); };
       waiters.push(f);
     });
     return {
@@ -113,9 +142,10 @@ wurde eine Datei auf beiden Seiten geändert, bleiben beide erhalten („Name (H
         w = window.open(origin + '/sync', 'gbsync');
         if (!w) throw new Error('Fenster wurde blockiert – Popups für diese App erlauben');
         let n = 0; const hello = setInterval(() => { try { w.postMessage({ t: 'hello', again: n++ > 0 }, origin); } catch (e) {} }, 500);
-        try { await next(m => m.t === 'ready', 120000); } finally { clearInterval(hello); }
+        const hint = setTimeout(() => log('Noch keine Antwort: im Gerät-Fenster „Erlauben“ tippen. Kein Fenster zu sehen? Dann klappt die Verbindung aus dieser App nicht – ZIP-Weg unten nutzen.', 'hi'), 15000);
+        try { await next(m => m.t === 'ready', 120000); } finally { clearInterval(hello); clearTimeout(hint); }
       },
-      async ask(msg, reply, tr, ms) { w.postMessage(msg, origin, tr || []); return next(m => m.t === reply, ms || 600000); },
+      async ask(msg, reply, chunkFn) { onChunk = chunkFn || null; try { w.postMessage(msg, origin); return await next(m => m.t === reply, 300000); } finally { onChunk = null; } },
       done(text) { try { w.postMessage({ t: 'done', text }, origin); } catch (e) {} removeEventListener('message', onMsg); },
       close() { removeEventListener('message', onMsg); },
     };
@@ -125,7 +155,7 @@ wurde eine Datei auf beiden Seiten geändert, bleiben beide erhalten („Name (H
     const ip = el.querySelector('#gbsIp').value.trim().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
     if (!ip) return;
     try { localStorage.gbSyncIp = ip; } catch (e) {}
-    const withSmp = el.querySelector('#gbsSmp').checked, withRec = el.querySelector('#gbsRec').checked;
+    const smpMode = el.querySelector('#gbsSmp').value, withRec = el.querySelector('#gbsRec').checked;
     el.querySelector('#gbsLog').textContent = ''; lock(true); prog(0);
     const b = bridge(ip);
     try {
@@ -134,39 +164,66 @@ wurde eine Datei auf beiden Seiten geändert, bleiben beide erhalten („Name (H
       await b.open();
       log('Verbunden', 'ok');
       let remote = (await b.ask({ t: 'manifest', rec: withRec }, 'manifest')).files;
-      if (!withSmp) remote = remote.filter(f => f.r !== 'samples');
-      const state = stateLoad(ip), local = localList(withSmp, withRec);
-      const plan = makePlan(dir, local, remote, state);
-      // Konflikte (beide Seiten geaendert): Handy-Version als "Name (Handy)" behalten und mit hochladen
-      const doRename = l => { const np = altName(l.p); FSm().rename('/data/' + l.r + '/' + l.p, '/data/' + l.r + '/' + np); const st = FSm().stat('/data/' + l.r + '/' + np); const nf = { r: l.r, p: np, s: st.size, t: st.mtime.getTime() }; plan.put.push(nf); plan.get.push(remote.find(f => key(f) === key(l))); log('Beide geändert: ' + l.p + ' → Handy-Stand heißt jetzt „' + np + '“', 'hi'); };
-      plan.rename.forEach(doRename);
-      log(`Plan: ${plan.put.length} hoch, ${plan.get.length + plan.check.length} runter`);
-      let res = await b.ask({ t: 'plan', rec: withRec, put: plan.put.map(f => ({ r: f.r, p: f.p, data: readLocal(f.r, f.p) })), get: [...plan.get, ...plan.check].map(f => ({ r: f.r, p: f.p })) }, 'result');
-      // Ergebnis schreiben; "check": Inhalt gleich -> nichts, verschieden -> Konflikt (Handy-Stand umbenennen, Geraete-Stand uebernehmen)
-      const checkKeys = new Set(plan.check.map(key)), extraPut = [];
-      let wrote = 0;
-      const cur = Module.UTF8ToString(Module._gbProjectName());
-      let curChanged = false;
-      for (const g of res.got) {
-        if (checkKeys.has(key(g))) {
-          let mine; try { mine = readLocal(g.r, g.p); } catch (e) { mine = null; }
-          if (mine && sameBytes(mine, g.data)) continue;
-          if (mine) { const np = altName(g.p); FSm().rename('/data/' + g.r + '/' + g.p, '/data/' + g.r + '/' + np); extraPut.push({ r: g.r, p: np, data: readLocal(g.r, np) }); log('Beide geändert: ' + g.p + ' → Handy-Stand heißt jetzt „' + np + '“', 'hi'); }
+      const state = stateLoad(ip), cur = Module.UTF8ToString(Module._gbProjectName());
+      let up = 0, down = 0, curChanged = false;
+      const conflict = (r, p) => { const np = altName(p); FSm().rename('/data/' + r + '/' + p, '/data/' + r + '/' + np); log('Beide geändert: ' + p + ' → Handy-Stand heißt jetzt „' + np + '“', 'hi'); return np; };
+
+      // eine Runde (erst Projekte + Sounds, dann Samples): hoch in Haeppchen, runter kommt in Haeppchen
+      const round = async (label, filter) => {
+        const local = localList(true, withRec).filter(filter), rem = remote.filter(filter);
+        const plan = makePlan(dir, local, rem, state);
+        for (const l of plan.rename) {   // beide geaendert, verschieden gross: Handy-Stand umbenennen + hoch, Geraete-Stand runter
+          const np = conflict(l.r, l.p); plan.put.push({ r: l.r, p: np }); plan.get.push({ r: l.r, p: l.p });
         }
-        writeLocal(g.r, g.p, g.data); wrote++;
-        if (g.r === 'projects' && g.p === cur + '.gbx') curChanged = true;
+        const gets = [...plan.get, ...plan.check].map(f => ({ r: f.r, p: f.p }));
+        if (!plan.put.length && !gets.length) return;
+        log(`${label}: ${plan.put.length} hoch, ${gets.length} runter`);
+        const total = plan.put.length + gets.length; let doneN = 0;
+        const checkKeys = new Set(plan.check.map(key)), extraPut = [];
+        const take = got => {
+          for (const g of got) {
+            doneN++;
+            if (checkKeys.has(key(g))) {
+              let mine = null; try { mine = readLocal(g.r, g.p); } catch (e) {}
+              if (mine && sameBytes(mine, g.data)) continue;
+              if (mine) extraPut.push({ r: g.r, p: conflict(g.r, g.p) });
+            }
+            writeLocal(g.r, g.p, g.data); down++;
+            if (g.r === 'projects' && g.p === cur + '.gbx') curChanged = true;
+          }
+          prog(doneN / total);
+          GB_LOCAL.persist();
+        };
+        // hoch: Haeppchen bis ~8 MB, die Downloads haengen am letzten
+        const sendPuts = async (puts, withGets) => {
+          let i = 0;
+          do {
+            const batch = []; let sz = 0;
+            while (i < puts.length && (sz < 8e6 || !batch.length)) { const f = puts[i++], data = readLocal(f.r, f.p); batch.push({ r: f.r, p: f.p, data }); sz += data.byteLength; }
+            const last = i >= puts.length;
+            const res = await b.ask({ t: 'plan', rec: withRec, put: batch, get: last && withGets ? gets : [], last: last }, 'result', m => take(m.got));
+            up += batch.length; doneN += batch.length; prog(doneN / total);
+            take(res.got); remote = res.files;
+          } while (i < puts.length);
+        };
+        await sendPuts(plan.put, true);
+        if (extraPut.length) { await sendPuts(extraPut, false); }
+      };
+
+      await round('Projekte und Sounds', f => f.r !== 'samples');
+      if (smpMode !== 'none') {
+        const want = smpMode === 'used' ? usedSamples() : null;
+        if (want) log(want.size + ' Samples werden in Projekten/Sounds benutzt');
+        await round('Samples', f => f.r === 'samples' && (!want || want.has(stem(f.p))));
       }
-      if (extraPut.length) res = await b.ask({ t: 'plan', rec: withRec, put: extraPut, get: [] }, 'result');
       // Zustand merken (fuer "geaendert seit dem letzten Sync")
-      let remoteNow = res.files; if (!withSmp) remoteNow = remoteNow.filter(f => f.r !== 'samples');
-      const localNow = localList(withSmp, withRec), Rn = new Map(remoteNow.map(f => [key(f), f]));
-      for (const l of localNow) { const r = Rn.get(key(l)); if (r) state[key(l)] = { ls: l.s, lt: l.t, ds: r.s, dt: r.t }; }
+      const Rn = new Map(remote.map(f => [key(f), f]));
+      for (const l of localList(true, withRec)) { const r = Rn.get(key(l)); if (r) state[key(l)] = { ls: l.s, lt: l.t, ds: r.s, dt: r.t }; }
       stateSave(ip, state);
-      const up = plan.put.length + extraPut.length;
-      const text = `Fertig: ${up} aufs Gerät, ${wrote} aufs Handy`;
+      const text = `Fertig: ${up} aufs Gerät, ${down} aufs Handy`;
       b.done(text);
       GB_LOCAL.persist();
-      if (wrote) { Module.ccall('gbFilesChanged', null, ['string'], ['SYNC: ' + wrote + ' DATEIEN VOM GERÄT']); if (curChanged) Module._gbReloadProject(); }
+      if (down) { Module.ccall('gbFilesChanged', null, ['string'], ['SYNC: ' + down + ' DATEIEN VOM GERÄT']); if (curChanged) Module._gbReloadProject(); }
       log(text, 'ok'); prog(1);
     } catch (e) {
       b.close();
@@ -221,7 +278,7 @@ wurde eine Datei auf beiden Seiten geändert, bleiben beide erhalten („Name (H
     el.querySelector('#gbsLog').textContent = ''; lock(true);
     try {
       GB_LOCAL.saveNow();
-      const withRec = el.querySelector('#gbsRec').checked, withSmp = el.querySelector('#gbsSmp').checked;
+      const withRec = el.querySelector('#gbsRec').checked, withSmp = el.querySelector('#gbsSmp').value !== 'none';
       const list = localList(withSmp, withRec).map(f => ({ name: f.r + '/' + f.p, data: readLocal(f.r, f.p) }));
       const name = 'synth-city-handy-' + new Date().toISOString().slice(0, 10) + '.zip', blob = zipBuild(list);
       const file = new File([blob], name, { type: 'application/zip' });
@@ -255,5 +312,5 @@ wurde eine Datei auf beiden Seiten geändert, bleiben beide erhalten („Name (H
     lock(false);
   }
 
-  return { open() { ui().classList.add('on'); }, _plan: makePlan, _zip: { zipBuild, zipRead } };
+  return { open() { ui().classList.add('on'); }, _plan: makePlan, _trailer: trailerNames, _zip: { zipBuild, zipRead } };
 })();

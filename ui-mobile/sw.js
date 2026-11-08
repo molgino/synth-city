@@ -1,5 +1,5 @@
 // Service Worker der Handy-App: alles aus dem Cache (offline), Updates im Hintergrund (naechster Start)
-const CACHE = 'synthcity-57a8788e799a', FILES = ["./", "index.html", "local.js", "sync.js", "synthcity.js", "synthcity.wasm", "manifest.json", "VERSION", "icon-180.png", "icon-192.png", "icon-512.png"];
+const CACHE = 'synthcity-a57670547a6d', FILES = ["./", "index.html", "local.js", "sync.js", "synthcity.js", "synthcity.wasm", "manifest.json", "VERSION", "icon-180.png", "icon-192.png", "icon-512.png"];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
 });
