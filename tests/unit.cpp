@@ -533,6 +533,35 @@ static void testModTargets() {
     CHECK(pk > 0.05f && lastActive >= 0 && lastActive < 44100 / 4, "Gate-VCA falsch (Spitze %.2f, Ende %d)", pk, lastActive);
 }
 
+// Sampler-Abgriff: eine Spur getrennt mitschreiben, Master bleibt gleich
+static void testTrackTap() {
+    curTest = "Spur-Abgriff";
+    static float a[22050 * 2], b[22050 * 2], tap[22050 * 2];
+    float eT[2] = {0, 0}, md = 0;
+    for (int run = 0; run < 3; run++) {   // 0: ohne, 1: Spur 1 (Kick), 2: Spur 4 (leer)
+        static Engine RT[3];
+        Engine& X = RT[run];
+        X.init(44100); X.stop(); X.audioThreads = 1; X.defaultProject(false); X.proj.bpm = 120;
+        Pattern& P = X.proj.pat[0];
+        Engine::initTrack(P, 0, M_KICK); Engine::initTrack(P, 1, M_SNARE);
+        for (int t = 2; t < NTRACKS; t++) for (int s2 = 0; s2 < 64; s2++) P.s[t][s2].on = 0;
+        for (int s2 = 0; s2 < 16; s2 += 2) { P.s[0][s2].on = 1; P.s[1][s2 + 1].on = 1; }
+        X.start();
+        float* o = run ? b : a;
+        for (int i = 0; i < 22050; i += 256) {
+            int n = 22050 - i < 256 ? 22050 - i : 256;
+            if (run) { X.tapTrack = run == 1 ? 0 : 3; X.tapOut = tap + i * 2; }
+            X.render(o + i * 2, n);
+            X.tapOut = nullptr; X.tapTrack = -1;
+        }
+        if (run) { float e = 0; for (int i = 0; i < 22050 * 2; i++) e += fabsf(tap[i]); eT[run - 1] = e; }
+        if (run) for (int i = 0; i < 22050 * 2; i++) md = fmaxf(md, fabsf(a[i] - b[i]));
+    }
+    printf("  Spur-Abgriff: Kick %.0f, leere Spur %.0f, Master-Abweichung %.1e\n", eT[0], eT[1], md);
+    CHECK(eT[0] > 10.f && eT[1] == 0.f, "Abgriff falsch (Kick %.0f, leer %.0f)", eT[0], eT[1]);
+    CHECK(md < 1e-4f, "Master aendert sich durch den Abgriff (%.1e)", md);
+}
+
 // Time-Warp: Sample von 2 s (= 16 Steps bei 120 BPM) bei 240 BPM -> ~1 s lang, Tonhoehe bleibt (Nulldurchgaenge)
 static void testWarp() {
     curTest = "Time-Warp";
@@ -789,6 +818,7 @@ int main(int argc, char** argv) {
     testLfoFreeRun();
     testModTargets();
     testWarp();
+    testTrackTap();
     testPcm24(sdir);
     printf("%s: %d Pruefungen ok, %d Fehler\n", nFail ? "FEHLGESCHLAGEN" : "OK", nPass, nFail);
     return nFail ? 1 : 0;

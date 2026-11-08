@@ -27,7 +27,16 @@ static bool smpAlloc() {
     smpCap = smpBuf ? need : 0;
     return smpBuf != nullptr;
 }
-// Audio-Thread: Master mitschneiden (startet mit dem ersten Signal)
+// Audio-Thread: Quelle Spur n (smpSrc 2..9) -> Engine schreibt die Spur zusaetzlich nach smpTap
+static float smpTap[4096 * 2];
+static const float* smpAudioPre(int frames) {
+    bool on = (smpState == 1 || smpState == 2) && smpSrc >= 2 && frames <= 4096;
+    eng.tapTrack = on ? smpSrc - 2 : -1;
+    eng.tapOut = on ? smpTap : nullptr;
+    if (on) memset(smpTap, 0, sizeof(float) * 2 * (size_t)frames);
+    return on ? smpTap : nullptr;
+}
+// Audio-Thread: Master bzw. Spur mitschneiden (startet mit dem ersten Signal)
 static void smpPush(const float* st, int frames) {
     int s = smpState;
     if (s != 1 && s != 2) return;
@@ -145,7 +154,7 @@ static void smpEdit(int k, int d) {
     if (smpRecording()) return;
     int step = smpLen > 0 ? (smpLen / 500 > 1 ? smpLen / 500 : 1) : 1;
     switch (k) {
-    case SK_SRC: smpSrc = !smpSrc; break;
+    case SK_SRC: smpSrc = (smpSrc + (d > 0 ? 1 : 9)) % 10; break;   // USB, MASTER, SPUR 1-8
     case SK_START: if (smpLen > 0) { smpStart = clampi(smpStart + d * step, 0, smpEnd - 64); smpPeakCalc(); smpChopCalc(); } break;
     case SK_END: if (smpLen > 0) { smpEnd = clampi(smpEnd + d * step, smpStart + 64, smpLen); smpPeakCalc(); smpChopCalc(); } break;
     case SK_CHOPS: { int c = smpChops + (d > 0 ? 1 : -1); if (c == 1) c = d > 0 ? 2 : 0; smpChops = clampi(c, 0, SMP_MAXCHOP); smpChopCalc(); smpChopPv = -1; } break;
@@ -211,7 +220,7 @@ static void smpSave() {
             if (P.machine[track] != m) Engine::setMachine(P, track, m);
             P.p[track][P_S0] = (uint8_t)sl;
             if (m == M_CHOP && smpNCut >= 2) P.p[track][P_S1] = (uint8_t)(smpNCut - 1);   // SLCS = Scheiben - 1
-            if (smpSrc == 1) {   // vom Master: Laenge in Steps fuer den Time-Warp
+            if (smpSrc >= 1) {   // vom Master/einer Spur: Laenge in Steps fuer den Time-Warp
                 double steps = total / (eng.stepSamples() * smpRate / eng.sr);
                 int stp = (int)(steps + 0.5);
                 if (stp >= 1 && stp <= 128) P.p[track][P_X1] = (uint8_t)stp;
@@ -319,7 +328,10 @@ static void drawSampler() {
         hitAdd(x, y, tw, th, HK_SLOT, k);
         text(x + 7, y + 3, g_lang ? NM_EN[k] : NM_DE[k], sel ? C_ACC : C_DIM);
         switch (k) {
-        case SK_SRC: snprintf(b, sizeof b, "%s", smpSrc ? "MASTER" : TR("USB (PC/HANDY)", "USB (PC/PHONE)")); break;
+        case SK_SRC:
+            if (smpSrc >= 2) snprintf(b, sizeof b, TR("SPUR %d %s", "TRACK %d %s"), smpSrc - 1, MACHINE_NAMES[curP().machine[smpSrc - 2] % M_COUNT]);
+            else snprintf(b, sizeof b, "%s", smpSrc ? "MASTER" : TR("USB (PC/HANDY)", "USB (PC/PHONE)"));
+            break;
         case SK_START: snprintf(b, sizeof b, "%.2f s", smpStart / (float)smpRate); break;
         case SK_END: snprintf(b, sizeof b, "%.2f s", smpEnd / (float)smpRate); break;
         case SK_CHOPS: if (smpChops < 2) snprintf(b, sizeof b, TR("AUS", "OFF")); else snprintf(b, sizeof b, smpNCut != smpChops ? "%d (%d)" : "%d", smpChops, smpNCut); break;
@@ -343,11 +355,11 @@ static void drawSampler() {
         hitAdd(x, y, 151, 30, HK_BTN, BTN[i].bt);
     }
     // Erklaerung
-    static const char* const HL_DE[8] = {"USB: Ton vom PC/Handy (USB-Modus PC + Audio-Interface). MASTER: was die Groovebox spielt",
+    static const char* const HL_DE[8] = {"USB: PC/Handy. MASTER: Summe. SPUR 1-8: eine Spur (nach Insert/VOL/PAN, ohne FX-Busse)",
         "Anfang der Auswahl (grüne Linie)", "Ende der Auswahl (rote Linie)", "Anzahl Chops (Scheiben), AUS = ganzes Sample",
         "GLEICH: gleich lange Chops. TRANSIENT: an den Einsätzen (Drums)", "Auf volle Lautstärke bringen (-0,3 dB)",
         "Ein-/Ausblenden an den Schnitten gegen Knacken", "Nach dem Speichern in die aktuelle Spur laden (SMPL bzw. CHOP mit Chops)"};
-    static const char* const HL_EN[8] = {"USB: sound from PC/phone (USB mode PC + audio interface). MASTER: what the groovebox plays",
+    static const char* const HL_EN[8] = {"USB: PC/phone. MASTER: the mix. TRACK 1-8: one track (after insert/VOL/PAN, no FX buses)",
         "Start of the selection (green line)", "End of the selection (red line)", "Number of chops (slices), OFF = whole sample",
         "EQUAL: equal-length chops. TRANSIENT: at the hits (drums)", "Bring to full volume (-0.3 dB)",
         "Fade in/out at the cuts against clicks", "After saving, load into the current track (SMPL or CHOP with chops)"};

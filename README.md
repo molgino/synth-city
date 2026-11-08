@@ -271,7 +271,7 @@ Technik: Die Abspielposition läuft im Projekttempo, zwei überlappende Lese-Kö
 
 Aufnehmen, schneiden, in Chops zerlegen und speichern – direkt auf dem R36S. Zu finden in der Projekt-Reihe (SONG → PRJ → **SMPR** → MST → SET) bzw. über die Seitenkarte.
 
-* **QUELLE**: **USB** = Ton vom PC/Handy (USB-Modus PC mit Audio-Interface AN, dort abspielen) oder **MASTER** = was die Groovebox selbst spielt (Resampling). Die Aufnahme startet mit dem ersten Signal, max. 60 s.
+* **QUELLE**: **USB** = Ton vom PC/Handy (USB-Modus PC mit Audio-Interface AN, dort abspielen), **MASTER** = was die Groovebox spielt (Resampling der Summe) oder **SPUR 1–8** = eine einzelne Spur resamplen (nach Insert, Lautstärke und Panorama, ohne Effekt-Busse und Master-Kompressor; die Summe klingt dabei unverändert weiter). Die Aufnahme startet mit dem ersten Signal, max. 60 s.
 * **A** = Aufnahme starten/stoppen, **B** = Auswahl vorhören, **◀ ▶** = einzelne Chops vorhören, **▲** = speichern, **▼** = Vorhören stoppen. Regler wie überall: L1/R1 wählen, X/Y ändern (halten = schneller). Alles auch per Touch.
 * **START / ENDE**: Auswahl (grüne/rote Linie). **CHOPS**: AUS oder 2–64 Scheiben, **CHOP-ART**: GLEICH (gleich lang) oder TRANSIENT (an den Einsätzen, ideal für Drum-Loops). **NORMAL.**: auf −0,3 dB bringen. **FADE**: Ein-/Ausblenden an den Schnitten.
 * **Speichern** legt `samples/sampler/smp-NN.wav` an, bei Chops zusätzlich jede Scheibe einzeln (`smp-NN/01.wav` …). **ZIEL**: NUR DATEI, oder gleich in die aktuelle Spur als **SMPL** oder **CHOP** (SLCS = Anzahl Chops; bei TRANSIENT werden die Scheiben auf gleiche Länge gebracht, damit CHOP sie genau trifft). Vom MASTER aufgenommen wird BEATS für den Time-Warp gleich passend gesetzt.

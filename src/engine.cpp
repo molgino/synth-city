@@ -1717,12 +1717,13 @@ void Engine::processBlock(float* out, int n) {
     }
     bool split = wkOn && audioThreads > 1 && nAct >= 2 && tot >= 8.f;
     const bool mo = multiBuf && multiCh > 2;   // Mehrkanal: jede Spur in eigenen Puffer, danach zur Summe
-    if (mo) for (int t = 0; t < NTRACKS; t++) for (int i = 0; i < n; i++) TL[t][i] = TR[t][i] = 0.f;
+    const bool trk = mo || (tapOut && tapTrack >= 0 && tapTrack < NTRACKS);   // Spuren getrennt (Mehrkanal oder Sampler-Abgriff)
+    if (trk) for (int t = 0; t < NTRACKS; t++) for (int i = 0; i < n; i++) TL[t][i] = TR[t][i] = 0.f;
     if (!split) {
         for (int i = 0; i < nAct; i++) {
             Voice& vc = *act[i].v;
             vc.update(n, (float)sr, proj.bpm);
-            if (mo) vc.render(TL[act[i].t], TR[act[i].t], S, n, (float)sr);
+            if (trk) vc.render(TL[act[i].t], TR[act[i].t], S, n, (float)sr);
             else if (act[i].key) vc.render(KL, KR, S, n, (float)sr); else vc.render(L, R, S, n, (float)sr);
         }
     } else {
@@ -1732,8 +1733,8 @@ void Engine::processBlock(float* out, int n) {
             if (pthread_getschedparam(pthread_self(), &pol, &sp) == 0) pthread_setschedparam(wkThread, pol, &sp);
         }
         for (int i = 0; i < n; i++) { wL[i] = wR[i] = wKL[i] = wKR[i] = 0.f; for (int b = 0; b < NBUS; b++) wS[b][i] = 0.f; }
-        if (mo) for (int t = 0; t < NTRACKS; t++) for (int i = 0; i < n; i++) wTL[t][i] = wTR[t][i] = 0.f;
-        wkMo = mo;
+        if (trk) for (int t = 0; t < NTRACKS; t++) for (int i = 0; i < n; i++) wTL[t][i] = wTR[t][i] = 0.f;
+        wkMo = trk;
         __atomic_store_n(&wkN, nAct, __ATOMIC_RELAXED); wkNs = n;
         __atomic_store_n(&wkDone, 0, __ATOMIC_RELAXED);
         int seq = wkGoSeq + 1;
@@ -1745,7 +1746,7 @@ void Engine::processBlock(float* out, int n) {
         while (wkClaimOne(tag, idx)) {
             Voice& vc = *act[idx].v;
             vc.update(n, (float)sr, proj.bpm);
-            if (mo) vc.render(TL[act[idx].t], TR[act[idx].t], S, n, (float)sr);
+            if (trk) vc.render(TL[act[idx].t], TR[act[idx].t], S, n, (float)sr);
             else if (act[idx].key) vc.render(KL, KR, S, n, (float)sr); else vc.render(L, R, S, n, (float)sr);
             mineN++;
         }
@@ -1754,11 +1755,15 @@ void Engine::processBlock(float* out, int n) {
         if (helper > 0) {
             while (__atomic_load_n(&wkDone, __ATOMIC_ACQUIRE) < helper) { __asm__ __volatile__("" ::: "memory"); }
             for (int i = 0; i < n; i++) { L[i] += wL[i]; R[i] += wR[i]; KL[i] += wKL[i]; KR[i] += wKR[i]; for (int b = 0; b < NBUS; b++) S[b][i] += wS[b][i]; }
-            if (mo) for (int t = 0; t < NTRACKS; t++) for (int i = 0; i < n; i++) { TL[t][i] += wTL[t][i]; TR[t][i] += wTR[t][i]; }
+            if (trk) for (int t = 0; t < NTRACKS; t++) for (int i = 0; i < n; i++) { TL[t][i] += wTL[t][i]; TR[t][i] += wTR[t][i]; }
             wkBlocks++;
         }
     }
-    if (mo) for (int t = 0; t < NTRACKS; t++) {   // Spuren zur Summe (Sidechain-Spur am Kompressor vorbei wie sonst)
+    if (trk && tapOut && tapTrack >= 0 && tapTrack < NTRACKS) {   // Sampler: eine Spur abgreifen (nach Insert/VOL/PAN, ohne Busse)
+        float* o = tapOut + (size_t)moPos * 2;
+        for (int i = 0; i < n; i++) { o[i * 2] = TL[tapTrack][i]; o[i * 2 + 1] = TR[tapTrack][i]; }
+    }
+    if (trk) for (int t = 0; t < NTRACKS; t++) {   // Spuren zur Summe (Sidechain-Spur am Kompressor vorbei wie sonst)
         float* dl = t == key ? KL : L; float* dr = t == key ? KR : R;
         for (int i = 0; i < n; i++) { dl[i] += TL[t][i]; dr[i] += TR[t][i]; }
     }

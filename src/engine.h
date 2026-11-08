@@ -347,6 +347,8 @@ public:
     // Kanal 0-1 = Master, danach Stereo-Paare; multiRoute[q] = Paar (0 = Kanal 3-4 ...) fuer Quelle q (0-7 Spuren, 8-10 FX A/B/C), -1 = nur Master.
     // Mehrere Quellen auf demselben Paar werden addiert.
     float* multiBuf = nullptr;
+    // Sampler: Spur tapTrack (nach Insert/VOL/PAN, ohne Busse) zusaetzlich als Stereo nach tapOut (frames x 2), -1 = aus
+    float* tapOut = nullptr; int tapTrack = -1;
     int multiCh = 2;
     signed char multiRoute[NTRACKS + NBUS] = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
     bool helperReady() const { return wkOn; }

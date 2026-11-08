@@ -5081,10 +5081,12 @@ static void audioCb(void*, Uint8* stream, int len) {
     bool multi = mch > 2 && frames <= 4096;
     eng.multiBuf = multi ? multiBuf : nullptr; eng.multiCh = multi ? mch : 2;
     if (multi) for (int q = 0; q < NTRACKS + NBUS; q++) eng.multiRoute[q] = (signed char)usbRouteOf(q, mch);
+    const float* tap = smpAudioPre(frames);       // Sampler: Spur abgreifen
     eng.render((float*)stream, frames);
+    eng.tapOut = nullptr; eng.tapTrack = -1;
     if (multi) usbAudioPushMulti(multiBuf, frames);
     else usbAudioPush((const float*)stream, frames);   // parallel an den PC (falls aktiv)
-    smpPush((const float*)stream, frames);        // Sampler: Master mitschneiden (vor PC-Ton und Vorhoeren)
+    smpPush(tap ? tap : (const float*)stream, frames);   // Sampler: Master bzw. Spur mitschneiden (vor PC-Ton und Vorhoeren)
     pcInMix((float*)stream, frames, pcInGain);    // PC-Ton dazumischen (nach dem Senden: kein Echo zum PC)
     smpPreviewMix((float*)stream, frames);        // Sampler: Vorhoeren
     recPush((const float*)stream, frames);

@@ -609,6 +609,9 @@ static void uiScenarios() {
         simReset(); goPage(PG_SMPR);
         UCHECK(page == PG_SMPR, "Sampler-Seite nicht erreichbar (Seite %d)", page);
         smpSrc = 1; smpState = 0; smpFromPc = false;
+        slot = SK_SRC; tap(BT_X); UCHECK(smpSrc == 2, "Quelle SPUR 1 nicht waehlbar (%d)", smpSrc);
+        tap(BT_A); simFrame(); UCHECK(smpState == 1, "Spur-Aufnahme wartet nicht (%d)", smpState);
+        tap(BT_A); smpSrc = 1;
         tap(BT_A); UCHECK(smpState == 1, "A startet die Master-Aufnahme nicht (%d)", smpState);
         tap(BT_A); UCHECK(smpState == 0, "A bricht die wartende Aufnahme nicht ab (%d)", smpState);
         smpDemo(); smpDest = 2; track = 7; smpSavedNo = 0;
