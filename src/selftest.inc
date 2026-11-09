@@ -276,8 +276,8 @@ static void goPrj(int target) {   // PRJ-Seite: Steuerkreuz bis zum Feld
     }
     if (prjSel != target) { printf("  goPrj(%d) haengt in '%s' (bei %d)\n", target, uiCase, prjSel); fflush(stdout); }
 }
-static void goTrack(int t) { while (track != t) tap(track < t ? BT_DOWN : BT_UP); }
-static void goStep(int s) { while (cursor != s) tap(cursor < s ? BT_RIGHT : BT_LEFT); }
+static void goTrack(int t) { for (int g = 0; track != t && g < 20; g++) tap(track < t ? BT_DOWN : BT_UP); }   // Grenzen: ein Test darf nie haengen
+static void goStep(int s) { for (int g = 0; cursor != s && g < 300; g++) tap(cursor < s ? BT_RIGHT : BT_LEFT); }
 
 static void uiScenarios() {
     Pattern& P = curP();
@@ -704,7 +704,7 @@ static void uiScenarios() {
         UCHECK(fbOpen && fbMode == FB_SLOT && fbEnt[0].idx == -2, "X auf SMPL oeffnet keine Slot-Liste");
         fbSel = 0; tap(BT_A);   // "+ aus dem Speicher" -> Bibliothek
         UCHECK(fbOpen && fbMode == FB_SAMPLE, "Slot-Liste: Bibliothek oeffnet nicht");
-        while (fbDir[0]) tap(BT_B);   // zur Wurzel
+        for (int g = 0; fbDir[0] && g < 12; g++) tap(BT_B);   // zur Wurzel
         int dirs = 0; for (int i = 0; i < fbN; i++) dirs += fbEnt[i].dir;
         UCHECK(dirs > 0, "keine Unterordner sichtbar");
         fbSel = 0; tap(BT_A);   // in den ersten Ordner
@@ -717,7 +717,7 @@ static void uiScenarios() {
         int empty = -1; for (int i = 0; i < fbN; i++) if (fbEnt[i].idx >= 0 && fbEnt[i].idx < PREVIEW_SLOT && !sampleGet(fbEnt[i].idx)) { fbSel = i; empty = fbEnt[i].idx; break; }
         tap(BT_A);
         UCHECK(fbOpen && fbMode == FB_SAMPLE && fbAssign == empty, "leerer Slot oeffnet keine Bibliothek fuer diesen Slot");
-        while (fbDir[0]) tap(BT_B);
+        for (int g = 0; fbDir[0] && g < 12; g++) tap(BT_B);
         fbSel = 0; tap(BT_A);
         int want2 = -1; for (int i = fbN - 1; i >= 0; i--) if (!fbEnt[i].dir) { fbSel = i; want2 = fbEnt[i].idx; break; }
         tap(BT_A);
@@ -945,8 +945,8 @@ static void uiTasks() {
     simReset(); goPage(PG_MST); goSlot(MS_BPM); stickR(1.f, 300); rec("Tempo aendern", 3);
     simReset(); goTrack(1); goPage(PG_AMP); goSlot(6); stickR(1.f, 300); rec("Spur 2: Delay-Send", 4);
     simReset(); goTrack(4); goPage(PG_LFO1); slot = LF_DEST; tap(BT_X);   // Ziel-Liste: Ordner FLT, dann FREQ
-    while (fbOpen && !fbDir[0] && !(fbEnt[fbSel].dir && fbEnt[fbSel].idx == 2) && fbSel < fbN - 1) tap(BT_DOWN);
-    tap(BT_A); while (fbOpen && fbEnt[fbSel].idx != P_FREQ + 1 && fbSel < fbN - 1) tap(BT_DOWN);
+    for (int g = 0; g < 400 && fbOpen && !fbDir[0] && !(fbEnt[fbSel].dir && fbEnt[fbSel].idx == 2) && fbSel < fbN - 1; g++) tap(BT_DOWN);
+    tap(BT_A); for (int g = 0; g < 400 && fbOpen && fbEnt[fbSel].idx != P_FREQ + 1 && fbSel < fbN - 1; g++) tap(BT_DOWN);
     tap(BT_A); goSlot(LF_DEPTH); stickR(1.f, 300); rec("Spur 5: LFO1 -> Filter", 5);
     simReset(); goTrack(4); goPage(PG_AMP); goSlot(0); stickR(1.f, 200); goSlot(3); stickR(1.f, 200); rec("Spur 5: Attack + Release", 5);
     simReset(); goTrack(4); goPage(PG_ARP); goSlot(0); tap(BT_X); rec("Spur 5: Arpeggiator an", 3);

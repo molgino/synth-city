@@ -19,7 +19,8 @@ stage() {   # stage "Name" logdatei befehl...
     local name="$1" log="$LOGDIR/$2"; shift 2
     printf '%-46s' "$name ..."
     local t0=$SECONDS
-    if "$@" >"$log" 2>&1; then echo "OK ($((SECONDS - t0)) s)"; NAMES+=("$name"); RESULTS+=("OK")
+    # Zeitlimit: haengt eine Stufe, ist das ein Fehler (statt ewig zu warten)
+    if timeout 900 "$@" >"$log" 2>&1; then echo "OK ($((SECONDS - t0)) s)"; NAMES+=("$name"); RESULTS+=("OK")
     else echo "FEHLER ($((SECONDS - t0)) s) - Log: $log"; NAMES+=("$name"); RESULTS+=("FEHLER"); fail=1; tail -n 25 "$log" | sed 's/^/    /'; fi
 }
 
