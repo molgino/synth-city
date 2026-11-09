@@ -4813,7 +4813,7 @@ static void menuInput(Input& I, Uint32 now) {
         else {
             lockA();
             Pattern& P = curP();
-            for (int i = 0; i < uiSlots(st); i++) { int pi = uiParam(st, i); if (pi >= 0) P.p[track][pi] = pageClip[i]; }
+            for (int i = 0; i < uiSlots(st); i++) { int pi = uiParam(st, i); if (pi < 0) continue; ParamDef d = paramDef(P.machine[track], pi); P.p[track][pi] = (uint8_t)(d.kind == K_SMPL || pageClip[i] <= d.max ? pageClip[i] : d.max); }   // auf den Bereich der Ziel-Spur begrenzen
             if (menuSel == PG_SEQ) { P.len[track] = (uint8_t)pageClipLen; P.speed[track] = (uint8_t)pageClipSpeed; }
             unlockA();
             toast(TR("SEITE %s EINGEFÜGT (T%d -> T%d)", "PAGE %s PASTED (T%d -> T%d)"), PAGE_NAMES[menuSel], pageClipTrack + 1, track + 1);
@@ -4840,10 +4840,12 @@ static void liveInput(Input& I, Uint32 now, float dt) {
 static bool touchBlocked() { return wteOpen || sedOpen || expState == 1 || fbOpen || kbOpen; }
 #include "touch.inc"
 
+static bool selBlock = false;   // SELECT hat ein Fenster geschlossen: bis zum Loslassen keine SELECT-Kombis (sonst z. B. SEL+X in der Tastatur = Engine-Wechsel)
 static void handleInput(Uint32 now, float dt) {
     Input& I = in;
     if (slot >= nSlots()) slot = nSlots() - 1;
     touchProcess(now);
+    if (I.pressed(BT_SELECT) && (confirmOpen || kbOpen || fbOpen || wteOpen || sedOpen || pgmOpen || menuOpen)) selBlock = true;
     if (confirmOpen) {
         if (I.pressed(BT_A)) { confirmOpen = false; runAction(confirmAct, confirmArg); }
         else if (I.pressed(BT_B) || I.pressed(BT_SELECT)) { confirmOpen = false; toast(TR("ABGEBROCHEN", "CANCELLED")); }
@@ -4867,6 +4869,7 @@ static void handleInput(Uint32 now, float dt) {
         if (m < 0.22f) rsAxis = 0;
         else if (rsAxis == 0 && m > 0.3f) rsAxis = fabsf(I.ry) >= fabsf(I.rx) ? 1 : 2;
     }
+    if (selBlock) { if (!I.down[BT_SELECT]) selBlock = false; return; }   // SELECT hat ein Fenster geschlossen: bis zum Loslassen nichts weiter
     bool func = I.down[BT_SELECT];
     if (I.pressed(BT_SELECT)) { funcUsed = false; selDownAt = now; }
     if (I.released(BT_SELECT) && !funcUsed && now - selDownAt < 400) { menuOpen = true; menuSel = page; return; }
@@ -5492,6 +5495,7 @@ static void reloadSamples() {
 }
 
 #include "selftest.inc"
+#include "keymatrix.inc"   // Tasten-Matrix (--keymatrix)
 #ifdef __EMSCRIPTEN__
 #include "../web/webhooks.inc"
 #endif
@@ -5500,6 +5504,7 @@ int main(int argc, char** argv) {
     if (argc >= 3 && !strcmp(argv[1], "--dhcpd")) return runDhcpd(argv[2]);   // Hilfsdienst fuer den PC-Modus
     bool learn = false, windowed = false;
     const char* shot = nullptr; const char* renderOut = nullptr; float renderSecs = 8; int shotPage = 0;
+    const char* kmFile = nullptr; bool kmUpdate = false;
     bool benchMode = false, selftestMode = false; const char* benchFile = nullptr; double stressSecs = 30;
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "--learn")) learn = true;
@@ -5509,6 +5514,7 @@ int main(int argc, char** argv) {
         else if (!strcmp(argv[i], "--shot") && i + 1 < argc) { shot = argv[++i]; if (i + 1 < argc && argv[i + 1][0] != '-') shotPage = atoi(argv[++i]); }
         else if (!strcmp(argv[i], "--render") && i + 1 < argc) { renderOut = argv[++i]; if (i + 1 < argc && argv[i + 1][0] != '-') renderSecs = (float)atof(argv[++i]); }
         else if (!strcmp(argv[i], "--bench")) { benchMode = true; if (i + 1 < argc && argv[i + 1][0] != '-') benchFile = argv[++i]; }
+        else if (!strcmp(argv[i], "--keymatrix") && i + 1 < argc) { kmFile = argv[++i]; if (i + 1 < argc && !strcmp(argv[i + 1], "--update")) { kmUpdate = true; i++; } }
         else if (!strcmp(argv[i], "--selftest")) { selftestMode = true; if (i + 1 < argc && argv[i + 1][0] != '-') stressSecs = atof(argv[++i]); }
         else { printf("Optionen: --learn --windowed --buffer FRAMES --project DATEI --render WAV [sek] --shot BMP [seite] --bench [datei] --selftest [sek]\n"); return 0; }
     }
@@ -5534,7 +5540,7 @@ int main(int argc, char** argv) {
         return ok ? 0 : 1;
     }
 
-    if (benchMode || selftestMode) {   // Leistungstest / Selbsttest ohne Anzeige (Zeichnen in den Speicher wie auf dem Geraet)
+    if (benchMode || selftestMode || kmFile) {   // Leistungstest / Selbsttest ohne Anzeige (Zeichnen in den Speicher wie auf dem Geraet)
         { char sd[600]; snprintf(sd, sizeof sd, "%ssamples", basePath); samplesLoad(sd); }
         eng.init(44100);
         SDL_Surface* surf = SDL_CreateRGBSurfaceWithFormat(0, SW, SH, 32, SDL_PIXELFORMAT_ARGB8888);
@@ -5543,6 +5549,7 @@ int main(int argc, char** argv) {
         SDL_SetRenderDrawBlendMode(ren, SDL_BLENDMODE_BLEND);
         makeFont();
         if (benchMode) { selfTesting = true; runBench(benchFile, false); return 0; }
+        if (kmFile) return runKeymatrix(kmFile, kmUpdate);
         return runSelftest(stressSecs);
     }
 

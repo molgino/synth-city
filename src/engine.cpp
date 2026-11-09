@@ -1298,12 +1298,14 @@ static void resetTrack(Pattern& p, int t, int m) {
 
 void Engine::initTrack(Pattern& p, int t, int m) { resetTrack(p, t, m); }
 
-void Engine::setMachine(Pattern& p, int t, int m) {
+void Engine::setMachine(Pattern& p, int t, int m) {   // alle engine-abhaengigen Seiten (SRC, SRC2, SRC3-5) auf die Werte der neuen Engine
     p.machine[t] = (uint8_t)m;
-    for (int i = P_S0; i <= P_S7; i++) {
-        p.p[t][i] = paramDef(m, i).def;
-        for (int s = 0; s < NSTEPS; s++) p.s[t][s].lock[i] = NO_LOCK;
-    }
+    static const int BASE[5] = {P_S0, P_X0, P_Y0, P_Z0, P_W0};   // vorher nur SRC: alte OSC-/Operator-Werte blieben stehen (z. B. SUB.O 64 bei max 1)
+    for (int b = 0; b < 5; b++)
+        for (int i = BASE[b]; i < BASE[b] + 8; i++) {
+            p.p[t][i] = paramDef(m, i).def;
+            for (int s = 0; s < NSTEPS; s++) p.s[t][s].lock[i] = NO_LOCK;
+        }
 }
 
 void Engine::initPattern(Pattern& p) {

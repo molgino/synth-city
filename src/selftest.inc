@@ -1096,9 +1096,14 @@ static int runSelftest(double stressSecs) {
     char sub[700]; snprintf(sub, sizeof sub, "%sprojects", tmp); mkdir(sub, 0755);
     char smp[700]; snprintf(smp, sizeof smp, "%ssamples", tmp);
     char src[700]; snprintf(src, sizeof src, "%ssamples", basePath);
-    if (symlink(src, smp) != 0) {}
+    {   // eigene Kopie der Test-Samples: Editoren speichern dort (nie in die echten Samples schreiben)
+        char cp[1500]; snprintf(cp, sizeof cp, "cp -rL '%s' '%s' 2>/dev/null", src, smp);
+        if (system(cp) != 0 && symlink(src, smp) != 0) {}
+    }
     snprintf(basePath, sizeof basePath, "%s", tmp);
+    reloadSamples();   // Bibliothek aus der Kopie (dort speichern die Editoren)
     snprintf(cfgPath, sizeof cfgPath, "%sinput.cfg", tmp);
+    snprintf(setPath, sizeof setPath, "%ssettings.cfg", tmp);   // nicht die echten Einstellungen ueberschreiben
     snprintf(cfg.project, sizeof cfg.project, "Selbsttest");
     projectPath(cfg.project, projPath, sizeof projPath);
     printf("UI-Szenarien\n");
