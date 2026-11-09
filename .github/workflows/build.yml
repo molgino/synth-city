@@ -51,6 +51,8 @@ jobs:
           make clean
           make -j4 SAN=1
           SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy ASAN_OPTIONS=detect_leaks=0 ./groovebox --selftest 60
+      - name: Fernbedienung-Szenarien (Browser-Verbindungen, Sanitizer)
+        run: ASAN_OPTIONS=detect_leaks=0 python3 tests/scenarios/remote_scenarios.py ./groovebox
 
   # Handy-App (WebAssembly, offline-faehig) -> GitHub Pages (Branch gh-pages): main unter /, ui-*-Branches unter /<branch>/
   webapp:

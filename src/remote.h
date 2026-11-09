@@ -24,3 +24,4 @@ bool remoteAudioWanted();
 enum { REMOTE_TOUCH_IDS = 10 };
 struct RemoteTouch { char type; int id, x, y; };
 bool remoteTouchPop(RemoteTouch& e);   // Hauptthread
+void remoteTouchInject(char type, int id, int x, int y);   // Selbsttest: Touch wie aus dem Browser

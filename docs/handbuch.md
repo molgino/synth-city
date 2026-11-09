@@ -850,6 +850,19 @@ Bei spürbarer Last (ab etwa 4 klingenden Stimmen) rechnet ein **zweiter Prozess
 
 ## Tests und Leistungstest
 
+**Alle Tests auf Knopfdruck:** GitHub → **Actions** → **Tests (Knopfdruck)** → **Run workflow** (geht auch am Handy). Nach 2–5 Minuten steht in der Zusammenfassung des Laufs eine Tabelle mit jedem Szenario (✅/❌), dazu die Datei `testbericht.md`. Am PC dasselbe mit `tools/test-all.sh` (schnell, ~30 s) bzw. `tools/test-all.sh --voll` (zusätzlich mit Sanitizern).
+
+Geprüft wird in vier Stufen:
+
+| Stufe | Was | Beispiele |
+|---|---|---|
+| Engine-Tests | Klang und Sequencer ohne Oberfläche | Timing, Polymetrie, Bedingungen, Loops, Speichern/Laden aller Formate (v1–v16) |
+| Bedien-Szenarien | simulierte Tasten und Touch wie am Gerät, je Szenario „Gegeben – Wenn – Dann“ | Trig setzen, Lock-Modus, PAGE-Menü (Tasten + Antippen), SET: jeden Eintrag ändern und Seite wechseln ohne Einfrieren, Pattern-Bänke, Sampler |
+| Fernbedienung | echtes groovebox im Hintergrund, Verbindungen wie der Browser | abgerissene Verbindungen (WLAN weg) blockieren nichts, stille Verbindungen werden geschlossen, Ton bleibt mit Ping an, PC-Modus-Umbau friert das Bild nicht ein |
+| Stresstest | 20 000 Zufallsbilder, 30 s Audio unter Last | keine Abstürze, keine Aussetzer |
+
+Jeder gefundene Fehler bekommt ein eigenes Szenario – so kann er nicht unbemerkt zurückkommen.
+
 * **Auf dem R36S:** SET → **Leistungstest** (ca. 30 s). Gemessen werden die Audio-Last je Engine (8 Stimmen, auch pro Stimme) und ein Worst Case mit allem an, die Zeichenzeit jeder Seite inkl. Ausgabe aufs Display und der Speicher. Den Bericht findest du im Browser unter **Logs → bench.txt** (Datei `/data/logs/bench.txt`). Die Wiedergabe läuft währenddessen weiter.
 * Am PC: `./groovebox --bench [datei]` (gleicher Bericht), `make test` (Unit-Tests: Timing, Polymetrie, Bedingungen, Euklid, Trigless, Song, Arp, Stabilität aller Engines × Filtertypen, Speichern/Laden, Migration), `./groovebox --selftest [sek]` (UI-Szenarien mit simulierten Tasten, Bedienweg-Report, UI-Monkey mit 20 000 Zufallsbildern, Engine-Stresstest). Mit `SAN=1` laufen Tests und App mit AddressSanitizer/UBSan.
 * GitHub Actions führt bei jedem Push alle Tests mit Sanitizern aus und hängt `bench-arm64.txt` (Messung auf einem ARM-Server) ans Release.

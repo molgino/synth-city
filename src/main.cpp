@@ -120,6 +120,7 @@ static int bufOverride = 0;
 static int devCount = 0;
 static char devNames[16][128];
 static Uint32 audioApplyAt = 0, usbApplyAt = 0;
+static volatile int usbJob = 0;   // USB-Gadget-Umbau im Hintergrund: 0 frei, 1 laeuft, 2 fertig (Hauptschleife wertet aus)
 static int usbMode = 0;
 static char netIp[32] = "";
 static void readNetIp() {
@@ -722,8 +723,8 @@ static void animate() {
         static Uint32 uaAt = 0;
         if (now - uaAt > 1500) {
             uaAt = now;
-            bool want = cfg.usbAudio && usbMode == 2 && !driveOn && !usbApplyAt;   // waehrend das Gadget neu aufgebaut wird nicht oeffnen
-            bool wantHost = cfg.hostMc && usbMode == 0 && !driveOn && !usbApplyAt && !selfTesting;   // Mehrkanal an ein Geraet am R36S (MPC ...)
+            bool want = cfg.usbAudio && usbMode == 2 && !driveOn && !usbApplyAt && !usbJob;   // waehrend das Gadget neu aufgebaut wird nicht oeffnen
+            bool wantHost = cfg.hostMc && usbMode == 0 && !driveOn && !usbApplyAt && !usbJob && !selfTesting;   // Mehrkanal an ein Geraet am R36S (MPC ...)
             if (usbMode == 0) usbAudioLogDevices();   // Karten mit Kanaelen ins Log (nur bei Aenderung)
             if (usbAudioActive() && usbAudioHost() != wantHost) usbAudioStop();
             if (want && !usbAudioActive()) { usbAudioSetChannels(usbChannels()); usbAudioStart(); }
@@ -997,7 +998,7 @@ static void battery(int x, int y) {
 static void drawIcon(int m, int x, int y, int s, Col c);
 // ---------------------------------------------------------------- Touch-Flaechen (Fernbedienung im Browser)
 // Jede Zeichenfunktion meldet ihre bedienbaren Flaechen; Touch prueft gegen das zuletzt gezeichnete Bild (oberste zuerst).
-enum HitKind { HK_TRACK, HK_PAGE, HK_SLOT, HK_STEP, HK_MUTE, HK_SOLO, HK_MIXCH, HK_MENU, HK_YES, HK_NO, HK_LIVE, HK_BTN, HK_SET, HK_SONG, HK_PRJ, HK_BLOCK, HK_LOCKEND, HK_FBROW, HK_FBBACK, HK_FBCANCEL, HK_FBPLAY };
+enum HitKind { HK_TRACK, HK_PAGE, HK_SLOT, HK_STEP, HK_MUTE, HK_SOLO, HK_MIXCH, HK_MENU, HK_YES, HK_NO, HK_LIVE, HK_BTN, HK_SET, HK_SONG, HK_PRJ, HK_BLOCK, HK_LOCKEND, HK_FBROW, HK_FBBACK, HK_FBCANCEL, HK_FBPLAY, HK_PGM };   // HK_PGM: PAGE-Menue (a = Eintrag, -1 = oeffnen)
 struct Hit { short x, y, w, h; uint8_t k; short a, b; };
 enum { MAX_HITS = 320 };
 static Hit hits[MAX_HITS];
@@ -2581,6 +2582,7 @@ static void drawExportModal();
 static void drawWtEditorIfOpen();
 static void drawSmpEditorIfOpen();
 static void drawPageMenu();
+static bool pgmOpen = false;   // PAGE-Menue offen (src/pagemenu.inc)
 static void drawMenu() {
     hitModal();
     rrect(10, 30, 620, 420, 14, C_ACC);
@@ -2920,6 +2922,7 @@ static void drawSteps() {
             if (k == pp && k != cp) rrect(x, 389, 74, 4, 2, tc);
             if (k == pp && k == cp) rrect(x + 30, 389, 14, 4, 2, tc);
         }
+        hitAdd(6, 384, 624, 12, HK_PGM, -1);   // Page-Leiste antippen: PAGE-Menue (Touch/Handy-App)
     }
     int base = (cursor / 16) * 16;
     // gleitender Cursor hinter den Tasten
@@ -3265,7 +3268,12 @@ static void drawSigB() {
             rrect(sx - 2, sy - 3, 34, 2, 1, cc); rrect(sx - 2, sy + 41, 34, 2, 1, cc);
         }
     }
-    if (npg > 1) text(X0 - 40, sy + 12, b, C_DIM);
+    {   // Knopf PAGE n/m: oeffnet das PAGE-Menue (Touch/Handy-App; Tasten: SELECT + L1/R1 auf TRIG)
+        char pb[24]; snprintf(pb, sizeof pb, "PAGE %s", b);
+        rrect(6, 414, 104, 26, 6, pgmOpen ? C_ACC : C_OFF2);
+        textC(58, 419, pb, pgmOpen ? C_BG : (npg > 1 ? C_TEXT : C_DIM));
+        hitAdd(6, 412, 104, 30, HK_PGM, -1);
+    }
     const char* h;
     if (lockLatch) h = TR("LOCK [X/Y]WERT [L1/R1]REGLER [L2/R2]SEITE [</>]STEP [B]WEG [SEL+L1/R1]KOPIE [A]OK", "LOCK [X/Y]VALUE [L1/R1]CONTROL [L2/R2]PAGE [</>]STEP [B]CLEAR [SEL+L1/R1]COPY [A]OK");
     else if (aHeld) h = TR("[X/Y]LOCK [L1/R1]REGLER [L2/R2]SEITE [B]LÖSCHEN [SEL+L1/R1]KOPIE  LANG = LOCK-MODUS", "[X/Y]LOCK [L1/R1]CONTROL [L2/R2]PAGE [B]CLEAR [SEL+L1/R1]COPY  LONG = LOCK MODE");
@@ -3767,7 +3775,7 @@ static int flick(float v, int& state, Uint32& t, Uint32 now) {
 
 enum SetItem {
     SI_H_PAT, SI_PATTERN, SI_BPM, SI_SWING, SI_SCALE, SI_ROOT, SI_LENALL, SI_FILL, SI_COPY, SI_PASTE, SI_CLEAR, SI_MUTATE, SI_UNDO, SI_REDO, SI_DEMO,
-    SI_H_TRK, SI_LEN, SI_SPEED, SI_TMPL, SI_CLRTRK,
+    SI_H_TRK, SI_LEN, SI_SPEED, SI_TMPL, SI_CLRTRK, SI_PAGEMENU, SI_NEWPAGE,
     SI_H_AUDIO, SI_OUT, SI_BUF, SI_VOL, SI_CORES,
     SI_H_MIDI, SI_MIN, SI_NOUT, SI_CLK, SI_MCH,
     SI_H_USB, SI_USB, SI_USBNETON, SI_IP, SI_USBNET, SI_MIDIINFO, SI_HOSTMC,
@@ -3837,6 +3845,8 @@ static const char* setHelp(int i) {
     case SI_SPEED: return TR("Tempo der Spur relativ zum Song (1/8x bis 2x)", "Tempo of the track relative to the song (1/8x to 2x)");
     case SI_TMPL: return TR("Fertiger Rhythmus für die Spur. Links/rechts wählen, A setzt ihn", "Ready-made rhythm for the track. Choose with left/right, A applies it");
     case SI_CLRTRK: return TR("Löscht alle Steps der gewählten Spur", "Clears all steps of the selected track");
+    case SI_PAGEMENU: return TR("Page/Spur kopieren, einfügen, leeren, anhängen (auch: Page-Leiste antippen, SELECT+L1 auf TRIG)", "Copy, paste, clear, add page/track (also: tap the page bar, SELECT+L1 on TRIG)");
+    case SI_NEWPAGE: return TR("Wird eine Spur länger: neue Page als Kopie der vorigen oder leer", "When a track gets longer: new page as copy of the previous one or empty");
     case SI_OUT: return TR("Audio-Ausgang (intern, USB-Interface ...)", "Audio output (internal, USB interface ...)");
     case SI_BUF: return TR("Kleiner = weniger Verzögerung, größer = sicherer gegen Aussetzer", "Smaller = less latency, larger = safer against dropouts");
     case SI_VOL: return TR("Gesamtlautstärke der Groovebox", "Overall volume of the groovebox");
@@ -3879,7 +3889,7 @@ static const char* setHelp(int i) {
     }
     return "";
 }
-static bool setIsAction(int i) { return i == SI_DEMO || i == SI_UNDO || i == SI_REDO || i == SI_CLRTRK || i == SI_BENCH || i == SI_PCREC || i == SI_USBTONE || i == SI_DRIVE || i == SI_COPY || i == SI_PASTE || i == SI_CLEAR || i == SI_LEARN || i == SI_QUIT; }
+static bool setIsAction(int i) { return i == SI_DEMO || i == SI_UNDO || i == SI_REDO || i == SI_CLRTRK || i == SI_PAGEMENU || i == SI_BENCH || i == SI_PCREC || i == SI_USBTONE || i == SI_DRIVE || i == SI_COPY || i == SI_PASTE || i == SI_CLEAR || i == SI_LEARN || i == SI_QUIT; }
 static bool runLearn();
 static char versionStr[32] = "";
 
@@ -3908,6 +3918,8 @@ static void setLabel(int i, char* l, int ln, char* v, int vn) {
     case SI_PASTE: snprintf(l, ln, TR("Pattern einfügen", "Paste pattern")); snprintf(v, vn, "%s", haveClip ? "" : TR("(leer)", "(empty)")); break;
     case SI_CLEAR: snprintf(l, ln, TR("Pattern leeren", "Clear pattern")); break;
     case SI_CLRTRK: snprintf(l, ln, TR("Spur leeren", "Clear track")); break;
+    case SI_PAGEMENU: snprintf(l, ln, TR("PAGE-Menü öffnen", "Open PAGE menu")); break;
+    case SI_NEWPAGE: snprintf(l, ln, TR("Neue Page", "New page")); snprintf(v, vn, "%s", cfg.newPage ? TR("KOPIE DER VORIGEN", "COPY OF PREVIOUS") : TR("LEER", "EMPTY")); break;
     case SI_TMPL: snprintf(l, ln, TR("Rhythmus-Vorlage", "Rhythm template")); snprintf(v, vn, "< %s >", RHY_NAMES[tmplSel]); break;
     case SI_UNDO: snprintf(l, ln, TR("Rückgängig (SELECT + B)", "Undo (SELECT + B)")); snprintf(v, vn, TR("%d Schritte", "%d steps"), undoCnt); break;
     case SI_DEMO: snprintf(l, ln, TR("Demo-Song 'Neon Nights' laden", "Load demo song 'Neon Nights'")); snprintf(v, vn, ">>"); break;
@@ -4048,6 +4060,7 @@ static void setChange(int i, int d) {
     case SI_LEN: setTrackLen(P, track, P.len[track] + d); break;
     case SI_LENALL: { int l = clampi(P.len[track] + d, 1, NSTEPS); for (int t = 0; t < NTRACKS; t++) setTrackLen(P, t, l); } break;
     case SI_SPEED: P.speed[track] = (uint8_t)clampi(P.speed[track] + (d > 0 ? 1 : -1), 0, 6); break;
+    case SI_NEWPAGE: cfg.newPage = !cfg.newPage; saveSettings(); break;
     case SI_FILL: eng.fill = !eng.fill; break;
     case SI_BPM: eng.proj.bpm = (uint16_t)clampi(eng.proj.bpm + d, 30, 300); break;
     case SI_SWING: eng.proj.mst[MS_SWNG] = (uint8_t)clampi(eng.proj.mst[MS_SWNG] + d, 0, 30); break;
@@ -4241,6 +4254,7 @@ static void setAction(int i) {
         else toast(TR("ZWISCHENABLAGE LEER", "CLIPBOARD EMPTY"));
         break;
     case SI_CLEAR: askConfirm(ACT_CLEARPAT, curPi(), TR("ALLE STEPS VON PATTERN %s LÖSCHEN?", "CLEAR ALL STEPS OF PATTERN %s?"), PN(curPi())); break;
+    case SI_PAGEMENU: page = PG_TRG; openPageMenu(); break;
     case SI_CLRTRK: askConfirm(ACT_CLEARTRK, track, TR("ALLE STEPS VON SPUR %d LÖSCHEN?", "CLEAR ALL STEPS OF TRACK %d?"), track + 1); break;
     case SI_TMPL: applyRhythm(tmplSel); break;
     case SI_UNDO: undoStep(); break;
@@ -4823,7 +4837,7 @@ static void liveInput(Input& I, Uint32 now, float dt) {
     if (f) eng.proj.bpm = (uint16_t)clampi(eng.proj.bpm + f, 30, 300);
 }
 
-static bool touchBlocked() { return wteOpen || sedOpen || pgmOpen || expState == 1 || fbOpen || kbOpen; }
+static bool touchBlocked() { return wteOpen || sedOpen || expState == 1 || fbOpen || kbOpen; }
 #include "touch.inc"
 
 static void handleInput(Uint32 now, float dt) {
@@ -5276,19 +5290,31 @@ static int detectUsbMode() {
     return aud ? 2 : 1;
 }
 
+// USB-Gadget neu aufbauen: pc-modus.sh laeuft in einem eigenen Thread. Frueher lief es in der Hauptschleife -
+// das Bild stand dann mehrere Sekunden (dwc2 neu laden), z. B. nach einer USB-Einstellung in SET und Seitenwechsel.
+static int usbJobRc = 0, usbJobMode = 0;
+static char usbJobCmd[800];
+static Uint32 usbJobAt = 0;
+static int usbJobThread(void*) { usbJobRc = system(usbJobCmd); usbJob = 2; return 0; }
+static void applyUsbModeFinish();
 static void applyUsbMode() {
     if (selfTesting) return;
+    if (usbJob) { usbApplyAt = SDL_GetTicks() + 500; return; }   // laeuft noch: danach nochmal mit dem neuesten Wunsch
     usbAudioStop();   // Gadget wird gleich neu aufgebaut
-    char cmd[800];
     static const char* args[3] = {"aus", "an", "an audio"};
-    snprintf(cmd, sizeof cmd, "%sbash '%spc-modus.sh' %s nosleep", usbEnv(), basePath, args[usbMode]);
+    snprintf(usbJobCmd, sizeof usbJobCmd, "%sbash '%spc-modus.sh' %s nosleep", usbEnv(), basePath, args[usbMode % 3]);
     toast(usbMode ? TR("PC-MODUS WIRD AKTIVIERT ...", "ACTIVATING PC MODE ...") : TR("PC-MODUS AUS ...", "PC MODE OFF ..."));
-    drawAll(false); present();
-    int rc = system(cmd);
+    msgUntil = SDL_GetTicks() + 30000;
+    usbJobMode = usbMode; usbJob = 1; usbJobAt = SDL_GetTicks();
+    SDL_Thread* t = SDL_CreateThread(usbJobThread, "usbmode", nullptr);
+    if (t) SDL_DetachThread(t); else { usbJobRc = system(usbJobCmd); usbJob = 2; }
+}
+static void applyUsbModeFinish() {
+    int rc = usbJobRc;
+    int want = usbJobMode;
     int now = detectUsbMode();
-    printf("USB-Modus %d: rc=%d, erkannt=%d\n", usbMode, rc, now);
-    if (usbMode && !now) {   // letzte Fehlerzeile aus dem Log anzeigen
-        usbMode = 0;
+    printf("USB-Modus %d: rc=%d, erkannt=%d (%u ms)\n", want, rc, now, SDL_GetTicks() - usbJobAt);
+    if (want && !now) {   // letzte Fehlerzeile aus dem Log anzeigen
         char lp[700], line[200], err[200];
         snprintf(err, sizeof err, "%s", TR("PC-MODUS NICHT MÖGLICH (PC-MODUS.LOG)", "PC MODE NOT POSSIBLE (PC-MODUS.LOG)"));
         snprintf(lp, sizeof lp, "%spc-modus.log", basePath);
@@ -5301,7 +5327,7 @@ static void applyUsbMode() {
         toast("%s", err);
         msgUntil = SDL_GetTicks() + 5000;
     }
-    else if (usbMode) {
+    else if (want) {
         char lp[700], line[200], okm[200];
         snprintf(okm, sizeof okm, "%s", TR("PC-MODUS AKTIV", "PC MODE ACTIVE"));
         snprintf(lp, sizeof lp, "%spc-modus.log", basePath);
@@ -5314,7 +5340,7 @@ static void applyUsbMode() {
         toast("%s", okm);
         msgUntil = SDL_GetTicks() + 4000;
     } else toast(TR("USB: HOST-MODUS", "USB: HOST MODE"));
-    usbMode = now;
+    if (!usbApplyAt) usbMode = now;   // inzwischen neuer Wunsch: der wird gleich umgesetzt
     if (cfg.usb != usbMode) { cfg.usb = usbMode; saveSettings(); }   // ueber Neustarts merken
     readNetIp();
     refreshDevices();
@@ -5751,6 +5777,7 @@ int main(int argc, char** argv) {
         undoTrack(now);
         if (recDoneNo) { if (recDoneNo > 0) toast(TR("GESPEICHERT: SAMPLES/REC/REC-%03d.WAV", "SAVED: SAMPLES/REC/REC-%03d.WAV"), recDoneNo); else toast(TR("AUFNAHME: SPEICHERN FEHLGESCHLAGEN", "RECORDING: SAVING FAILED")); recDoneNo = 0; }
         if (audioApplyAt && now >= audioApplyAt) { audioApplyAt = 0; openAudio(); }
+        if (usbJob == 2) { usbJob = 0; applyUsbModeFinish(); }   // pc-modus.sh fertig (eigener Thread)
         if (usbApplyAt && now >= usbApplyAt) { usbApplyAt = 0; applyUsbMode(); }
         {   // MIDI kommt an, wird aber ignoriert -> einmal je 20 s sagen, wo man es einschaltet
             static uint32_t lastNotes = 0, lastClock = 0, hintAt = 0;

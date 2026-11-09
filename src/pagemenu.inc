@@ -2,7 +2,6 @@
 // leeren, eine Page anhaengen/entfernen und festlegen, ob eine neue Page leer oder eine Kopie der vorigen ist
 // (cfg.newPage, gilt auch beim Verlaengern ueber LEN). Eingebunden in main.cpp nach smpedit.inc.
 enum { PM_COPY, PM_PASTE, PM_CLEAR, PM_ADD, PM_DEL, PM_TCOPY, PM_TPASTE, PM_TCLEAR, PM_ALL, PM_NEW, PM_COUNT };
-static bool pgmOpen = false;
 static int pgmSel = 0;
 static bool pgmAll = false;                // Bereich: nur Spur bzw. alle 8 Spuren
 static Step pgClip[NTRACKS][16];
@@ -94,6 +93,7 @@ static void pgmInput(Input& I, Uint32 now) {
 }
 static void drawPageMenu() {
     if (!pgmOpen) return;
+    hitModal();   // Touch: nur das Menue (daneben = schliessen)
     const Pattern& P = curP();
     int w = 400, rh = 26, h = 64 + PM_COUNT * rh + 30, x0 = (640 - w) / 2, y0 = (480 - h) / 2 - 10;
     rrect(x0, y0, w, h, 12, C_ACC);
@@ -107,6 +107,7 @@ static void drawPageMenu() {
         int y = y0 + 50 + i * rh;
         bool sel = i == pgmSel;
         if (sel) rrect(x0 + 10, y - 3, w - 20, rh - 4, 6, C_SEL);
+        hitAdd(x0 + 10, y - 3, w - 20, rh - 2, HK_PGM, i);
         if (i == PM_TCOPY || i == PM_ALL) fill(x0 + 16, y - 5, w - 32, 1, C_OFF2);
         const char* l = "";
         b[0] = 0;
@@ -131,5 +132,5 @@ static void drawPageMenu() {
         text(x0 + 20, y + 2, l, sel ? C_ACC : C_TEXT);
         if (b[0]) text(x0 + w - 20 - textW(b), y + 2, b, sel ? C_PLAY : C_DIM);
     }
-    hint(x0 + 16, y0 + h - 26, TR("[^v]WÄHLEN [A]AUSFÜHREN [X/Y]UMSCHALTEN [B]ZU", "[^v]SELECT [A]RUN [X/Y]TOGGLE [B]CLOSE"), C_ACC, C_DIM);
+    hint(x0 + 16, y0 + h - 26, TR("[^v]WÄHLEN [A]AUSFÜHREN [X/Y]UMSCHALTEN [B]ZU  (ANTIPPEN GEHT AUCH)", "[^v]SELECT [A]RUN [X/Y]TOGGLE [B]CLOSE  (OR TAP)"), C_ACC, C_DIM);
 }

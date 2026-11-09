@@ -1,0 +1,27 @@
+# Alle Tests auf Knopfdruck: GitHub -> Actions -> "Tests (Knopfdruck)" -> "Run workflow".
+# Ergebnis als Tabelle in der Zusammenfassung des Laufs (auch am Handy lesbar) und als Datei testbericht.md.
+name: Tests (Knopfdruck)
+on:
+  workflow_dispatch:
+    inputs:
+      voll:
+        description: 'Zusaetzlich mit Sanitizern (findet Speicherfehler, dauert laenger)'
+        type: boolean
+        default: true
+jobs:
+  alle-tests:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Abhaengigkeiten
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libsdl2-dev libasound2-dev
+      - name: Alle Tests
+        run: tools/test-all.sh ${{ inputs.voll && '--voll' || '' }}
+      - name: Testbericht
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: testbericht
+          path: dist/testbericht.md

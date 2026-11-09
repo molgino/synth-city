@@ -216,6 +216,9 @@ static void simWait(int ms) { for (int t = 0; t < ms; t += 16) simFrame(); }
 static void tap(int b) { simKeys++; simDown[b] = true; simFrame(); simFrame(); simDown[b] = false; simFrame(); simFrame(); }
 static void holdDown(int b) { simKeys++; simDown[b] = true; simFrame(); }
 static void release(int b) { simDown[b] = false; simFrame(); simFrame(); }
+static void tapAt(int x, int y) {   // Finger kurz aufs Bild (zeichnet vorher, damit die Touch-Flaechen stimmen)
+    bool d = simDraw; simDraw = true; simFrame(); simKeys++; remoteTouchInject('t', 1, x, y); simFrame(); remoteTouchInject('e', 1, x, y); simFrame(); simFrame(); simDraw = d;
+}
 static void combo(int mod, int b) { holdDown(mod); tap(b); release(mod); }   // z.B. SELECT + A
 static void flickL(int dx, int dy) { simKeys++; simLX = (float)dx; simLY = (float)dy; simFrame(); simFrame(); simLX = simLY = 0; simFrame(); simFrame(); simFrame(); }
 static void stickR(float ry, int ms) { simKeys++; simRY = ry; simWait(ms); simRY = 0; simFrame(); simFrame(); }
@@ -231,7 +234,15 @@ static void simReset() {
 
 static int uiPass = 0, uiFail = 0;
 static const char* uiCase = "";
-#define UCHECK(c, ...) do { if (c) uiPass++; else { uiFail++; printf("  FEHLER [%s] Zeile %d: ", uiCase, __LINE__); printf(__VA_ARGS__); printf("\n"); } } while (0)
+// Szenario-Liste fuer den Testbericht (tools/test-all.sh): je Fall Anzahl Pruefungen und Fehler
+enum { MAX_CASES = 160 };
+static struct { const char* name; int pass, fail; } uiCases[MAX_CASES]; static int nCases = 0;
+static void caseCount(bool ok) {
+    int k = -1; for (int i = 0; i < nCases; i++) if (uiCases[i].name == uiCase || !strcmp(uiCases[i].name, uiCase)) k = i;
+    if (k < 0 && nCases < MAX_CASES) { k = nCases++; uiCases[k].name = uiCase; uiCases[k].pass = uiCases[k].fail = 0; }
+    if (k >= 0) { if (ok) uiCases[k].pass++; else uiCases[k].fail++; }
+}
+#define UCHECK(c, ...) do { if (c) { uiPass++; caseCount(true); } else { uiFail++; caseCount(false); printf("  FEHLER [%s] Zeile %d: ", uiCase, __LINE__); printf(__VA_ARGS__); printf("\n"); } } while (0)
 
 // Weg zur Seite: in derselben Gruppe mit L2/R2, sonst ueber die Seitenkarte (SELECT, Steuerkreuz, A)
 static void goPage(int target) {
@@ -488,6 +499,29 @@ static void uiScenarios() {
         J.songLen = 0; memset(J.patMute, 0, sizeof J.patMute); eng.songOn = false;
     }
 
+    uiCase = "SET: jeden Eintrag ändern, dann Seite wechseln (kein Einfrieren)";
+    {
+        Settings keepCfg = cfg; int keepUsb = usbMode, keepLang = g_lang, keepThr = eng.audioThreads, keepPat = eng.curPat;
+        simReset(); goPage(PG_SYS);
+        int worst = 0, worstItem = -1, tested = 0;
+        for (int i = 0; i < SI_COUNT; i++) {
+            if (setIsHeader(i) || setHidden(i) || setIsAction(i)) continue;
+            if (i == SI_DISP) continue;   // Bild-Versatz: nur Anzeige, wuerde Screenshots verschieben
+            page = PG_SYS; setSel = i; setIn = true;
+            Uint32 t0 = SDL_GetTicks();
+            setChange(i, 1); simFrame(); setChange(i, -1); simFrame();
+            tap(BT_R2); UCHECK(page != PG_SYS, "R2 verlaesst SET nicht (Eintrag %d)", i);
+            tap(BT_L2); UCHECK(page == PG_SYS, "L2 kommt nicht zu SET zurueck (Eintrag %d, Seite %d)", i, page);
+            int dt = (int)(SDL_GetTicks() - t0);
+            if (dt > worst) { worst = dt; worstItem = i; }
+            tested++;
+            usbApplyAt = 0; audioApplyAt = 0;   // Geraete-Umbau gibt es im Test nicht
+        }
+        UCHECK(tested > 20, "zu wenige SET-Eintraege geprueft (%d)", tested);
+        UCHECK(worst < 1500, "SET-Eintrag %d brauchte %d ms (Einfrieren?)", worstItem, worst);
+        cfg = keepCfg; usbMode = keepUsb; g_lang = keepLang; eng.audioThreads = keepThr; eng.curPat = keepPat; eng.nextPat = -1; saveSettings();
+    }
+
     uiCase = "Einstellungen";
     simReset(); page = PG_SYS; setIn = false; setSel = SI_PATTERN + 1; simWait(50);
     { int c0 = setCatOf(setSel); tap(BT_DOWN); UCHECK(setCatOf(setSel) != c0 && !setIn, "SET: runter waehlt nicht den naechsten Bereich");
@@ -526,6 +560,14 @@ static void uiScenarios() {
         pgmSel = PM_ADD; tap(BT_A); UCHECK(P.len[0] == 48 && P.s[0][35].on == 0, "Page anhaengen (leer) falsch");
         combo(BT_SELECT, BT_L1); pgmSel = PM_DEL; tap(BT_A); UCHECK(P.len[0] == 32, "Letzte Page entfernen: %d", P.len[0]);
         combo(BT_SELECT, BT_L1); tap(BT_B); UCHECK(!pgmOpen, "B schliesst das PAGE-Menue nicht");
+        // Handy-App/Touch: Page-Leiste antippen oeffnet das Menue, Zeile antippen fuehrt aus, daneben schliesst
+        simFrame(); tapAt(58, 427); UCHECK(pgmOpen, "Antippen von PAGE (unten links) oeffnet das PAGE-Menue nicht");
+        { int nw = cfg.newPage; int w = 400, rh = 26, h = 64 + PM_COUNT * rh + 30, x0 = (640 - w) / 2, y0 = (480 - h) / 2 - 10;
+          tapAt(x0 + w / 2, y0 + 50 + PM_NEW * rh + 8); UCHECK(cfg.newPage == !nw && pgmOpen, "NEUE PAGE per Antippen nicht umgeschaltet");
+          cfg.newPage = nw; tapAt(10, 10); UCHECK(!pgmOpen, "Antippen neben das PAGE-Menue schliesst es nicht"); }
+        // SET: PAGE-Menue und NEUE PAGE auch in den Einstellungen (Bereich SPUR)
+        { int nw = cfg.newPage; setChange(SI_NEWPAGE, 1); UCHECK(cfg.newPage == !nw, "SET: Neue Page nicht umschaltbar"); cfg.newPage = nw;
+          page = PG_SYS; setAction(SI_PAGEMENU); UCHECK(pgmOpen && page == PG_TRG, "SET: PAGE-Menue oeffnen geht nicht"); tap(BT_B); }
         combo(BT_SELECT, BT_L1); pgmSel = PM_TCOPY; tap(BT_A);
         goTrack(2); goPage(PG_TRG); combo(BT_SELECT, BT_L1); pgmSel = PM_TPASTE; tap(BT_A);
         UCHECK(P.machine[2] == P.machine[0] && P.len[2] == P.len[0] && P.s[2][19].on == 1 && P.s[2][19].lock[P_NOTE] == 50, "Spur einfuegen falsch");
@@ -1069,6 +1111,8 @@ static int runSelftest(double stressSecs) {
     uiMonkey(20000);
     printf("Engine-Stress\n");
     engineStress(stressSecs);
+    printf("SZENARIEN (Bedienung):\n");
+    for (int i = 0; i < nCases; i++) printf("  %s %s (%d Pruefungen%s)\n", uiCases[i].fail ? "FEHLER" : "OK    ", uiCases[i].name[0] ? uiCases[i].name : "Grundbedienung", uiCases[i].pass + uiCases[i].fail, uiCases[i].fail ? ", Fehler!" : "");
     printf("%s: %d UI-Pruefungen ok, %d Fehler\n", uiFail ? "FEHLGESCHLAGEN" : "OK", uiPass, uiFail);
     char cmd[700]; snprintf(cmd, sizeof cmd, "rm -rf '%s'", tmp);
     if (system(cmd) != 0) {}

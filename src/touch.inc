@@ -76,7 +76,8 @@ static void touchDown(TouchPtr& t, int x, int y, Uint32 now) {
     case HK_PRJ: t.wasSel = prjSel == h->a; prjSel = h->a; break;
     case HK_SET: t.wasSel = setSel == h->a && setIn; setSel = h->a; setIn = true; break;
     case HK_SONG: t.wasSel = songSel == h->a && songCol == h->b; songSel = h->a; songCol = h->b; break;
-    case HK_BLOCK: if (menuOpen) menuOpen = false; break;   // neben die Karte getippt: schliessen
+    case HK_BLOCK: if (menuOpen) menuOpen = false; if (pgmOpen) pgmOpen = false; break;   // daneben getippt: schliessen
+    case HK_PGM: if (h->a < 0) openPageMenu(); else { pgmSel = h->a; pgmRun(h->a); } break;
     case HK_LOCKEND: if (lockLatch) remoteHit[BT_A] = true; break;
     case HK_FBROW: t.wasSel = fbSel == h->a; fbSel = h->a; break;
     case HK_FBBACK: if (fbDir[0]) fbUp(); else fbClose(true); break;

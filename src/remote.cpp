@@ -153,6 +153,7 @@ static void touchPush(char type, int id, int x, int y) {
     }
     SDL_UnlockMutex(g_tqMx);
 }
+void remoteTouchInject(char type, int id, int x, int y) { if (!g_tqMx) g_tqMx = SDL_CreateMutex(); touchPush(type, id, x, y); }   // Selbsttest
 bool remoteTouchPop(RemoteTouch& e) {
     if (!g_tqMx || g_tqHead == g_tqTail) return false;
     SDL_LockMutex(g_tqMx);
@@ -231,6 +232,27 @@ static bool wsSend(int fd, int op, const void* data, size_t n) {
 
 static volatile int g_wsClients = 0;
 struct WsArg { int fd; bool audio; };
+// Verbindungen ohne Lebenszeichen schliessen: die Seite pingt jede Sekunde (Bild und Ton). Bricht das WLAN weg, merkt TCP
+// das sonst erst nach ~15 min (unsere eigenen Pings passen immer in den Sendepuffer) - nach ein paar Aussetzern waren alle
+// Plaetze von toten Verbindungen belegt und neue wurden abgewiesen (Bedienung im Browser ging nicht mehr).
+static int wsIdleMs() { static int v = -1; if (v < 0) { const char* e = getenv("GB_WS_IDLE_MS"); v = e && atoi(e) > 0 ? atoi(e) : 12000; } return v; }
+enum { WS_MAX = 6 };
+static int g_wsFd[WS_MAX]; static Uint32 g_wsAt[WS_MAX]; static bool g_wsInit = false;
+static SDL_mutex* g_wsMx = nullptr;
+static void wsRegister(int fd) {   // voll: aelteste Verbindung beenden (ihr Thread sieht den Abbruch und raeumt auf)
+    SDL_LockMutex(g_wsMx);
+    if (!g_wsInit) { for (int i = 0; i < WS_MAX; i++) g_wsFd[i] = -1; g_wsInit = true; }
+    int slot = -1, old = 0;
+    for (int i = 0; i < WS_MAX; i++) { if (g_wsFd[i] < 0) { slot = i; break; } if (g_wsAt[i] < g_wsAt[old]) old = i; }
+    if (slot < 0) { shutdown(g_wsFd[old], SHUT_RDWR); g_wsFd[old] = -1; slot = old; printf("Fernbedienung: zu viele Verbindungen - aelteste beendet\n"); }
+    g_wsFd[slot] = fd; g_wsAt[slot] = SDL_GetTicks();
+    SDL_UnlockMutex(g_wsMx);
+}
+static void wsUnregister(int fd) {
+    SDL_LockMutex(g_wsMx);
+    for (int i = 0; i < WS_MAX; i++) if (g_wsFd[i] == fd) g_wsFd[i] = -1;
+    SDL_UnlockMutex(g_wsMx);
+}
 
 static int wsThread(void* arg);
 static void* wsThreadP(void* arg) { wsThread(arg); return nullptr; }
@@ -244,15 +266,17 @@ static int wsThread(void* arg) {
     uint8_t* buf = nullptr; size_t cap = 0;
     uint8_t in[4096]; size_t inN = 0;
     bool alive = cl != nullptr, needFull = true;
-    Uint32 lastSend = 0;
+    Uint32 lastSend = 0, lastRx = SDL_GetTicks();
     while (alive) {
         struct pollfd pf = {fd, POLLIN, 0};
         int pr = poll(&pf, 1, 8);
         if (pr < 0) break;
+        if (SDL_GetTicks() - lastRx > (Uint32)wsIdleMs()) { printf("Fernbedienung: Bild-Verbindung ohne Lebenszeichen - geschlossen\n"); break; }
         if (pr > 0) {
             if (pf.revents & (POLLERR | POLLHUP)) break;
             ssize_t r = recv(fd, in + inN, sizeof in - inN, 0);
             if (r <= 0) break;
+            lastRx = SDL_GetTicks();
             inN += (size_t)r;
             for (;;) {   // vollstaendige Rahmen auswerten (vom Browser immer maskiert)
                 if (inN < 2) break;
@@ -292,6 +316,7 @@ static int wsThread(void* arg) {
     touchPush('c', 0, 0, 0);
     for (int a = 0; a < 4; a++) remoteAxis[a] = 0.f;
     free(buf); free(cl);
+    wsUnregister(fd);
     close(fd);
     __sync_fetch_and_sub(&g_wsClients, 1);
     return 0;
@@ -306,15 +331,17 @@ static int wsAudioThread(int fd) {
     static const int MAXF = 2048;
     uint8_t* pk = (uint8_t*)malloc(8 + MAXF * 4);
     bool alive = pk != nullptr;
-    Uint32 lastSend = SDL_GetTicks();
+    Uint32 lastSend = SDL_GetTicks(), lastRx = SDL_GetTicks();
     while (alive) {
         struct pollfd pf = {fd, POLLIN, 0};
         int pr = poll(&pf, 1, 5);
         if (pr < 0) break;
+        if (SDL_GetTicks() - lastRx > (Uint32)wsIdleMs()) { printf("Fernbedienung: Ton-Verbindung ohne Lebenszeichen - geschlossen\n"); break; }
         if (pr > 0) {   // nur Ping/Schliessen erwartet
             if (pf.revents & (POLLERR | POLLHUP)) break;
             ssize_t r = recv(fd, in + inN, sizeof in - inN, 0);
             if (r <= 0) break;
+            lastRx = SDL_GetTicks();
             inN += (size_t)r;
             while (inN >= 2) {
                 int op = in[0] & 15; bool masked = in[1] & 0x80; size_t len = in[1] & 127;
@@ -344,6 +371,7 @@ static int wsAudioThread(int fd) {
         } else if (SDL_GetTicks() - lastSend > 5000) { lastSend = SDL_GetTicks(); if (!wsSend(fd, 9, "k", 1)) break; }
     }
     free(pk);
+    wsUnregister(fd);
     close(fd);
     __sync_fetch_and_sub(&g_audClients, 1);
     __sync_fetch_and_sub(&g_wsClients, 1);
@@ -361,11 +389,6 @@ bool remoteWsAccept(int fd, const char* headers, bool audio) {
     char key[128]; int n = 0;
     while (k[n] && k[n] != '\r' && n < 60) { key[n] = k[n]; n++; }
     key[n] = 0;
-    if (g_wsClients >= 6) {
-        const char* busy = "HTTP/1.1 503 Busy\r\nContent-Length: 0\r\nConnection: close\r\n\r\n";
-        wsSendAll(fd, busy, strlen(busy));
-        return false;
-    }
     char cat[200]; snprintf(cat, sizeof cat, "%s258EAFA5-E914-47DA-95CA-C5AB0DC85B11", key);
     uint8_t dg[20]; sha1((const uint8_t*)cat, strlen(cat), dg);
     char acc[40]; b64(dg, 20, acc);
@@ -373,12 +396,24 @@ bool remoteWsAccept(int fd, const char* headers, bool audio) {
     int rl = snprintf(resp, sizeof resp, "HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: %s\r\n\r\n", acc);
     if (!wsSendAll(fd, resp, (size_t)rl)) return false;
     int one = 1; setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &one, sizeof one);
-    struct timeval tv = {10, 0}; setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof tv);
+    struct timeval tv = {4, 0}; setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof tv);
+    {   // tote Gegenstelle auch auf TCP-Ebene schnell erkennen
+        int ka = 1, idle = 4, intv = 2, cnt = 3; unsigned uto = 8000;
+        setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, &ka, sizeof ka);
+        setsockopt(fd, IPPROTO_TCP, TCP_KEEPIDLE, &idle, sizeof idle);
+        setsockopt(fd, IPPROTO_TCP, TCP_KEEPINTVL, &intv, sizeof intv);
+        setsockopt(fd, IPPROTO_TCP, TCP_KEEPCNT, &cnt, sizeof cnt);
+#ifdef TCP_USER_TIMEOUT
+        setsockopt(fd, IPPROTO_TCP, TCP_USER_TIMEOUT, &uto, sizeof uto);
+#endif
+    }
     struct timeval rt = {0, 0}; setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &rt, sizeof rt);
     WsArg* a = (WsArg*)malloc(sizeof(WsArg));
     if (!a) return false;
     if (!g_tqMx) g_tqMx = SDL_CreateMutex();
+    if (!g_wsMx) g_wsMx = SDL_CreateMutex();
     a->fd = fd; a->audio = audio;
+    wsRegister(fd);
     __sync_fetch_and_add(&g_wsClients, 1);
     pthread_attr_t at; pthread_attr_init(&at);
     pthread_attr_setstacksize(&at, 256 * 1024);   // kleiner Stack (mlockall sperrt sonst 8 MB je Thread)
@@ -386,6 +421,6 @@ bool remoteWsAccept(int fd, const char* headers, bool audio) {
     pthread_t th;
     int rc = pthread_create(&th, &at, wsThreadP, a);
     pthread_attr_destroy(&at);
-    if (rc) { __sync_fetch_and_sub(&g_wsClients, 1); free(a); return false; }
+    if (rc) { wsUnregister(fd); __sync_fetch_and_sub(&g_wsClients, 1); free(a); return false; }
     return true;
 }

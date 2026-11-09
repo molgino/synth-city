@@ -37,6 +37,7 @@ static void touchPush(char type, int id, int x, int y) {
     if (type == 'm' && g_tqHead != g_tqTail) { RemoteTouch& l = g_tq[(g_tqHead - 1) & 255]; if (l.type == 'm' && l.id == id) { l.x = x; l.y = y; return; } }
     g_tq[g_tqHead++ & 255] = RemoteTouch{type, id, x, y};
 }
+void remoteTouchInject(char type, int id, int x, int y) { touchPush(type, id, x, y); }   // Selbsttest
 bool remoteTouchPop(RemoteTouch& e) {
     if (g_tqHead == g_tqTail) return false;
     e = g_tq[g_tqTail++ & 255];
