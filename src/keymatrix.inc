@@ -46,7 +46,7 @@ static void kmReset() {
     haveClip = false; haveTrigClip = false; pageClipStore = -1; pgClipState = 0; trkClipFrom = -1; mutRnd = 0x1234567u; mutAmt = 1; tmplSel = 0;
     smpSrc = 0; smpChops = 0; smpMode = 0; smpNorm = 1; smpFade = 5; smpDest = 0; smpState = 0; pvOn = false; smpLen = 0; smpStart = smpEnd = 0;
     expState = 0; expFrom = 0; expTo = -1; usbApplyAt = 0; audioApplyAt = 0; quitReq = false; funcUsed = false; startHeldPlaying = false; startFill = false;
-    undoCnt = 0; undoShadowPat = -1; redoPat = -1;
+    undoCnt = 0; undoShadowPat = -1; redoCnt = 0;
     kmFiles();   // fester Datei-Stand
     snprintf(cfg.project, sizeof cfg.project, "Matrix"); projectPath(cfg.project, projPath, sizeof projPath);
     lastSavedHash = kmOrigHash; dirtyAt = 0;   // Projekt gilt als gespeichert
@@ -291,6 +291,77 @@ static void kmBuildContexts() {
     for (int k = 0; k < SK_COUNT; k++) { snprintf(n, sizeof n, "SAMPLER Regler %d", k + 1); kmCtxAdd(n, [](int a) { page = PG_SMPR; slot = a; }, k, true); }
 }
 
+// ---- Zusammenhaenge: zufaellige Bedienketten (feste Startwerte), Regeln nach jedem Schritt,
+// zwischendurch Speichern+Laden (muss gleich bleiben) und Rueckgaengig/Wiederholen (muss genau zurueckfuehren).
+static int kmChainFails = 0, kmSaveChecks = 0, kmUndoChecks = 0, kmUndoSteps = 0;
+static void kmFail(const char* fmt, ...) {
+    if (kmChainFails++ >= 30) return;
+    char b[300]; va_list ap; va_start(ap, fmt); vsnprintf(b, sizeof b, fmt, ap); va_end(ap);
+    printf("  ZUSAMMENHANG FEHLER: %s\n", b);
+}
+static bool kmPatEq(const Pattern& a, const Pattern& b) { Pattern x = a, y = b; x.used = y.used = 0; return !memcmp(&x, &y, sizeof(Pattern)); }
+static void kmCheckSaveLoad(int seed, int step) {
+    kmSaveChecks++;
+    if (!saveProject()) { kmFail("Kette %d Schritt %d: Speichern fehlgeschlagen", seed, step); return; }
+    static Engine* chk = nullptr; if (!chk) chk = newEngine();
+    if (!chk->load(projPath)) { kmFail("Kette %d Schritt %d: gespeichertes Projekt nicht ladbar", seed, step); return; }
+    static Pattern fresh; static bool fr = false; if (!fr) { Engine::initPattern(fresh); fr = true; }
+    for (int pi = 0; pi < NPATTERNS; pi++) {
+        const Pattern& A = eng.proj.pat[pi]; const Pattern& B = chk->proj.pat[pi];
+        if (patternUsed(A)) { if (!kmPatEq(A, B)) { kmFail("Kette %d Schritt %d: Pattern %s nach Speichern+Laden anders", seed, step, PN(pi)); return; } }
+        else if (!kmPatEq(B, fresh)) { kmFail("Kette %d Schritt %d: unbelegtes Pattern %s kommt nicht frisch zurueck", seed, step, PN(pi)); return; }
+    }
+    if (memcmp((const uint8_t*)&eng.proj + 20 + (long)NPATTERNS * sizeof(Pattern), (const uint8_t*)&chk->proj + 20 + (long)NPATTERNS * sizeof(Pattern), PROJECT_TAIL_SIZE)
+        || eng.proj.bpm != chk->proj.bpm || memcmp(eng.proj.mst, chk->proj.mst, 8))
+        kmFail("Kette %d Schritt %d: Projekt-Werte (Tempo/Master/Busse/Song) nach Speichern+Laden anders", seed, step);
+}
+static void kmCheckUndo(uint32_t& r, int seed, int step) {
+    // auf einer Spurseite 1-5 Aenderungen mit Pausen (= je ein Rueckgaengig-Schritt), dann alles zurueck und wieder vor
+    page = PG_TRG; menuOpen = pgmOpen = fbOpen = kbOpen = confirmOpen = sedOpen = wteOpen = false; lockLatch = aHeld = false;
+    for (int i = 0; i < 60; i++) simFrame();   // vorherige Aenderungen abschliessen
+    int pi = curPi(); Pattern before = eng.proj.pat[pi];
+    int n = 1 + (int)(r % 5), done = 0;
+    for (int k = 0; k < n; k++) {
+        r ^= r << 13; r ^= r >> 17; r ^= r << 5;
+        Pattern prev = eng.proj.pat[pi];
+        switch (r % 4) {
+        case 0: cursor = (int)((r >> 8) % 16); kmTap(BT_A); break;               // Trig an/aus
+        case 1: kmTap(BT_X); break;                                              // Wert +
+        case 2: cursor = (int)((r >> 8) % 16); kmCombo(BT_A, BT_Y); break;       // Lock
+        default: kmTap(BT_Y); break;
+        }
+        for (int i = 0; i < 60; i++) simFrame();   // > 0,8 s Pause: eigener Schritt
+        if (!kmPatEq(prev, eng.proj.pat[pi])) done++;
+    }
+    Pattern after = eng.proj.pat[pi]; kmUndoChecks++; kmUndoSteps += done;
+    for (int k = 0; k < done; k++) { kmCombo(BT_SELECT, BT_B); for (int i = 0; i < 4; i++) simFrame(); }
+    if (!kmPatEq(before, eng.proj.pat[pi])) kmFail("Kette %d Schritt %d: %d x Rueckgaengig fuehrt nicht zum Stand davor zurueck", seed, step, done);
+    for (int k = 0; k < done; k++) { redoStep(); simFrame(); }
+    if (done && !kmPatEq(after, eng.proj.pat[pi])) kmFail("Kette %d Schritt %d: Wiederholen fuehrt nicht zum Stand danach", seed, step);
+}
+static void kmChains(int seeds, int steps) {
+    // gefaehrliche/langsame Eingaben gibt es hier nicht (selfTesting); Abfragen werden manchmal bestaetigt
+    Uint32 t0 = SDL_GetTicks(); int total = 0;
+    for (int sd = 1; sd <= seeds; sd++) {
+        kmReset();
+        uint32_t r = 0x9E3779B9u * (uint32_t)sd;
+        for (int st = 0; st < steps; st++) {
+            r ^= r << 13; r ^= r >> 17; r ^= r << 5;
+            int k = (int)(r % KM_NIN);
+            if (r % 53 == 0) { int p = (int)((r >> 7) % NUI_PAGES); if (pageAvail(p)) page = p; }   // Sprung auf eine beliebige Seite
+            if (r % 41 == 0) track = (int)((r >> 9) % NTRACKS);
+            KM_IN[k].run();
+            quitReq = false; usbApplyAt = 0; audioApplyAt = 0; expState = expState == 1 ? 1 : 0;
+            char where[96]; snprintf(where, sizeof where, "Kette %d Schritt %d (%s)", sd, st, KM_IN[k].name);
+            int before = kmRuleFails; kmRules(where); if (kmRuleFails != before) kmChainFails++;
+            if (st % 400 == 399) kmCheckSaveLoad(sd, st);
+            if (st % 250 == 120) kmCheckUndo(r, sd, st);
+            total++;
+        }
+    }
+    printf("Zusammenhaenge: %d Ketten, %d Schritte, %d x Speichern+Laden, %d x Rueckgaengig/Wiederholen (%d Schritte), %d Fehler in %.1f s\n", seeds, total, kmSaveChecks, kmUndoChecks, kmUndoSteps, kmChainFails, (SDL_GetTicks() - t0) / 1000.0);
+}
+
 static int runKeymatrix(const char* golden, bool update) {
     selfTesting = true;
     char tmp[600]; snprintf(tmp, sizeof tmp, "/tmp/gb-keymatrix-%d/", (int)getpid());
@@ -369,10 +440,11 @@ static int runKeymatrix(const char* golden, bool update) {
         for (char* l = strchr(gold, '\n'); l && l[1]; l = strchr(l + 1, '\n')) gone++;
         gone -= cases; if (gone < 0) gone = 0;
     }
+    if (!update && !ext) kmChains(6, 1500);
     printf("Tasten-Matrix: %d Kontexte, %d Eingaben je Kontext (kurz %d), %d Faelle in %.1f s\n", kmNCtx, KM_NIN, (int)(sizeof KM_VALUE_IN / sizeof *KM_VALUE_IN), cases, (SDL_GetTicks() - t0) / 1000.0);
     if (update) { printf("Sollzustand geschrieben: %s (Regel-Verletzungen: %d)\n", golden, kmRuleFails); return kmRuleFails ? 1 : 0; }
-    printf("%s: %d Abweichungen, %d neue Faelle, %d entfallene Zeilen, %d Regel-Verletzungen\n", diffs || missing || gone || kmRuleFails ? "FEHLGESCHLAGEN" : "OK", diffs, missing, gone, kmRuleFails);
+    printf("%s: %d Abweichungen, %d neue Faelle, %d entfallene Zeilen, %d Regel-Verletzungen, %d Zusammenhang-Fehler\n", diffs || missing || gone || kmRuleFails || kmChainFails ? "FEHLGESCHLAGEN" : "OK", diffs, missing, gone, kmRuleFails, kmChainFails);
     char cmd[700]; snprintf(cmd, sizeof cmd, "rm -rf '%s'", tmp);
     if (system(cmd) != 0) {}
-    return diffs || missing || gone || kmRuleFails ? 1 : 0;
+    return diffs || missing || gone || kmRuleFails || kmChainFails ? 1 : 0;
 }

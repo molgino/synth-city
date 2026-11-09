@@ -806,8 +806,10 @@ static void lockJumpTo(int st) {   // Lock-Modus: zu einem anderen Step derselbe
 
 // Rueckgaengig: Stapel von Pattern-Staenden; zusammenhaengende Aenderungen (bis 0,8 s Pause) = ein Schritt
 enum { UNDO_N = 12 };
-static Pattern undoBuf[UNDO_N], undoShadow, redoBuf;
-static int undoPat[UNDO_N], undoTop = 0, undoCnt = 0, undoShadowPat = -1, redoPat = -1;
+static Pattern undoBuf[UNDO_N], undoShadow, redoBuf[UNDO_N];
+static int undoPat[UNDO_N], undoTop = 0, undoCnt = 0, undoShadowPat = -1;
+static int redoPatS[UNDO_N], redoCnt = 0;   // Wiederholen-Stapel (mehrstufig; vorher nur 1 Schritt)
+static void undoPush(const Pattern& p, int pi) { undoBuf[undoTop] = p; undoPat[undoTop] = pi; undoTop = (undoTop + 1) % UNDO_N; if (undoCnt < UNDO_N) undoCnt++; }
 static bool undoDirty = false;
 static Uint32 undoLastChange = 0;
 static void undoTrack(Uint32 now) {   // einmal pro Bild nach der Eingabe
@@ -819,9 +821,8 @@ static void undoTrack(Uint32 now) {   // einmal pro Bild nach der Eingabe
     if (memcmp(&P, &undoShadow, sizeof(Pattern))) {
         if (!P.used) { lockA(); eng.proj.pat[curPi()].used = 1; unlockA(); }   // geaendert = belegt (wird gespeichert)
         if (!undoDirty) {   // erster Schritt einer Aenderung: Stand davor sichern
-            undoBuf[undoTop] = undoShadow; undoPat[undoTop] = undoShadowPat;
-            undoTop = (undoTop + 1) % UNDO_N; if (undoCnt < UNDO_N) undoCnt++;
-            undoDirty = true; redoPat = -1;
+            undoPush(undoShadow, undoShadowPat);
+            undoDirty = true; redoCnt = 0;   // neue Aenderung: Wiederholen verfaellt
         }
         undoLastChange = now;
         undoShadow = P;
@@ -831,7 +832,8 @@ static void undoStep() {
     if (!undoCnt) { toast(TR("NICHTS RÜCKGÄNGIG ZU MACHEN", "NOTHING TO UNDO")); return; }
     undoTop = (undoTop + UNDO_N - 1) % UNDO_N; undoCnt--;
     int pi = undoPat[undoTop];
-    redoBuf = eng.proj.pat[pi]; redoPat = pi;
+    if (redoCnt == UNDO_N) { memmove(redoBuf, redoBuf + 1, sizeof(Pattern) * (UNDO_N - 1)); memmove(redoPatS, redoPatS + 1, sizeof(int) * (UNDO_N - 1)); redoCnt--; }
+    redoBuf[redoCnt] = eng.proj.pat[pi]; redoPatS[redoCnt] = pi; redoCnt++;
     lockA(); eng.proj.pat[pi] = undoBuf[undoTop]; unlockA();
     if (pi == curPi()) undoShadow = undoBuf[undoTop];
     undoDirty = false;
@@ -892,10 +894,14 @@ static void recToggle() {
     toast(TR("AUFNAHME WIRD GESPEICHERT ...", "SAVING RECORDING ..."));
 }
 static void redoStep() {
-    if (redoPat < 0) { toast(TR("NICHTS ZU WIEDERHOLEN", "NOTHING TO REDO")); return; }
-    lockA(); eng.proj.pat[redoPat] = redoBuf; unlockA();
-    toast(TR("WIEDERHOLT: PATTERN %s", "REDONE: PATTERN %s"), PN(redoPat));
-    redoPat = -1;
+    if (!redoCnt) { toast(TR("NICHTS ZU WIEDERHOLEN", "NOTHING TO REDO")); return; }
+    redoCnt--;
+    int pi = redoPatS[redoCnt];
+    undoPush(eng.proj.pat[pi], pi);
+    lockA(); eng.proj.pat[pi] = redoBuf[redoCnt]; unlockA();
+    if (pi == curPi()) undoShadow = redoBuf[redoCnt];
+    undoDirty = false;
+    toast(TR("WIEDERHOLT: PATTERN %s (%d WEITERE)", "REDONE: PATTERN %s (%d MORE)"), PN(pi), redoCnt);
 }
 
 // Seiten: Spurseiten haben eine Speicherseite (je 8 Parameter), globale nicht
@@ -3923,7 +3929,7 @@ static void setLabel(int i, char* l, int ln, char* v, int vn) {
     case SI_TMPL: snprintf(l, ln, TR("Rhythmus-Vorlage", "Rhythm template")); snprintf(v, vn, "< %s >", RHY_NAMES[tmplSel]); break;
     case SI_UNDO: snprintf(l, ln, TR("Rückgängig (SELECT + B)", "Undo (SELECT + B)")); snprintf(v, vn, TR("%d Schritte", "%d steps"), undoCnt); break;
     case SI_DEMO: snprintf(l, ln, TR("Demo-Song 'Neon Nights' laden", "Load demo song 'Neon Nights'")); snprintf(v, vn, ">>"); break;
-    case SI_REDO: snprintf(l, ln, TR("Wiederholen", "Redo")); snprintf(v, vn, "%s", redoPat >= 0 ? ">>" : TR("(nichts)", "(nothing)")); break;
+    case SI_REDO: snprintf(l, ln, TR("Wiederholen", "Redo")); snprintf(v, vn, "%s", redoCnt > 0 ? ">>" : TR("(nichts)", "(nothing)")); break;
     case SI_H_AUDIO: snprintf(l, ln, "AUDIO"); break;
     case SI_OUT: snprintf(l, ln, TR("Ausgang", "Output")); { int d = devIndex(); snprintf(v, vn, "%.26s", d ? devNames[d - 1] : TR("Standard (intern)", "Default (internal)")); } break;
     case SI_BUF: snprintf(l, ln, TR("Puffer", "Buffer"));
