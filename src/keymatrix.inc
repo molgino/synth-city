@@ -367,14 +367,26 @@ static int runKeymatrix(const char* golden, bool update) {
     char tmp[600]; snprintf(tmp, sizeof tmp, "/tmp/gb-keymatrix-%d/", (int)getpid());
     mkdir(tmp, 0755);
     char sub[700]; snprintf(sub, sizeof sub, "%sprojects", tmp); mkdir(sub, 0755);
-    char smp[700]; snprintf(smp, sizeof smp, "%ssamples", tmp);
-    char src[700]; snprintf(src, sizeof src, "%ssamples", basePath);
-    {   // eigene Kopie der Test-Samples: Editoren speichern dort (nie in die echten Samples schreiben)
-        char cp[1500]; snprintf(cp, sizeof cp, "cp -rL '%s' '%s' 2>/dev/null", src, smp);
-        if (system(cp) != 0 && symlink(src, smp) != 0) {}
-    }
     snprintf(basePath, sizeof basePath, "%s", tmp);
-    reloadSamples();   // Bibliothek aus der Kopie (dort speichern die Editoren)
+    {   // eigene, immer gleiche Test-Samples (die Matrix darf nicht von der Sample-Bibliothek des Rechners abhaengen)
+        static const char* const NM[8] = {"drums/kick-boom", "drums/snare-tight", "drums/hat-closed", "fx/riser", "keys/pad-warm", "keys/stab-minor", "loops/beat-90", "vox/hey"};
+        static float buf[22050 * 2];
+        uint32_t r = 1;
+        for (int k = 0; k < 8; k++) {
+            int n = 4000 + k * 2500;
+            for (int i = 0; i < n; i++) {
+                r = r * 1664525u + 1013904223u;
+                float v = 0.4f * sinf(i * (0.01f + 0.004f * k)) * (1.f - (float)i / n) + (k % 3 == 1 ? ((int)(r >> 9) % 2000 - 1000) / 5000.f : 0.f);
+                buf[i * 2] = v; buf[i * 2 + 1] = k == 6 ? -v : v;   // ein Stereo-Sample
+            }
+            char d[800]; snprintf(d, sizeof d, "%ssamples/%.*s", tmp, (int)(strchr(NM[k], '/') - NM[k]), NM[k]);
+            char sd[800]; snprintf(sd, sizeof sd, "%ssamples", tmp); mkdir(sd, 0755); mkdir(d, 0755);
+            char f[900]; snprintf(f, sizeof f, "%ssamples/%s.wav", tmp, NM[k]); writeWav(f, buf, n, 44100);
+        }
+        char sd[800]; snprintf(sd, sizeof sd, "%ssamples", tmp);
+        int n = samplesLoad(sd);
+        for (int i = n; i < PREVIEW_SLOT; i++) if (sampleGet(i)) poolSetSlot(i, "");   // Rest des Pools leeren
+    }
     snprintf(cfgPath, sizeof cfgPath, "%sinput.cfg", tmp);
     snprintf(setPath, sizeof setPath, "%ssettings.cfg", tmp);
     snprintf(cfg.project, sizeof cfg.project, "Matrix");

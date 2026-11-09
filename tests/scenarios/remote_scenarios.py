@@ -170,7 +170,7 @@ def start_box(exe, files=None):
     for n, c in (files or {}).items():
         with open(os.path.join(tmp, n), 'w') as f: f.write(c)
     env = dict(os.environ, GB_HEADLESS='1', GB_NOSPLASH='1', GB_WS_IDLE_MS=str(IDLE_MS), SDL_AUDIODRIVER='dummy', SDL_VIDEODRIVER='dummy')
-    p = subprocess.Popen(['stdbuf', '-oL', os.path.join(tmp, 'groovebox')], cwd=tmp, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    p = subprocess.Popen([os.path.join(tmp, 'groovebox')], cwd=tmp, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
     port = None; t0 = time.time(); log = []
     while time.time() - t0 < 20 and port is None:
         line = p.stdout.readline()

@@ -3123,24 +3123,24 @@ Liste Projekt | A+SEL+L1 | PAGE-Menue auf; Liste zu; Meldung "GELADEN: Matrix"
 Liste Projekt | A+SEL+R1 | PAGE-Menue auf; Liste zu; Meldung "GELADEN: Matrix"
 Liste Projekt | Stick R hoch | -
 Liste Projekt | Stick L rechts | -
-Liste Sample-Slots | HOCH | Listeneintrag 13>12
-Liste Sample-Slots | RUNTER | Listeneintrag 13>14
+Liste Sample-Slots | HOCH | -
+Liste Sample-Slots | RUNTER | Listeneintrag 0>1
 Liste Sample-Slots | LINKS | Liste zu
-Liste Sample-Slots | RECHTS | Liste zu; Meldung "SLOT 012: keys/stab-minor"
-Liste Sample-Slots | A | Liste zu; Meldung "SLOT 012: keys/stab-minor"
+Liste Sample-Slots | RECHTS | Liste 1 auf
+Liste Sample-Slots | A | Liste 1 auf
 Liste Sample-Slots | B | Liste zu
 Liste Sample-Slots | X | -
-Liste Sample-Slots | Y | Liste 1 auf
-Liste Sample-Slots | L1 | Listeneintrag 13>5
-Liste Sample-Slots | R1 | Listeneintrag 13>17
+Liste Sample-Slots | Y | -
+Liste Sample-Slots | L1 | -
+Liste Sample-Slots | R1 | Listeneintrag 0>8
 Liste Sample-Slots | L2 | -
 Liste Sample-Slots | R2 | -
-Liste Sample-Slots | START | Liste zu; Meldung "SLOT 012: keys/stab-minor"
+Liste Sample-Slots | START | Liste 1 auf
 Liste Sample-Slots | SELECT | Liste zu
-Liste Sample-Slots | A lang | Liste zu; Meldung "SLOT 012: keys/stab-minor"
+Liste Sample-Slots | A lang | Liste 1 auf
 Liste Sample-Slots | X lang | -
-Liste Sample-Slots | Y lang | Liste 1 auf
-Liste Sample-Slots | START lang | Liste zu; Meldung "SLOT 012: keys/stab-minor"
+Liste Sample-Slots | Y lang | -
+Liste Sample-Slots | START lang | Liste 1 auf
 Liste Sample-Slots | SELECT lang | Liste zu
 Liste Sample-Slots | SEL+HOCH | Liste zu
 Liste Sample-Slots | SEL+RUNTER | Liste zu
@@ -3155,35 +3155,35 @@ Liste Sample-Slots | SEL+R1 | Liste zu
 Liste Sample-Slots | SEL+L2 | Liste zu
 Liste Sample-Slots | SEL+R2 | Liste zu
 Liste Sample-Slots | SEL+START | Liste zu
-Liste Sample-Slots | A+B | Liste zu; Meldung "SLOT 012: keys/stab-minor"
-Liste Sample-Slots | A+X | Meldung "SLOT 012: keys/stab-minor"
-Liste Sample-Slots | A+Y | Liste zu; T8.SMPL 11>10; Meldung "SLOT 012: keys/stab-minor"
-Liste Sample-Slots | A+HOCH | Spur 8>7; Liste zu; Meldung "SLOT 012: keys/stab-minor"
-Liste Sample-Slots | A+RUNTER | Spur 8>1; Liste zu; Meldung "SLOT 012: keys/stab-minor"
-Liste Sample-Slots | A+L1 | Regler 1>8; Liste zu; Meldung "SLOT 012: keys/stab-minor"
-Liste Sample-Slots | A+R1 | Regler 1>2; Liste zu; Meldung "SLOT 012: keys/stab-minor"
-Liste Sample-Slots | A+SEL+L1 | Step 1>13; Liste zu; Meldung "SLOT 012: keys/stab-minor"
-Liste Sample-Slots | A+SEL+R1 | Step 1>5; Liste zu; Meldung "SLOT 012: keys/stab-minor"
+Liste Sample-Slots | A+B | Liste zu
+Liste Sample-Slots | A+X | Liste 1 auf
+Liste Sample-Slots | A+Y | Liste 1 auf
+Liste Sample-Slots | A+HOCH | Liste 1 auf
+Liste Sample-Slots | A+RUNTER | Liste 1 auf
+Liste Sample-Slots | A+L1 | Liste 1 auf
+Liste Sample-Slots | A+R1 | Liste 1 auf
+Liste Sample-Slots | A+SEL+L1 | Liste zu
+Liste Sample-Slots | A+SEL+R1 | Liste zu
 Liste Sample-Slots | Stick R hoch | -
 Liste Sample-Slots | Stick L rechts | -
-Liste Samples | HOCH | Listeneintrag 3>2
-Liste Samples | RUNTER | -
-Liste Samples | LINKS | Listeneintrag 3>2
-Liste Samples | RECHTS | Liste zu; Meldung "keys/stab-minor"
-Liste Samples | A | Liste zu; Meldung "keys/stab-minor"
-Liste Samples | B | Listeneintrag 3>2
+Liste Samples | HOCH | -
+Liste Samples | RUNTER | Listeneintrag 0>1
+Liste Samples | LINKS | Liste zu
+Liste Samples | RECHTS | -
+Liste Samples | A | -
+Liste Samples | B | Liste zu
 Liste Samples | X | -
 Liste Samples | Y | -
-Liste Samples | L1 | Listeneintrag 3>0
-Liste Samples | R1 | -
+Liste Samples | L1 | -
+Liste Samples | R1 | Listeneintrag 0>4
 Liste Samples | L2 | -
 Liste Samples | R2 | -
-Liste Samples | START | Liste zu; Meldung "keys/stab-minor"
+Liste Samples | START | -
 Liste Samples | SELECT | Liste zu
-Liste Samples | A lang | Liste zu; Meldung "keys/stab-minor"
+Liste Samples | A lang | -
 Liste Samples | X lang | -
 Liste Samples | Y lang | -
-Liste Samples | START lang | Liste zu; Meldung "keys/stab-minor"
+Liste Samples | START lang | -
 Liste Samples | SELECT lang | Liste zu
 Liste Samples | SEL+HOCH | Liste zu
 Liste Samples | SEL+RUNTER | Liste zu
@@ -3198,15 +3198,15 @@ Liste Samples | SEL+R1 | Liste zu
 Liste Samples | SEL+L2 | Liste zu
 Liste Samples | SEL+R2 | Liste zu
 Liste Samples | SEL+START | Liste zu
-Liste Samples | A+B | Liste zu; Meldung "keys/stab-minor"
-Liste Samples | A+X | Liste 7 auf; Meldung "keys/stab-minor"
-Liste Samples | A+Y | Liste zu; T8.SMPL 11>10; Meldung "keys/stab-minor"
-Liste Samples | A+HOCH | Spur 8>7; Liste zu; Meldung "keys/stab-minor"
-Liste Samples | A+RUNTER | Spur 8>1; Liste zu; Meldung "keys/stab-minor"
-Liste Samples | A+L1 | Regler 1>8; Liste zu; Meldung "keys/stab-minor"
-Liste Samples | A+R1 | Regler 1>2; Liste zu; Meldung "keys/stab-minor"
-Liste Samples | A+SEL+L1 | Step 1>13; Liste zu; Meldung "keys/stab-minor"
-Liste Samples | A+SEL+R1 | Step 1>5; Liste zu; Meldung "keys/stab-minor"
+Liste Samples | A+B | -
+Liste Samples | A+X | T8.SMPL 11>253
+Liste Samples | A+Y | -
+Liste Samples | A+HOCH | -
+Liste Samples | A+RUNTER | Listeneintrag 0>1
+Liste Samples | A+L1 | -
+Liste Samples | A+R1 | Listeneintrag 0>2
+Liste Samples | A+SEL+L1 | Liste zu
+Liste Samples | A+SEL+R1 | Liste zu
 Liste Samples | Stick R hoch | -
 Liste Samples | Stick L rechts | -
 Sample-Editor | HOCH | Spur 8>7

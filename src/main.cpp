@@ -5509,6 +5509,7 @@ static void reloadSamples() {
 #endif
 
 int main(int argc, char** argv) {
+    setvbuf(stdout, nullptr, _IOLBF, 0);   // Log zeilenweise (Tests lesen es mit, auch mit Sanitizern ohne stdbuf)
     if (argc >= 3 && !strcmp(argv[1], "--dhcpd")) return runDhcpd(argv[2]);   // Hilfsdienst fuer den PC-Modus
     bool learn = false, windowed = false;
     const char* shot = nullptr; const char* renderOut = nullptr; float renderSecs = 8; int shotPage = 0;
