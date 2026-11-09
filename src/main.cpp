@@ -3360,7 +3360,9 @@ static bool isGrooveboxOS();
 static void runBench(const char* outPath, bool onDevice);
 static bool touchBlocked();
 static void drawPrj();
+static unsigned long drawCount = 0;   // gezeichnete Bilder (Tests: haengt die Oberflaeche?)
 static void drawAll(bool help) {
+    drawCount++;
     nHits = 0; hitModalAt = 0;
     if (slot >= nSlots()) slot = nSlots() - 1;   // von einer Seite mit 12 Reglern gekommen
     animate();

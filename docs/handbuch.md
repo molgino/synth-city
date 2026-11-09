@@ -852,14 +852,19 @@ Bei spürbarer Last (ab etwa 4 klingenden Stimmen) rechnet ein **zweiter Prozess
 
 **Alle Tests auf Knopfdruck:** GitHub → **Actions** → **Tests (Knopfdruck)** → **Run workflow** (geht auch am Handy). Nach 2–5 Minuten steht in der Zusammenfassung des Laufs eine Tabelle mit jedem Szenario (✅/❌), dazu die Datei `testbericht.md`. Am PC dasselbe mit `tools/test-all.sh` (schnell, ~30 s) bzw. `tools/test-all.sh --voll` (zusätzlich mit Sanitizern).
 
-Geprüft wird in vier Stufen:
+Geprüft wird in sieben Stufen:
 
 | Stufe | Was | Beispiele |
 |---|---|---|
 | Engine-Tests | Klang und Sequencer ohne Oberfläche | Timing, Polymetrie, Bedingungen, Loops, Speichern/Laden aller Formate (v1–v16) |
-| Bedien-Szenarien | simulierte Tasten und Touch wie am Gerät, je Szenario „Gegeben – Wenn – Dann“ | Trig setzen, Lock-Modus, PAGE-Menü (Tasten + Antippen), SET: jeden Eintrag ändern und Seite wechseln ohne Einfrieren, Pattern-Bänke, Sampler |
-| Fernbedienung | echtes groovebox im Hintergrund, Verbindungen wie der Browser | abgerissene Verbindungen (WLAN weg) blockieren nichts, stille Verbindungen werden geschlossen, Ton bleibt mit Ping an, PC-Modus-Umbau friert das Bild nicht ein |
-| Stresstest | 20 000 Zufallsbilder, 30 s Audio unter Last | keine Abstürze, keine Aussetzer |
+| Bedien-Szenarien | Abläufe mit simulierten Tasten und Touch, je Szenario „Gegeben – Wenn – Dann“ | Lock-Modus, PAGE-Menü (Tasten + Antippen), SET ohne Einfrieren, Pattern-Bänke, Sampler |
+| **Tasten-Matrix** | **jede Taste und Kombination** (einzeln, lang, SELECT+…, A+…, Sticks) auf **jeder Seite**, jeder Quell-Seite jeder Engine, in **jedem Fenster**, auf jedem SET-Eintrag, PRJ-Feld, Song-Spalte, Mixer-Zeile – rund 4500 Fälle. Die interne Wirkung (Seite, Regler, Werte, Steps, Mutes, Menüs, Einstellungen, Meldung) wird mit der abgenommenen Sollliste `tests/keymatrix.golden` verglichen; dazu Regeln nach jedem Druck (Werte im erlaubten Bereich, nichts hängt, nur ein Fenster offen) | „TRIG | SEL+X → Engine SYNTH>FM“, „Tastatur offen | SEL+X → nur Tastatur zu“ |
+| Zusammenhänge | 9000 zufällige Bedienschritte über alle Seiten, Regeln nach jedem Schritt, zwischendurch Speichern+Laden (muss gleich bleiben) und Rückgängig/Wiederholen (muss genau zurückführen) | |
+| Webserver | jede Schnittstelle richtig und falsch benutzt | Upload in Unterordner, gefährliche Pfade, Umbenennen, Löschen, Sync-Manifest, CORS |
+| Fernbedienung | echtes groovebox, Verbindungen wie der Browser | WLAN-Abbruch, stille Verbindungen, Ton, kein Einfrieren beim USB-Umbau |
+| Handy-App | die echte App im Browser, **echte Taps** auf Knöpfe und Bild | Start, Play, Trig setzen, Seitenkarte, PAGE-Menü antippen, SET ohne Einfrieren, Speichern übersteht Neuladen |
+
+Der Bericht zeigt dazu eine **Abdeckungstabelle** (wie viele Fälle je Bereich). Ändert sich ein Verhalten gewollt, wird die Sollliste mit `./groovebox --keymatrix tests/keymatrix.golden --update` neu erzeugt – der Unterschied (git diff) zeigt Zeile für Zeile, welche Taste jetzt anders wirkt. Die Handy-App wird zusätzlich **vor jeder Veröffentlichung** getestet: schlägt ein App-Szenario fehl, geht die neue Version nicht online.
 
 Jeder gefundene Fehler bekommt ein eigenes Szenario – so kann er nicht unbemerkt zurückkommen.
 

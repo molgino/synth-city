@@ -51,6 +51,8 @@ jobs:
           make clean
           make -j4 SAN=1
           SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy ASAN_OPTIONS=detect_leaks=0 ./groovebox --selftest 60
+      - name: Webserver-Szenarien (Upload, Explorer, Sync)
+        run: ASAN_OPTIONS=detect_leaks=0 python3 tests/scenarios/web_api_scenarios.py ./groovebox
       - name: Tasten-Matrix (jede Taste auf jeder Seite, Sanitizer)
         run: SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy ASAN_OPTIONS=detect_leaks=0 ./groovebox --keymatrix tests/keymatrix.golden
       - name: Fernbedienung-Szenarien (Browser-Verbindungen, Sanitizer)
@@ -66,6 +68,11 @@ jobs:
         with: { version: 3.1.74 }
       - name: Web-App bauen
         run: python3 tools/webapp/build.py --out dist/webapp
+      - name: Handy-App-Szenarien (echte Taps im Browser, vor dem Veroeffentlichen)
+        run: |
+          npm i --no-save --prefix /tmp/pw playwright@1.48.2
+          npx --prefix /tmp/pw playwright install --with-deps chromium
+          NODE_PATH=/tmp/pw/node_modules node tests/app/app_scenarios.js dist/webapp
       - uses: actions/upload-artifact@v4
         with: { name: synthcity-webapp, path: dist/webapp }
       - name: Auf GitHub Pages veroeffentlichen

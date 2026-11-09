@@ -28,7 +28,13 @@ stage "Bauen"                                  build.log    make -j"$(nproc)"
 stage "Engine-Tests (Klang, Sequencer, Dateien)" unit.log    make test
 stage "Bedien-Szenarien (UI-Simulation)"       selftest.log ./groovebox --selftest 20
 stage "Tasten-Matrix (jede Taste, jede Seite)"   keymatrix.log ./groovebox --keymatrix tests/keymatrix.golden
+stage "Webserver (Upload, Explorer, Sync-API)"     webapi.log  python3 tests/scenarios/web_api_scenarios.py ./groovebox
 stage "Fernbedienung im Browser (Verbindungen)" remote.log  python3 tests/scenarios/remote_scenarios.py ./groovebox
+if [ -f dist/webapp/index.html ] && node -e "require('playwright')" 2>/dev/null; then
+    stage "Handy-App (echte Taps im Browser)"  app.log      node tests/app/app_scenarios.js dist/webapp
+else
+    echo "Handy-App: uebersprungen (erst tools/webapp/build.py; laeuft immer auf GitHub)"; touch "$LOGDIR/app.log"
+fi
 if [ $VOLL = 1 ]; then
     stage "Engine-Tests mit Sanitizern"        unit-san.log make test SAN=1
     stage "Mehrkern-Audio (ThreadSanitizer)"   tsan.log     make test-tsan
@@ -52,6 +58,27 @@ fi
     echo
     grep -E "^Tasten-Matrix:|^(OK|FEHLGESCHLAGEN):" "$LOGDIR/keymatrix.log" | sed 's/^/    /'
     grep -E "ABWEICHUNG|Soll:|Ist:|NEU |REGEL" "$LOGDIR/keymatrix.log" | head -60 | sed 's/^/    /'
+    echo
+    echo "## Abdeckung"
+    echo
+    echo "| Bereich | Fälle |"
+    echo "|---|---|"
+    G=tests/keymatrix.golden
+    echo "| Jede Seite × jede Taste/Kombination | $(grep -c '^Seite ' $G) |"
+    echo "| Quell-Seiten je Engine (13 Engines) | $(grep -cE '^(SRC|SR2|SR3|SR4|SR5|OSC|OP[0-9]?)[^|]* auf ' $G) |"
+    echo "| Fenster (Karte, PAGE-Menü, Listen, Tastatur, Abfrage, Editoren) | $(grep -cE '^(Seitenkarte|PAGE-Menue|Liste |Tastatur|Abfrage|Sample-Editor|Wavetable-Editor)' $G) |"
+    echo "| Jeder SET-Eintrag | $(grep -c '^SET ' $G) |"
+    echo "| PRJ-Felder, Song-Spalten, Mixer-Zeilen, Sampler-Regler | $(grep -cE '^(PRJ|SONG|MIX|SAMPLER) ' $G) |"
+    echo "| Sonderlagen (Lock-Modus, spielt, Page 2, Ablagen voll, Undo) | $(grep -cE '^TRIG ' $G) |"
+    echo "| **Tasten-Matrix gesamt** | **$(grep -vc '^#' $G)** |"
+    echo
+    echo "## Webserver"
+    echo
+    grep -E '^(OK|FEHLER)' "$LOGDIR/webapi.log" | sed -E 's/^OK +/- ✅ /; s/^FEHLER /- ❌ /'
+    echo
+    echo "## Handy-App"
+    echo
+    grep -E '^(OK|FEHLER)' "$LOGDIR/app.log" | sed -E 's/^OK +/- ✅ /; s/^FEHLER /- ❌ /'
     echo
     echo "## Fernbedienung (Browser)"
     echo

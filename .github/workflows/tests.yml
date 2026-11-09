@@ -25,3 +25,18 @@ jobs:
         with:
           name: testbericht
           path: dist/testbericht.md
+
+  handy-app:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: mymindstorm/setup-emsdk@v14
+        with: { version: 3.1.74 }
+      - name: Web-App bauen
+        run: python3 tools/webapp/build.py --out dist/webapp
+      - name: Handy-App-Szenarien
+        run: |
+          npm i --no-save --prefix /tmp/pw playwright@1.48.2
+          npx --prefix /tmp/pw playwright install --with-deps chromium
+          NODE_PATH=/tmp/pw/node_modules node tests/app/app_scenarios.js dist/webapp | tee app.log
+          { echo "## Handy-App"; echo; grep -E '^(OK|FEHLER)' app.log | sed -E 's/^OK +/- ✅ /; s/^FEHLER /- ❌ /'; } >> "$GITHUB_STEP_SUMMARY"

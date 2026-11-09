@@ -12,3 +12,4 @@ os/work/
 os/out/
 tests/unit
 tests/unit-tsan
+__pycache__/
