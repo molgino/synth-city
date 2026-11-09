@@ -183,6 +183,7 @@ try{if(localStorage.audio){const once=ev=>{document.removeEventListener('pointer
 if(!window.GB_LOCAL&&'serviceWorker' in navigator&&window.isSecureContext)navigator.serviceWorker.register('/sw.js').catch(()=>{});
 setInterval(()=>{const now=performance.now(),s=(now-last)/1000;
  if(ws&&ws.readyState===1)ws.send('p '+now.toFixed(0));
+ if(aws&&aws.readyState===1)aws.send('p');   // Lebenszeichen auch fuer den Ton (Geraet schliesst stille Verbindungen)
  $('stat').textContent=mode==='local'?'Offline · '+Math.round(frames/s)+' fps':(mode==='ws'?'Live':mode==='poll'?'Abfrage':'…')+' · '+Math.round(frames/s)+' fps · '+Math.round(bytes/1024/s)+' kB/s'+(mode==='ws'?' · '+Math.round(lat)+' ms':'')+(aOn&&aws?' · Ton '+Math.round(aBuf*1000)+' ms':'');
  frames=0;bytes=0;last=now;},1000);
 document.addEventListener('visibilitychange',()=>{if(document.hidden){releaseAll();return;}
