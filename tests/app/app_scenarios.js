@@ -68,6 +68,38 @@ function assert(c, m) { if (!c) throw new Error(m); }
     await tapBtn('A'); const c = await info();
     assert(c.steps !== b.steps, `Trig nicht gesetzt (${b.steps} -> ${c.steps})`);
   });
+  const ui2 = (await info()).ui2 === 1;   // neue Oberflaeche: SELECT = MEHR, L2/R2 = Ansichten-Kreis
+  if (ui2) {
+    await scenario('NEU: Gegeben SEQ, wenn RUNTER und L1/R1 angetippt werden, dann waehlt RUNTER einen Wert und R1 die Spur', async () => {
+      const a = await info(); await dpad('DOWN'); const b = await info();
+      assert(b.slot !== a.slot || b.page !== a.page, 'RUNTER waehlt keinen anderen Wert');
+      assert(b.track === a.track, 'RUNTER hat die Spur gewechselt');
+      await tapBtn('R1'); const c = await info(); assert(c.track === (a.track + 1) % 8, 'R1 wechselt die Spur nicht');
+      await tapBtn('L1');
+    });
+    await scenario('NEU: Gegeben eine Ansicht, wenn SELECT angetippt wird, dann oeffnet MEHR; B schliesst es', async () => {
+      await tapBtn('SELECT'); let i = await info(); assert(i.mr === 1 && i.menu === 0, 'MEHR nicht offen');
+      await tapBtn('B'); i = await info(); assert(i.mr === 0, 'MEHR nicht zu');
+    });
+    await scenario('NEU: Gegeben MEHR, wenn R1 (Abschnitt STEPS), 5x RUNTER und A, dann schaltet NEUE PAGE um', async () => {
+      const np = (await info()).newPage;
+      await tapBtn('SELECT'); await tapBtn('R1'); for (let k = 0; k < 5; k++) await dpad('DOWN');
+      await tapBtn('A'); let i = await info(); assert(i.newPage === 1 - np, 'NEUE PAGE nicht umgeschaltet');
+      await tapBtn('B'); i = await info(); assert(i.mr === 0, 'MEHR nicht zu');
+    });
+    await scenario('NEU: Gegeben SEQ, wenn R2 und L2 angetippt werden, dann SOUND und zurueck', async () => {
+      const a = await info(); await tapBtn('R2'); const b = await info(); assert(b.view === 1, 'R2: nicht SOUND (Ansicht ' + b.view + ')');
+      await tapBtn('L2'); const c = await info(); assert(c.view === 0 && c.page === a.page, 'L2 kommt nicht zu SEQ zurueck');
+    });
+    await scenario('NEU: Gegeben SET (L2 von SEQ), wenn Eintraege geaendert und die Ansicht gewechselt wird, dann laeuft das Bild weiter', async () => {
+      await tapBtn('L2'); assert((await info()).pageName === 'SET', 'SET nicht erreichbar (' + (await info()).pageName + ')');
+      await tapBtn('A'); for (let k = 0; k < 4; k++) { await dpad('DOWN'); await dpad('RIGHT'); await dpad('LEFT'); }
+      await tapBtn('R2'); await tapBtn('L2');
+      const a = await info(); await page.waitForTimeout(700); const b = await info();
+      assert(b.frames > a.frames + 3, `Bild steht (${a.frames} -> ${b.frames})`);
+      await tapBtn('B'); await tapBtn('R2');
+    });
+  } else {
   await scenario('Gegeben eine Seite, wenn SELECT angetippt wird, dann oeffnet die Seitenkarte; B schliesst sie', async () => {
     await tapBtn('SELECT'); let i = await info(); assert(i.menu === 1, 'Karte nicht offen');
     await tapBtn('B'); i = await info(); assert(i.menu === 0, 'Karte nicht zu');
@@ -94,8 +126,9 @@ function assert(c, m) { if (!c) throw new Error(m); }
     assert(b.frames > a.frames + 3, `Bild steht (${a.frames} -> ${b.frames})`);
     await tapBtn('B'); await tapBtn('B');
   });
+  }
   await scenario('Gegeben ein gesetzter Trig, wenn die App neu geladen wird, dann ist er noch da (Speichern in IndexedDB)', async () => {
-    for (let k = 0; k < 8 && (await info()).pageName !== 'TRG'; k++) await tapBtn('B');
+    for (let k = 0; k < 14 && (await info()).pageName !== 'TRG'; k++) await tapBtn(ui2 ? 'R2' : 'B');
     const before = await info();
     await page.evaluate(() => new Promise(r => GB_LOCAL.saveNow(r)));
     await page.reload(); await ready();

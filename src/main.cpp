@@ -95,8 +95,8 @@ static bool projDirty();                // genau (rechnet die Pruefsumme, ~10 ms
 static bool projDirtyCached();          // fuer die Anzeige: hoechstens alle 0,5 s neu
 
 // System-Einstellungen (settings.cfg)
-struct Settings { char dev[128]; int buf, midiIn, notesOut, clk, chm, usb, song, dispOff, usbAudio, hwVol, pcIn, usbVol, intUsb, cores, lang, usbNet, uac, uacSendOnly, usbCh, hostMc, usbBint, usbNetOn; signed char usbRoute[NTRACKS + NBUS]; char project[64]; int recPages, newPage, recThr; };   // usbRoute: 0 Auto, 1 nur Master, 2+k Paar k (USB 3-4 ...)   // usbNet 0 NCM / 1 RNDIS, uac 2 / 1
-static Settings cfg = {"", 1, 1, 0, 0, 0, 0, 0, 277, 1, 80, 1, 100, 1, 2, 0, 0, 2, 0, 2, 0, 0, 1, {0}, "", 0, 1, -40};   // recPages 0 = FREI, newPage 1 = Kopie der vorigen Page, recThr Start-Schwelle dB (-99 = sofort)
+struct Settings { char dev[128]; int buf, midiIn, notesOut, clk, chm, usb, song, dispOff, usbAudio, hwVol, pcIn, usbVol, intUsb, cores, lang, usbNet, uac, uacSendOnly, usbCh, hostMc, usbBint, usbNetOn; signed char usbRoute[NTRACKS + NBUS]; char project[64]; int recPages, newPage, recThr, ui2; };   // usbRoute: 0 Auto, 1 nur Master, 2+k Paar k (USB 3-4 ...)   // usbNet 0 NCM / 1 RNDIS, uac 2 / 1
+static Settings cfg = {"", 1, 1, 0, 0, 0, 0, 0, 277, 1, 80, 1, 100, 1, 2, 0, 0, 2, 0, 2, 0, 0, 1, {0}, "", 0, 1, -40, 1};   // recPages 0 = FREI, newPage 1 = Kopie der vorigen Page, recThr Start-Schwelle dB (-99 = sofort)
 // Kanaele zum PC (USB-Audio): Mehrkanal nur mit UAC2
 static int usbChannels() { return cfg.uac == 1 ? 2 : (cfg.usbCh == 8 || cfg.usbCh == 18 ? cfg.usbCh : 2); }
 // Kanaele, mit denen gerade gesendet wird (Host-Modus: was das Geraet annimmt), sonst die PC-Einstellung
@@ -219,6 +219,7 @@ static void loadSettings() {
         else if (!strcmp(line, "display_offset")) cfg.dispOff = clampi(atoi(v), -1920, 1920);
         else if (!strcmp(line, "rec_pages")) cfg.recPages = clampi(atoi(v), 0, 16);
         else if (!strcmp(line, "new_page")) cfg.newPage = clampi(atoi(v), 0, 1);
+        else if (!strcmp(line, "ui2")) cfg.ui2 = clampi(atoi(v), 0, 1);
         else if (!strcmp(line, "rec_threshold")) { int t = atoi(v); cfg.recThr = t <= -61 ? -99 : clampi(t, -60, -6); }
     }
     fclose(f);
@@ -226,8 +227,8 @@ static void loadSettings() {
 static void saveSettings() {
     FILE* f = fopen(setPath, "w");
     if (!f) return;
-    fprintf(f, "# Groovebox Systemeinstellungen\naudio_device %s\nbuffer %d\nmidi_in %d\nmidi_notes_out %d\nmidi_clock %d\nmidi_channels %d\nusb_mode %d\nsong %d\ndisplay_offset %d\nusb_audio %d\nhw_volume %d\npc_in %d\nusb_volume %d\ninternal_on_usb %d\naudio_cores %d\nlanguage %d\nusb_net %d\nusb_audio_class %d\nusb_audio_send_only %d\nusb_audio_channels %d\nusb_host_multi %d\nusb_audio_interval %d\nusb_network_on %d\nusb_route %d %d %d %d %d %d %d %d %d %d %d\nproject %s\nrec_pages %d\nnew_page %d\nrec_threshold %d\n",
-            cfg.dev, cfg.buf, cfg.midiIn, cfg.notesOut, cfg.clk, cfg.chm, cfg.usb, cfg.song, cfg.dispOff, cfg.usbAudio, cfg.hwVol, cfg.pcIn, cfg.usbVol, cfg.intUsb, cfg.cores, cfg.lang, cfg.usbNet, cfg.uac, cfg.uacSendOnly, cfg.usbCh, cfg.hostMc, cfg.usbBint, cfg.usbNetOn, cfg.usbRoute[0], cfg.usbRoute[1], cfg.usbRoute[2], cfg.usbRoute[3], cfg.usbRoute[4], cfg.usbRoute[5], cfg.usbRoute[6], cfg.usbRoute[7], cfg.usbRoute[8], cfg.usbRoute[9], cfg.usbRoute[10], cfg.project, cfg.recPages, cfg.newPage, cfg.recThr);
+    fprintf(f, "# Groovebox Systemeinstellungen\naudio_device %s\nbuffer %d\nmidi_in %d\nmidi_notes_out %d\nmidi_clock %d\nmidi_channels %d\nusb_mode %d\nsong %d\ndisplay_offset %d\nusb_audio %d\nhw_volume %d\npc_in %d\nusb_volume %d\ninternal_on_usb %d\naudio_cores %d\nlanguage %d\nusb_net %d\nusb_audio_class %d\nusb_audio_send_only %d\nusb_audio_channels %d\nusb_host_multi %d\nusb_audio_interval %d\nusb_network_on %d\nusb_route %d %d %d %d %d %d %d %d %d %d %d\nproject %s\nrec_pages %d\nnew_page %d\nrec_threshold %d\nui2 %d\n",
+            cfg.dev, cfg.buf, cfg.midiIn, cfg.notesOut, cfg.clk, cfg.chm, cfg.usb, cfg.song, cfg.dispOff, cfg.usbAudio, cfg.hwVol, cfg.pcIn, cfg.usbVol, cfg.intUsb, cfg.cores, cfg.lang, cfg.usbNet, cfg.uac, cfg.uacSendOnly, cfg.usbCh, cfg.hostMc, cfg.usbBint, cfg.usbNetOn, cfg.usbRoute[0], cfg.usbRoute[1], cfg.usbRoute[2], cfg.usbRoute[3], cfg.usbRoute[4], cfg.usbRoute[5], cfg.usbRoute[6], cfg.usbRoute[7], cfg.usbRoute[8], cfg.usbRoute[9], cfg.usbRoute[10], cfg.project, cfg.recPages, cfg.newPage, cfg.recThr, cfg.ui2);
     fclose(f);
 }
 static void applyMidiSettings() {
@@ -941,7 +942,9 @@ static const char* pageLong(int p) {
     if (p == PG_SRC2 && m == M_CHOP) return TR("TIME-WARP: SAMPLE FOLGT DEM TEMPO", "TIME WARP: SAMPLE FOLLOWS THE TEMPO");
     return PAGE_LONG[p];
 }
+static void v2Step(int dir);   // ui2.inc
 static void gotoPage(int dir) {
+    if (cfg.ui2) { v2Step(dir); return; }   // neue Oberflaeche: Ansichten-Kreis SEQ, SOUND, MIX ... SET
     const int* r; int n; pageRing(page, r, n);
     int cur = 0; for (int i = 0; i < n; i++) if (r[i] == page) cur = i;
     for (int k = 0; k < n; k++) { cur = (cur + dir + n) % n; if (pageAvail(r[cur])) { page = r[cur]; return; } }
@@ -1004,7 +1007,7 @@ static void battery(int x, int y) {
 static void drawIcon(int m, int x, int y, int s, Col c);
 // ---------------------------------------------------------------- Touch-Flaechen (Fernbedienung im Browser)
 // Jede Zeichenfunktion meldet ihre bedienbaren Flaechen; Touch prueft gegen das zuletzt gezeichnete Bild (oberste zuerst).
-enum HitKind { HK_TRACK, HK_PAGE, HK_SLOT, HK_STEP, HK_MUTE, HK_SOLO, HK_MIXCH, HK_MENU, HK_YES, HK_NO, HK_LIVE, HK_BTN, HK_SET, HK_SONG, HK_PRJ, HK_BLOCK, HK_LOCKEND, HK_FBROW, HK_FBBACK, HK_FBCANCEL, HK_FBPLAY, HK_PGM };   // HK_PGM: PAGE-Menue (a = Eintrag, -1 = oeffnen)
+enum HitKind { HK_TRACK, HK_PAGE, HK_SLOT, HK_STEP, HK_MUTE, HK_SOLO, HK_MIXCH, HK_MENU, HK_YES, HK_NO, HK_LIVE, HK_BTN, HK_SET, HK_SONG, HK_PRJ, HK_BLOCK, HK_LOCKEND, HK_FBROW, HK_FBBACK, HK_FBCANCEL, HK_FBPLAY, HK_PGM, HK_V2ROW, HK_V2VIEW, HK_MORE };   // HK_PGM: PAGE-Menue (a = Eintrag, -1 = oeffnen)
 struct Hit { short x, y, w, h; uint8_t k; short a, b; };
 enum { MAX_HITS = 320 };
 static Hit hits[MAX_HITS];
@@ -2588,6 +2591,8 @@ static void drawExportModal();
 static void drawWtEditorIfOpen();
 static void drawSmpEditorIfOpen();
 static void drawPageMenu();
+static void drawV2();
+static void drawMore();
 static bool pgmOpen = false;   // PAGE-Menue offen (src/pagemenu.inc)
 static void drawMenu() {
     hitModal();
@@ -3373,7 +3378,7 @@ static void drawAll(bool help) {
     else if (page == PG_LIVE) { drawLive(); drawOverlays(); }
     else if (page == PG_SMPR) { drawSampler(); drawOverlays(); }
     else if (page == PG_PRJ) { drawPrj(); drawOverlays(); }
-    else if (trackPage(page)) { drawSigB(); drawOverlays(); }
+    else if (trackPage(page)) { if (cfg.ui2) drawV2(); else drawSigB(); drawOverlays(); }
     else { drawKnobs(); drawGrid(); drawSteps(); }
     if (help) drawHelp();
     if (menuOpen) drawMenu();
@@ -3381,6 +3386,7 @@ static void drawAll(bool help) {
     drawWtEditorIfOpen();
     drawSmpEditorIfOpen();
     drawPageMenu();
+    drawMore();
     drawExportModal();
     if (fbOpen) drawBrowser();
     if (kbOpen) drawKeyboard();
@@ -3790,7 +3796,7 @@ enum SetItem {
     SI_H_UAUD, SI_USBAUDIO, SI_USBCH, SI_UACDIR, SI_UACVER, SI_USBBINT, SI_USBVOL, SI_INTUSB, SI_USBTONE, SI_PCIN, SI_PCREC,
     SI_H_ROUTE, SI_RT0, SI_RT1, SI_RT2, SI_RT3, SI_RT4, SI_RT5, SI_RT6, SI_RT7, SI_RT8, SI_RT9, SI_RT10,
     SI_H_SMP, SI_SAMPLES, SI_WEB, SI_DRIVE, SI_OLDSMP,
-    SI_H_SYS, SI_LANG, SI_DISP, SI_LEARN, SI_BENCH, SI_INFO, SI_BAT, SI_QUIT, SI_COUNT
+    SI_H_SYS, SI_LANG, SI_UI2, SI_DISP, SI_LEARN, SI_BENCH, SI_INFO, SI_BAT, SI_QUIT, SI_COUNT
 };
 static int setSel = SI_PATTERN, prevPage = PG_TRG;
 static bool setIn = false;   // SET: false = Bereiche links waehlen, true = in den Eintraegen des Bereichs (A rein, B raus)
@@ -3888,6 +3894,7 @@ static const char* setHelp(int i) {
     case SI_DRIVE: return TR("Speicher als USB-Laufwerk am PC (Samples kopieren)", "Storage as a USB drive on the PC (copy samples)");
     case SI_OLDSMP: return TR("Nur alte Projekte: andere Zuordnung der Sample-Nummern probieren", "Old projects only: try another mapping of the sample numbers");
     case SI_LANG: return TR("Sprache der Oberfläche", "Language of the interface");
+    case SI_UI2: return TR("NEU: Listen, Spuren und Steps immer sichtbar, L2/R2 = Ansicht, SELECT = MEHR. KLASSISCH: Kachel-Seiten", "NEW: lists, tracks and steps always visible, L2/R2 = view, SELECT = MORE. CLASSIC: tile pages");
     case SI_DISP: return TR("Bild verschoben oder Farben falsch? Hier ausgleichen", "Picture shifted or colours wrong? Adjust here");
     case SI_LEARN: return TR("Tasten und Sticks neu zuordnen", "Map buttons and sticks again");
     case SI_BENCH: return TR("Misst Audio- und Bildleistung (Bericht: Logs/bench.txt)", "Measures audio and display performance (report: logs/bench.txt)");
@@ -4027,6 +4034,7 @@ static void setLabel(int i, char* l, int ln, char* v, int vn) {
         break;
     case SI_LEARN: snprintf(l, ln, TR("Tasten neu lernen", "Learn buttons again")); break;
     case SI_LANG: snprintf(l, ln, "Sprache / Language"); snprintf(v, vn, "%s", g_lang ? "English" : "Deutsch"); break;
+    case SI_UI2: snprintf(l, ln, TR("Oberfläche", "Interface")); snprintf(v, vn, "%s", cfg.ui2 ? TR("NEU", "NEW") : TR("KLASSISCH", "CLASSIC")); break;
     case SI_BENCH: snprintf(l, ln, TR("Leistungstest (ca. 30 s)", "Benchmark (approx. 30 s)")); snprintf(v, vn, TR("A = START", "A = GO")); break;
     case SI_INFO: snprintf(l, ln, "Info");
         snprintf(v, vn, TR("%.12s  %d Smp  Aussetzer %d", "%.12s  %d smp  dropouts %d"), versionStr[0] ? versionStr : "dev", sampleCount(), audLateTotal + audLate);
@@ -4055,6 +4063,7 @@ static void setChange(int i, int d) {
     Pattern& P = curP();
     switch (i) {
     case SI_LANG: g_lang = cfg.lang = cfg.lang ? 0 : 1; saveSettings(); break;
+    case SI_UI2: cfg.ui2 = !cfg.ui2; saveSettings(); break;
     case SI_OLDSMP:   // altes Projekt: andere fruehere Reihenfolge ausprobieren (bis zum naechsten Speichern)
         if (poolLegacy >= 0) {
             poolLoadForProject(projPath, 1 - poolLegacy);
@@ -4846,14 +4855,16 @@ static void liveInput(Input& I, Uint32 now, float dt) {
 }
 
 static bool touchBlocked() { return wteOpen || sedOpen || expState == 1 || fbOpen || kbOpen; }
+#include "ui2.inc"     // neue Oberflaeche (cfg.ui2)
 #include "touch.inc"
 
 static bool selBlock = false;   // SELECT hat ein Fenster geschlossen: bis zum Loslassen keine SELECT-Kombis (sonst z. B. SEL+X in der Tastatur = Engine-Wechsel)
 static void handleInput(Uint32 now, float dt) {
     Input& I = in;
+    I.mask = 0;   // in diesem Bild verbrauchte Tasten (neue Oberflaeche)
     if (slot >= nSlots()) slot = nSlots() - 1;
     touchProcess(now);
-    if (I.pressed(BT_SELECT) && (confirmOpen || kbOpen || fbOpen || wteOpen || sedOpen || pgmOpen || menuOpen)) selBlock = true;
+    if (I.pressed(BT_SELECT) && (confirmOpen || kbOpen || fbOpen || wteOpen || sedOpen || pgmOpen || menuOpen || mrOpen)) selBlock = true;
     if (confirmOpen) {
         if (I.pressed(BT_A)) { confirmOpen = false; runAction(confirmAct, confirmArg); }
         else if (I.pressed(BT_B) || I.pressed(BT_SELECT)) { confirmOpen = false; toast(TR("ABGEBROCHEN", "CANCELLED")); }
@@ -4864,6 +4875,7 @@ static void handleInput(Uint32 now, float dt) {
     if (wteOpen) { wteInput(I, now, dt); return; }
     if (sedOpen) { sedInput(I, now, dt); return; }
     if (pgmOpen) { pgmInput(I, now); return; }
+    if (mrOpen) { mrInput(I, now); return; }
     if (expState == 1) { if (I.pressed(BT_B)) expCancel = true; return; }   // Export laeuft: nur Abbrechen
     if (expState >= 2) {
         if (expState == 2) toast(TR("EXPORT FERTIG: SAMPLES/REC/%s", "EXPORT DONE: SAMPLES/REC/%s"), expName);
@@ -4880,7 +4892,7 @@ static void handleInput(Uint32 now, float dt) {
     if (selBlock) { if (!I.down[BT_SELECT]) selBlock = false; return; }   // SELECT hat ein Fenster geschlossen: bis zum Loslassen nichts weiter
     bool func = I.down[BT_SELECT];
     if (I.pressed(BT_SELECT)) { funcUsed = false; selDownAt = now; }
-    if (I.released(BT_SELECT) && !funcUsed && now - selDownAt < 400) { menuOpen = true; menuSel = page; return; }
+    if (I.released(BT_SELECT) && !funcUsed && now - selDownAt < 400) { if (cfg.ui2) { mrOpen = true; mrSel = v2RingIndex(); } else { menuOpen = true; menuSel = page; } return; }
     static int lastPgSeen = -1;
     if (page != lastPgSeen) { if (page == PG_SYS && lastPgSeen >= 0) prevPage = lastPgSeen; lastPgSeen = page; }
     if (page == PG_SYS && !func) { settingsInput(I, now, dt); return; }
@@ -4888,6 +4900,7 @@ static void handleInput(Uint32 now, float dt) {
     if (page == PG_LIVE && !func) { liveInput(I, now, dt); return; }
     if (page == PG_SMPR && !func) { samplerInput(I, now); return; }
     if (page == PG_PRJ && !func) { prjInput(I, now); return; }
+    if (cfg.ui2 && trackPage(page)) v2Input(I, now, func);   // neue Oberflaeche: ^v Liste, L1/R1 Spur, SELECT+^v/X/Y; Rest wie bisher
 
     if (func) {
         if (I.pressed(BT_LEFT) || I.pressed(BT_RIGHT)) {
@@ -5577,6 +5590,10 @@ int main(int argc, char** argv) {
         for (int k = 0; k < 6; k++) eng.render(tmp, 22050 / 2);
         // 0..12 = Seiten (PG_*), 20 Hilfe, 21 P-Lock, 22 Werte-Overlay, 23 Engine-Leiste, 24 Skala, 25 Menue, 26 Abfrage, 27 FM SRC2
         page = shotPage < 20 ? shotPage : (shotPage >= 100 && shotPage - 100 < NUI_PAGES ? shotPage - 100 : PG_TRG); track = 4; cursor = 3; slot = 1;   // neue Seiten: 100 + Seitennummer
+        cfg.ui2 = shotPage >= 70 && shotPage <= 72;   // Handbuch-Bilder: klassisch; 70-72 = neue Oberflaeche (SEQ, SOUND, MEHR)
+        if (shotPage == 70) { page = PG_TRG; slot = 1; }
+        if (shotPage == 71) { page = PG_FLT; slot = 0; Pattern& Pq = curP(); Pq.s[4][3].on = 1; Pq.s[4][3].lock[P_FREQ] = 40; Pq.s[4][6].on = 1; Pq.s[4][6].lock[P_FREQ] = 110; Pq.s[4][9].on = 2; Pq.s[4][9].lock[P_FREQ] = 70; }
+        if (shotPage == 72) { page = PG_FLT; slot = 0; mrOpen = true; mrSel = MR_PCOPY; }
         if (shotPage >= 60 && shotPage <= 64) {   // 60 FM-Algorithmus, 61 FM-Operator 2, 62 SYNTH Oszillatoren, 63 Effekt-Bus B (Spring)
             if (shotPage <= 61) { applyFactory(curP(), 5, factoryByName("DX E-PIANO")); track = 5; page = shotPage == 60 ? PG_SRC : PG_SRC3; slot = shotPage == 60 ? 0 : 5; }
             if (shotPage == 62) { page = PG_SRC2; track = 4; slot = 1; curP().p[4][P_X1] = 4; curP().p[4][P_X5] = 1; }

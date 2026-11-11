@@ -18,7 +18,38 @@ Sie startet als App aus dem Ports-Menü oder auf Wunsch direkt beim Booten statt
   * **Acid spielen wie auf der 303:** Die Acid-Presets haben eine kurze Notenlänge (LEN 0.71). **Slide** = einen Trig mit LEN über 1 Step locken – die Note läuft dann zur nächsten hin (GLID bestimmt die Gleitzeit). **Akzent** = höhere Anschlagstärke (VEL-Lock): VELF öffnet dabei das Filter weiter. Am meisten passiert mit FREQ, RESO und auf HÜLLKURVE 2 mit DEPTH1 und DEC – am besten per LFO oder P-Lock bewegen.
 * Vertan? **SELECT + B** macht die letzte Änderung rückgängig (12 Schritte), SET → „Wiederholen“ stellt sie wieder her.
 
-## Oberfläche: Signalweg
+## Neue Oberfläche (Testversion, Branch ui-neu)
+
+![SEQ: Trig-Werte als Liste, Spuren links, Steps unten](shot:70)
+![SOUND: alle Klang-Regler als Liste in Gruppen; orange = Cutoff-Locks in den Steps](shot:71)
+![MEHR (SELECT): Ansicht wechseln, Steps/Spur/Sound kopieren, Engine, Sound laden](shot:72)
+
+Umschalten: **SET → SYSTEM → Oberfläche: NEU / KLASSISCH** (die klassische Bedienung ist weiter unten beschrieben).
+
+**Immer am selben Platz:** oben Pattern, Tempo und die Ansichten · links die 8 Spuren mit Pegel und Mute · in der Mitte **eine Liste** · unten die **16 Steps** der Spur · ganz unten eine Leiste, die zeigt, was die Tasten **gerade** tun (auch mit gehaltenem SELECT oder A).
+
+**Ansichten** (L2/R2 im Kreis): **SEQ** (Trig-Werte, Sequencer, Arpeggiator) · **SOUND** (oben Engine + 8 Makros, dann Quelle, Filter, Amp, Insert, Sends, Hüllkurven, LFOs) · MIX · FX A/B/C · Kompressor · LIVE · PROJEKT · SONG · SAMPLER · MASTER · SET.
+
+| Taste | SEQ | SOUND |
+|---|---|---|
+| ▲▼ | Wert wählen | Wert wählen |
+| ◀▶ | Step | Gruppe (Quelle → Filter → Hüllkurve …) |
+| L1 / R1 | Spur | Spur |
+| X / Y, rechter Stick | Wert ändern | Wert ändern (ENGINE: X/Y öffnet die Liste) |
+| A | Trig an/aus · halten + X/Y = Lock · lang = Lock-Modus | gleich (Step vorher in SEQ wählen oder im Lock-Modus mit ◀▶) |
+| B | Spur vorhören | Spur vorhören |
+| L2 / R2 | Ansicht | Ansicht |
+| SELECT tippen | **MEHR** | **MEHR** |
+| SELECT + ▲▼ | vorige/nächste Gruppe | vorige/nächste Gruppe |
+| SELECT + X / Y | **Page** kopieren / einfügen | **Sound** kopieren / einfügen |
+| SELECT + ◀▶ · A · B · L1/R1 · START | Pattern · Mute · Rückgängig · 4 Steps · Speichern | gleich |
+
+Hältst du A auf einem Step, gilt SELECT + X / Y für den **Step**. Die **Lock-Spur**: Hat der gewählte Regler Locks, zeigen die Steps sie als orange Balken (Höhe = Wert).
+
+**MEHR** (SELECT): Ansicht direkt wählen · Steps (Page kopieren/einfügen/leeren/anhängen/entfernen, neue Page = Kopie/leer) · Spur (kopieren/einfügen/leeren) · Sound (Engine wählen, laden, speichern, zurücksetzen) · Live-Aufnahme, Tap-Tempo, Rückgängig/Wiederholen, Speichern. L1/R1 springen zum nächsten Abschnitt.
+
+**Vergleich** (gemessen mit 14 typischen Aufgaben im Selbsttest): klassisch 131 Tastendrücke, neu 106. Besonders kürzer: Cutoff ändern 6 statt 10, Delay-Send 9 statt 14, Attack + Release 13 statt 18. Länger: Engine wechseln 9 statt 4 (bewusst, damit sie nicht aus Versehen wechselt).
+
 
 ![Seitenkarte (SELECT antippen): alle Seiten auf einen Blick](shot:25)
 ![Tastenhilfe (SELECT halten)](shot:20)

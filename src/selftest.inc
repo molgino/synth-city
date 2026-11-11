@@ -276,7 +276,7 @@ static void goPrj(int target) {   // PRJ-Seite: Steuerkreuz bis zum Feld
     }
     if (prjSel != target) { printf("  goPrj(%d) haengt in '%s' (bei %d)\n", target, uiCase, prjSel); fflush(stdout); }
 }
-static void goTrack(int t) { for (int g = 0; track != t && g < 20; g++) tap(track < t ? BT_DOWN : BT_UP); }   // Grenzen: ein Test darf nie haengen
+static void goTrack(int t) { bool v2 = cfg.ui2 && trackPage(page); for (int g = 0; track != t && g < 20; g++) tap(track < t ? (v2 ? BT_R1 : BT_DOWN) : (v2 ? BT_L1 : BT_UP)); }   // neue Oberflaeche: Spur mit L1/R1   // Grenzen: ein Test darf nie haengen
 static void goStep(int s) { for (int g = 0; cursor != s && g < 300; g++) tap(cursor < s ? BT_RIGHT : BT_LEFT); }
 
 static void uiScenarios() {
@@ -930,6 +930,128 @@ static void uiScenarios() {
 
 // Bedienweg: Tastenzahl je typischer Aufgabe (je kleiner, desto schneller). Startpunkt: TRIG-Seite, Spur 1, Step 1.
 struct Task { const char* name; int keys; int steps; };
+
+// ---- Neue Oberflaeche (cfg.ui2): Szenarien + Bedienweg im Vergleich
+static int v2FindItem(int pg, int k) { for (int i = 0; i < v2N; i++) if (!v2It[i].hdr && v2It[i].pg == pg && v2It[i].k == k) return i; return -1; }
+static int v2GroupOf(int i) { while (i > 0 && !v2It[i].hdr) i--; return i; }
+static void v2GoTo(int view, int pg, int k) {   // wie ein Mensch: L2/R2 zur Ansicht, Gruppe springen (SOUND <>, SEQ SELECT+^v), dann ^v
+    for (int g = 0; g < 4 && v2View != view; g++) tap(view == V2_SOUND ? BT_R2 : BT_L2);
+    v2Build(v2View);
+    int t = -1; for (int i = (view == V2_SOUND ? 10 : 0); i < v2N && t < 0; i++) if (!v2It[i].hdr && v2It[i].pg == pg && v2It[i].k == k) t = i;   // Gruppe, nicht Makro
+    if (t < 0) t = v2FindItem(pg, k);
+    if (t < 0) return;
+    int tg = v2GroupOf(t);
+    int mac = view == V2_SOUND ? v2FindItem(pg, k) : -1;   // Makro oben ist evtl. naeher
+    if (mac >= 0 && mac < 10 && mac != t) {
+        int dm = abs(mac - v2Foc[v2View]);
+        if (dm <= 4 && v2GroupOf(v2Foc[v2View]) == 0) { t = mac; tg = 0; }
+    }
+    for (int g = 0; g < 30 && v2GroupOf(v2Foc[v2View]) != tg; g++) {
+        int cg = v2GroupOf(v2Foc[v2View]);
+        bool fwd = (tg > cg && tg - cg < v2N / 2) || (tg < cg && cg - tg > v2N / 2);
+        if (view == V2_SOUND) tap(fwd ? BT_RIGHT : BT_LEFT); else combo(BT_SELECT, fwd ? BT_DOWN : BT_UP);
+    }
+    for (int g = 0; g < 60 && v2Foc[v2View] != t; g++) tap(v2Foc[v2View] < t ? BT_DOWN : BT_UP);
+}
+static void uiScenariosV2() {
+    int keepUi = cfg.ui2; cfg.ui2 = 1;
+    uiCase = "Neue Oberfläche: Ansichten und Liste";
+    simReset(); simFrame();
+    UCHECK(v2View == V2_SEQ && page == PG_TRG, "Start nicht in SEQ (Ansicht %d, Seite %d)", v2View, page);
+    int f0 = v2Foc[V2_SEQ]; tap(BT_DOWN);
+    UCHECK(v2Foc[V2_SEQ] != f0 && !v2It[v2Foc[V2_SEQ]].hdr, "RUNTER waehlt keinen anderen Wert");
+    UCHECK(track == 0, "RUNTER hat die Spur gewechselt");
+    tap(BT_R1); UCHECK(track == 1, "R1 wechselt die Spur nicht (%d)", track);
+    tap(BT_L1); UCHECK(track == 0, "L1 wechselt die Spur nicht zurueck");
+    tap(BT_R2); UCHECK(v2View == V2_SOUND && trackPage(page), "R2: SOUND erwartet (Ansicht %d)", v2View);
+    tap(BT_R2); UCHECK(v2View == V2_NONE && page == PG_MIX, "R2: MIX erwartet (Seite %d)", page);
+    tap(BT_L2); tap(BT_L2); UCHECK(v2View == V2_SEQ, "L2 L2: zurueck zu SEQ");
+    for (int i = 0; i < V2_RING_N; i++) tap(BT_R2);
+    UCHECK(v2View == V2_SEQ, "R2 im Kreis kommt nicht zu SEQ zurueck (Seite %d)", page);
+    {   // SELECT + RUNTER: naechste Gruppe
+        v2Build(V2_SEQ); int g0 = v2It[v2Foc[V2_SEQ]].pg; combo(BT_SELECT, BT_DOWN);
+        UCHECK(v2It[v2Foc[V2_SEQ]].pg != g0, "SELECT+RUNTER springt nicht zur naechsten Gruppe");
+        combo(BT_SELECT, BT_R1); UCHECK(cursor == 4, "SELECT+R1: 4 Steps erwartet (%d)", cursor);
+        cursor = 0;
+    }
+    uiCase = "Neue Oberfläche: Wert, Lock, Trig";
+    simReset(); simFrame(); goTrack(4);
+    goStep(5); tap(BT_A); UCHECK(curP().s[4][5].on == 1, "SEQ: A setzt keinen Trig auf Step 6");
+    v2GoTo(V2_SOUND, PG_FLT, 0);
+    UCHECK(page == PG_FLT && slot == 0 && cursor == 5, "Cutoff nicht gewaehlt (Seite %d Regler %d Step %d)", page, slot, cursor);
+    int fq = curP().p[4][P_FREQ]; tap(BT_X); UCHECK(curP().p[4][P_FREQ] == fq + 1, "X aendert Cutoff nicht");
+    tap(BT_Y);
+    {   // SOUND: <> = Gruppe, der Step bleibt
+        int g0 = v2GroupOf(v2Foc[V2_SOUND]); tap(BT_RIGHT);
+        UCHECK(v2GroupOf(v2Foc[V2_SOUND]) != g0 && cursor == 5, "SOUND: RECHTS springt nicht zur naechsten Gruppe");
+        tap(BT_LEFT); UCHECK(v2GroupOf(v2Foc[V2_SOUND]) == g0, "SOUND: LINKS kommt nicht zur vorigen Gruppe zurueck");
+        v2GoTo(V2_SOUND, PG_FLT, 0);
+    }
+    holdDown(BT_A); tap(BT_X); release(BT_A);
+    UCHECK(curP().s[4][5].lock[P_FREQ] == fq + 1, "A halten + X: kein Cutoff-Lock (%d)", curP().s[4][5].lock[P_FREQ]);
+    curP().s[4][5].on = 0; memset(curP().s[4][5].lock, NO_LOCK, NPARAMS);
+    uiCase = "Neue Oberfläche: Kopieren per SELECT + X/Y";
+    simReset(); simFrame(); goTrack(4); v2GoTo(V2_SOUND, PG_FLT, 0);
+    curP().p[4][P_FREQ] = 33; combo(BT_SELECT, BT_X);
+    tap(BT_R1); combo(BT_SELECT, BT_Y);
+    UCHECK(curP().p[5][P_FREQ] == 33 && curP().machine[5] == curP().machine[4], "SOUND einfuegen: Spur 6 hat nicht den Sound von Spur 5");
+    tap(BT_L2);   // SEQ: Page kopieren/einfuegen
+    curP().s[5][1].on = 1; combo(BT_SELECT, BT_X); tap(BT_R1); combo(BT_SELECT, BT_Y);
+    UCHECK(curP().s[6][1].on == 1, "SEQ: Page von Spur 6 nicht auf Spur 7 eingefuegt");
+    uiCase = "Neue Oberfläche: MEHR-Menü";
+    simReset(); simFrame();
+    tap(BT_SELECT); UCHECK(mrOpen && !menuOpen, "SELECT oeffnet nicht MEHR");
+    mrSel = 0; for (int i = 0; i < V2_RING_N; i++) if (V2_RING[i] == PG_SONG) mrSel = i;
+    tap(BT_A); UCHECK(!mrOpen && page == PG_SONG, "MEHR: Ansicht SONG nicht geoeffnet (Seite %d)", page);
+    tap(BT_SELECT); mrSel = MR_ENGINE; tap(BT_A); UCHECK(fbOpen && fbMode == FB_MACH, "MEHR: Engine-Liste nicht geoeffnet");
+    tap(BT_B);
+    tap(BT_SELECT); tap(BT_B); UCHECK(!mrOpen, "B schliesst MEHR nicht");
+    tap(BT_SELECT); combo(BT_SELECT, BT_X); UCHECK(!mrOpen && curP().machine[0] == M_KICK, "SELECT+X nach Schliessen von MEHR wirkte weiter");
+    uiCase = "Neue Oberfläche: Touch";
+    simReset(); simFrame(); simDraw = true; simFrame();
+    { int f = v2Foc[V2_SEQ], want = v2Clamp(f + 3, 1);
+      int y = 72 + (int)((want - v2Scroll[V2_SEQ]) * 24) + 10;
+      tapAt(300, y); UCHECK(v2Foc[V2_SEQ] == want, "Zeile antippen waehlt nicht (%d statt %d)", v2Foc[V2_SEQ], want); }
+    tapAt(60, 48 + 10); UCHECK(v2View == V2_SOUND || v2View == V2_SEQ, "Reiter antippen");
+    simDraw = false;
+    cfg.ui2 = keepUi;
+}
+static void uiTasksV2() {
+    int keepUi = cfg.ui2; cfg.ui2 = 1;
+    Task T[16]; int n = 0;
+    auto rec = [&](const char* nm, int steps) { T[n].name = nm; T[n].keys = simKeys; T[n].steps = steps; n++; };
+    simReset(); simFrame(); for (int s = 0; s < 16; s += 4) { if (s) combo(BT_SELECT, BT_R1); tap(BT_A); } rec("Kick: 4 Trigs (1/5/9/13)", 4);
+    simReset(); simFrame(); goTrack(4); v2GoTo(V2_SOUND, PG_FLT, 0); stickR(-1.f, 300); rec("Spur 5: Filter-Cutoff aendern", 3);
+    simReset(); simFrame(); goTrack(4); goStep(6); v2GoTo(V2_SOUND, PG_FLT, 0); holdDown(BT_A); stickR(-1.f, 300); release(BT_A); rec("Spur 5: Cutoff-Lock auf Step 7", 4);
+    UCHECK(curP().s[4][6].lock[P_FREQ] != NO_LOCK, "Aufgabe Cutoff-Lock (neu)");
+    simReset(); simFrame(); goTrack(2); tap(BT_R2); v2Build(V2_SOUND); for (int g = 0; g < 4 && !(page == PG_TRG); g++) tap(BT_UP); tap(BT_X); tap(BT_DOWN); tap(BT_A); rec("Spur 3: Engine wechseln", 3);
+    UCHECK(curP().machine[2] != M_HAT, "Aufgabe Engine (neu)");
+    simReset(); simFrame(); combo(BT_SELECT, BT_RIGHT); rec("Naechstes Pattern", 1);
+    simReset(); simFrame(); goTrack(3); combo(BT_SELECT, BT_A); rec("Spur 4 stumm", 2);
+    combo(BT_SELECT, BT_A);
+    simReset(); simFrame(); for (int g = 0; g < 2; g++) tap(BT_L2); slot = MS_BPM; stickR(1.f, 300); rec("Tempo aendern", 3);
+    simReset(); simFrame(); goTrack(1); v2GoTo(V2_SOUND, PG_SEND, 0); stickR(1.f, 300); rec("Spur 2: Delay-Send", 3);
+    simReset(); simFrame(); goTrack(4); v2GoTo(V2_SOUND, PG_LFO1, LF_DEST); tap(BT_X);
+    for (int g = 0; g < 400 && fbOpen && !fbDir[0] && !(fbEnt[fbSel].dir && fbEnt[fbSel].idx == 2) && fbSel < fbN - 1; g++) tap(BT_DOWN);
+    tap(BT_A); for (int g = 0; g < 400 && fbOpen && fbEnt[fbSel].idx != P_FREQ + 1 && fbSel < fbN - 1; g++) tap(BT_DOWN);
+    tap(BT_A); tap(BT_DOWN); stickR(1.f, 300); rec("Spur 5: LFO1 -> Filter", 5);
+    simReset(); simFrame(); goTrack(4); v2GoTo(V2_SOUND, PG_ENV1, 0); stickR(1.f, 200); v2GoTo(V2_SOUND, PG_ENV1, 3); stickR(1.f, 200); rec("Spur 5: Attack + Release", 5);
+    simReset(); simFrame(); goTrack(4); v2GoTo(V2_SEQ, PG_ARP, 0); tap(BT_X); rec("Spur 5: Arpeggiator an", 3);
+    simReset(); simFrame(); goTrack(4); v2GoTo(V2_SEQ, PG_SEQ, 1); stickR(1.f, 200); rec("Spur 5: Spurlänge", 3);
+    simReset(); simFrame(); combo(BT_SELECT, BT_START); rec("Projekt speichern", 1);
+    simReset(); simFrame(); tap(BT_SELECT); simWait(50); rec("MEHR-Menue oeffnen", 1);
+    tap(BT_B);
+    bout("\nBEDIENWEG - NEUE OBERFLAECHE (gleiche Aufgaben)\n");
+    bout("  Aufgabe                          Tasten  ca. Zeit\n");
+    int sum = 0;
+    for (int i = 0; i < n; i++) {
+        double sec = T[i].keys * 0.28 + T[i].steps * 1.2;
+        bout("  %-32s %6d %7.1f s%s\n", T[i].name, T[i].keys, sec, T[i].keys >= 12 ? "  <- lang" : "");
+        sum += T[i].keys;
+    }
+    bout("  Summe %d Tasten\n", sum);
+    cfg.ui2 = keepUi;
+}
 static void uiTasks() {
     Task T[16]; int n = 0;
     auto rec = [&](const char* nm, int steps) { T[n].name = nm; T[n].keys = simKeys; T[n].steps = steps; n++; };
@@ -1106,9 +1228,12 @@ static int runSelftest(double stressSecs) {
     snprintf(setPath, sizeof setPath, "%ssettings.cfg", tmp);   // nicht die echten Einstellungen ueberschreiben
     snprintf(cfg.project, sizeof cfg.project, "Selbsttest");
     projectPath(cfg.project, projPath, sizeof projPath);
+    cfg.ui2 = 0;   // die bisherigen Szenarien pruefen die klassische Oberflaeche, die neue hat eigene (uiScenariosV2)
     printf("UI-Szenarien\n");
     uiScenarios();
     uiTasks();
+    uiScenariosV2();
+    uiTasksV2();
     printf("Sprachtest\n");
     uiCase = "Sprache";
     langCheck();

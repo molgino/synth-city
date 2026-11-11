@@ -142,6 +142,7 @@ void Input::poll() {
 }
 
 bool Input::repeat(int b, Uint32 now, Uint32 delay, Uint32 rate) {
+    if (mask >> b & 1) return false;
     if (pressed(b)) return true;
     if (!down[b]) return false;
     if (now - downSince[b] < delay) return false;
