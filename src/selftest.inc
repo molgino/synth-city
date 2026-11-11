@@ -1016,6 +1016,18 @@ static void uiScenariosV2() {
     simDraw = false;
     cfg.ui2 = keepUi;
 }
+static void v2ListInfo() {
+    int keepUi = cfg.ui2, keepTr = track, keepPg = page; cfg.ui2 = 1;
+    bout("\nLISTEN-LAENGEN (neue Oberflaeche)\n  Engine        SEQ   SOUND  Gruppen  ^v von oben nach unten\n");
+    for (int m = 0; m < M_COUNT; m++) {
+        track = 0; lockA(); Engine::setMachine(curP(), 0, m); unlockA();
+        page = PG_TRG; v2View = V2_SEQ; v2Build(V2_SEQ); int nSeq = v2N;
+        page = PG_SRC; v2View = V2_SOUND; v2Build(V2_SOUND); int nSnd = v2N, gr = 0;
+        for (int i = 0; i < v2N; i++) if (v2It[i].hdr) gr++;
+        bout("  %-12s %5d %6d %7d %6d\n", MACHINE_NAMES[m], nSeq, nSnd, gr, nSnd - 1);
+    }
+    cfg.ui2 = keepUi; track = keepTr; page = keepPg;
+}
 static void uiTasksV2() {
     int keepUi = cfg.ui2; cfg.ui2 = 1;
     Task T[16]; int n = 0;
@@ -1234,6 +1246,7 @@ static int runSelftest(double stressSecs) {
     uiTasks();
     uiScenariosV2();
     uiTasksV2();
+    v2ListInfo();
     printf("Sprachtest\n");
     uiCase = "Sprache";
     langCheck();

@@ -5594,6 +5594,22 @@ int main(int argc, char** argv) {
         if (shotPage == 70) { page = PG_TRG; slot = 1; }
         if (shotPage == 71) { page = PG_FLT; slot = 0; Pattern& Pq = curP(); Pq.s[4][3].on = 1; Pq.s[4][3].lock[P_FREQ] = 40; Pq.s[4][6].on = 1; Pq.s[4][6].lock[P_FREQ] = 110; Pq.s[4][9].on = 2; Pq.s[4][9].lock[P_FREQ] = 70; }
         if (shotPage == 72) { page = PG_FLT; slot = 0; mrOpen = true; mrSel = MR_PCOPY; }
+        if (shotPage >= 73 && shotPage <= 78) {   // Kritik-Bilder: SOUND bei FM/SMPL/KICK, LFO-Gruppe, SEQ mit 64 Steps, Lock-Modus
+            cfg.ui2 = 1;
+            if (shotPage == 73) { track = 6; Engine::setMachine(curP(), 6, M_FM); page = PG_SRC3; slot = 0; }
+            if (shotPage == 74) { track = 7; Engine::setMachine(curP(), 7, M_SAMPLE); curP().p[7][P_S0] = 0; page = PG_SRC; slot = 0; }
+            if (shotPage == 75) { track = 0; page = PG_SRC; slot = 0; }
+            if (shotPage == 76) { track = 4; page = PG_LFO1; slot = 4; }
+            if (shotPage == 77) { track = 4; curP().len[4] = 64; cursor = 35; page = PG_TRG; slot = 0; for (int s2 = 0; s2 < 64; s2 += 3) curP().s[4][s2].on = 1; }
+            if (shotPage == 78) { track = 4; page = PG_FLT; slot = 0; cursor = 5; curP().s[4][5].on = 1; holdPat = curPi(); holdTrack = 4; holdStep = 5; aHeld = true; lockLatch = true; }
+        }
+        if (shotPage >= 79 && shotPage <= 82) {   // Kritik: Ansichten ohne die neuen Zonen (MIX, PRJ), WTBL-Sound, Drum-Sound
+            cfg.ui2 = 1;
+            if (shotPage == 79) page = PG_MIX;
+            if (shotPage == 80) page = PG_PRJ;
+            if (shotPage == 81) { track = 5; Engine::setMachine(curP(), 5, M_WTBL); page = PG_SRC; slot = 0; }
+            if (shotPage == 82) { track = 0; page = PG_SRC; slot = 2; }
+        }
         if (shotPage >= 60 && shotPage <= 64) {   // 60 FM-Algorithmus, 61 FM-Operator 2, 62 SYNTH Oszillatoren, 63 Effekt-Bus B (Spring)
             if (shotPage <= 61) { applyFactory(curP(), 5, factoryByName("DX E-PIANO")); track = 5; page = shotPage == 60 ? PG_SRC : PG_SRC3; slot = shotPage == 60 ? 0 : 5; }
             if (shotPage == 62) { page = PG_SRC2; track = 4; slot = 1; curP().p[4][P_X1] = 4; curP().p[4][P_X5] = 1; }
