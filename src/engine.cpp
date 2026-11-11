@@ -183,8 +183,10 @@ void ADSR::set(float a, float d, float sus, float r, float sr) {
 
 // ---------------------------------------------------------------- Voice
 
-void Voice::noteOn(int m, const uint8_t* b, const uint8_t* locks, float velScale, int gateSamples, float sr) {
+void Voice::noteOn(int m, const uint8_t* b, const uint8_t* locks, float velScale, int gateSamples, float sr, bool legato) {
     bool wasActive = active && machine == m;
+    // Legato nur, wenn die Stimme noch klingt: Huellkurven, LFOs und Sample-Zeiger bleiben, nur die Tonhoehe wechselt
+    const bool leg = legato && wasActive;
     if (!active) lastS = 0.f;   // verklungen: von Stille aus starten
     dcArm = true;               // erster neuer Sample-Wert wird an den letzten alten angeschlossen
     machine = m;
@@ -195,8 +197,8 @@ void Voice::noteOn(int m, const uint8_t* b, const uint8_t* locks, float velScale
     gate = gateSamples;
     if (!wasActive || (m != M_SYNTH && m != M_WTBL) || P(P_S7) == 0) curNote = note;
     active = true;
-    lfoTrigger();
-    if (m == M_CHOP || m == M_GRAN) {
+    if (!leg) lfoTrigger();
+    if (!leg && (m == M_CHOP || m == M_GRAN)) {
         smp = sampleGet(P(P_S0));
         if (!smp || smp->len < 64) { active = false; return; }
         if (m == M_CHOP) {
@@ -212,7 +214,7 @@ void Voice::noteOn(int m, const uint8_t* b, const uint8_t* locks, float velScale
             grTimer = 0;
         }
     }
-    if (m == M_SAMPLE) {
+    if (!leg && m == M_SAMPLE) {
         smp = sampleGet(P(P_S0));
         if (!smp) { active = false; return; }
         int a = smpPoint(smp, P(P_S3), P(P_X4)), e = smpPoint(smp, P(P_S4), P(P_X5));
@@ -233,27 +235,29 @@ void Voice::noteOn(int m, const uint8_t* b, const uint8_t* locks, float velScale
         }
     }
     update(0, sr, 120);
-    if (warp) warpInit();
-    aenv.on();
-    fenv.on();
-    env3.on();
-    gateEnv.v = 1.f; gateEnv.on();
-    switch (m) {
-    case M_KICK: ph1 = 0; penv = 1; denv = 1; cenv = 1; aenv.v = 0; break;
-    case M_SNARE: ph1 = ph2 = 0; denv = 1; nenv = 1; penv = 1; break;
-    case M_HAT: denv = 1; break;
-    case M_CLAP: clapLeft = P(P_S3) + 1; clapTimer = 0; clapTail = false; burst = 0; denv = 0; break;
-    case M_FM:
-        for (int k = 0; k < 4; k++) { fmSt[k] = 1; if (!wasActive) { fmPh[k] = 0; fmEnv[k] = 0.f; } }   // Attack ab aktuellem Pegel
-        if (!wasActive) fmFbPrev = 0;
-        fmPenv = 1.f;
-        break;
-    case M_SAMPLE: case M_CHOP: aenv.v = 0; break;
-    case M_TOM: ph1 = 0; penv = 1; denv = 1; nenv = 1; aenv.v = 0; break;
-    case M_RIM: ph1 = ph2 = 0; denv = 1; cenv = 1; aenv.v = 0; break;
-    case M_SHKR: shkStage = 1; shkLvl = 0; denv = 1; break;
-    case M_WTBL: if (!wasActive) { ph1 = 0; ph2 = 0.37f; } break;
-    default: break;
+    if (!leg) {   // Legato: nur die Tonhoehe wechselt, nichts wird neu ausgeloest
+        if (warp) warpInit();
+        aenv.on();
+        fenv.on();
+        env3.on();
+        gateEnv.v = 1.f; gateEnv.on();
+        switch (m) {
+        case M_KICK: ph1 = 0; penv = 1; denv = 1; cenv = 1; aenv.v = 0; break;
+        case M_SNARE: ph1 = ph2 = 0; denv = 1; nenv = 1; penv = 1; break;
+        case M_HAT: denv = 1; break;
+        case M_CLAP: clapLeft = P(P_S3) + 1; clapTimer = 0; clapTail = false; burst = 0; denv = 0; break;
+        case M_FM:
+            for (int k = 0; k < 4; k++) { fmSt[k] = 1; if (!wasActive) { fmPh[k] = 0; fmEnv[k] = 0.f; } }   // Attack ab aktuellem Pegel
+            if (!wasActive) fmFbPrev = 0;
+            fmPenv = 1.f;
+            break;
+        case M_SAMPLE: case M_CHOP: aenv.v = 0; break;
+        case M_TOM: ph1 = 0; penv = 1; denv = 1; nenv = 1; aenv.v = 0; break;
+        case M_RIM: ph1 = ph2 = 0; denv = 1; cenv = 1; aenv.v = 0; break;
+        case M_SHKR: shkStage = 1; shkLvl = 0; denv = 1; break;
+        case M_WTBL: if (!wasActive) { ph1 = 0; ph2 = 0.37f; } break;
+        default: break;
+        }
     }
     trigs = trigs + 1;
 }

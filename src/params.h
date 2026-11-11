@@ -62,10 +62,20 @@ enum Kind {
     K_SMPL, K_SEMI, K_OFFON, K_DEV, K_BUFS, K_CLK, K_CHM, K_INFO, K_USB,
     K_ALGO, K_DECAY, K_ACT, K_SLOT, K_COND, K_LSYNC, K_LDEST, K_LMODE, K_FBK, K_DIR, K_TLEN, K_TSPD, K_RANGE, K_MTIM, K_WTAB, K_SLICE,
     K_SCALE, K_ROOT, K_INS, K_MS, K_MACH, K_THR, K_CRAT, K_CATK, K_CREL, K_CGAIN, K_SCSRC, K_GR,
-    K_ARPM, K_ACHD, K_ARAT, K_OCT, K_SUBO, K_FXT, K_WDRAW, K_EDEST, K_SEDIT
+    K_ARPM, K_ACHD, K_ARAT, K_OCT, K_SUBO, K_FXT, K_WDRAW, K_EDEST, K_SEDIT, K_NOTEX, K_VMOD
 };
 
 struct ParamDef { const char* name; Kind kind; uint8_t def; uint8_t max; };
+
+// Stimmen-Modus je Spur (Regler VOICE auf der TRIG-Seite)
+// POLY:   Zusatznoten NT2-NT4 klingen mit (bis 4 Toene), jeder Trig loest die Huellkurven neu aus
+// MONO:   nur die Hauptnote, jeder Trig loest neu aus (Zusatznoten werden ignoriert)
+// LEGATO: wie MONO, aber ein Trig auf eine noch klingende Stimme wechselt nur die Tonhoehe
+//         (Huellkurven und LFOs laufen weiter, GLIDE gleitet) - fuer Basslinien und Leads
+enum { VM_POLY = 0, VM_MONO, VM_LEGATO, VM_COUNT };
+static const char* const VMOD_NAMES_DE[VM_COUNT] = {"POLY", "MONO", "LEGATO"};
+static const char* const VMOD_NAMES_EN[VM_COUNT] = {"POLY", "MONO", "LEGATO"};
+#define VMOD_NAMES (g_lang ? VMOD_NAMES_EN : VMOD_NAMES_DE)
 
 // Parameterindizes (Seite*8 + Regler)
 enum {
@@ -90,8 +100,14 @@ enum {
     P_L1D2 = 156, P_L1A2, P_L1D3, P_L1A3,                                 // ab v14: LFO-Ziele 2 und 3
     P_L2D2 = 160, P_L2A2, P_L2D3, P_L2A3,
     P_L3D2 = 164, P_L3A2, P_L3D3, P_L3A3,
+    // Polyphonie (ohne Formatwechsel auf nie belegten Plaetzen; alte Projekte haben dort 0):
+    P_NT2 = 86, P_NT3 = 87, P_NT4 = 135,   // freie Zusatznoten je Step (0 = aus), Anzeige auf der TRIG-Seite
+    P_VMOD = 142,                          // Stimmen-Modus der Spur: POLY / MONO / LEGATO
     OLD_P_DLY = 30, OLD_P_REV = 31                                         // bis v12
 };
+// Zusatznoten je Step (0 = aus); zusammen mit P_NOTE bis zu 4 Toene, passend zu NCHORDV Zusatzstimmen
+enum { NNOTEX = 3 };
+static const int P_NTX[NNOTEX] = {P_NT2, P_NT3, P_NT4};
 // FM: Operator k liegt auf einer eigenen Seite (OP1 = SRC2, OP2-4 = SRC3-5): RATIO FINE DETN LEVEL ATK DEC SUS REL
 static const int FM_OPB[4] = {P_X0, P_Y0, P_Z0, P_W0};
 enum { OP_RAT = 0, OP_FINE, OP_DETN, OP_LVL, OP_ATK, OP_DEC, OP_SUS, OP_REL };
@@ -113,7 +129,7 @@ static const int ENV_DEP[NENV][NMODT] = {{P_E1A1, P_E1A2, P_E1A3}, {P_FENV, P_E2
 inline int envOfPage(int p) { return p == PG_ENV1 ? 0 : (p == PG_ENV2 ? 1 : (p == PG_ENV3 ? 2 : -1)); }
 inline int lfoOfPage(int p) { return p == PG_LFO1 ? 0 : (p == PG_LFO2 ? 1 : (p == PG_LFO3 ? 2 : -1)); }
 // Regler einer Spurseite: Anzahl (8, Huellkurven/LFO 12) und Parameterindex je Regler (-1 = leer)
-inline int uiSlots(int p) { return envOfPage(p) >= 0 || lfoOfPage(p) >= 0 ? 12 : 8; }
+inline int uiSlots(int p) { return envOfPage(p) >= 0 || lfoOfPage(p) >= 0 || p == PG_TRG ? 12 : 8; }
 inline int uiParam(int p, int k) {
     if (k < 0 || k >= uiSlots(p) || p < 0 || p >= NUI_PAGES || PG_STORE[p] < 0) return -1;
     int e = envOfPage(p), l = lfoOfPage(p);
@@ -124,6 +140,7 @@ inline int uiParam(int p, int k) {
         return k == 10 ? ENV_CRV[e] : ENV_VEL[e];
     }
     if (l >= 0 && k >= 8) return ((k - 8) & 1) ? LFO_DEP[l][1 + (k - 8) / 2] : LFO_DST[l][1 + (k - 8) / 2];
+    if (p == PG_TRG && k >= 8) { static const int T[4] = {P_NT2, P_NT3, P_NT4, P_VMOD}; return T[k - 8]; }   // Zusatznoten + Stimmen-Modus
     if (p == PG_FLT) { static const int F[8] = {P_FREQ, P_RESO, P_FTYP, P_KEYT, P_VELF, -1, -1, -1}; return F[k]; }   // Huellkurve -> ENV2
     if (p == PG_FLT2) return k < 2 ? P_BASE + k : -1;
     if (p == PG_AMP) return k == 0 ? P_VOL : (k == 1 ? P_PAN : -1);                                            // Huellkurve -> ENV1
@@ -182,7 +199,8 @@ static const ParamDef COMMON_DEFS[NPARAMS] = {
     {"ROT", K_NUM, 0, 127}, {"DENS", K_PCT, 0, 100}, {"CHNG", K_PCT, 0, 100}, {"RANGE", K_RANGE, 0, 48},
     // FLT2: Base-Width-Filter (Hochpass BASE, Tiefpass BASE+WDTH), Key-Tracking und Velocity fuer Filter 1
     {"BASE", K_NUM, 0, 127}, {"WDTH", K_NUM, 127, 127}, {"KEYT", K_PCT, 0, 100}, {"VELF", K_BIP, 64, 127},
-    {"CURVE", K_BIP, 64, 127}, {"CURVE", K_BIP, 64, 127}, PDEF_NONE, PDEF_NONE,   // Huellkurvenform ENV2/ENV1 (ab v11)
+    {"CURVE", K_BIP, 64, 127}, {"CURVE", K_BIP, 64, 127},                        // Huellkurvenform ENV2/ENV1 (ab v11)
+    {"NT2", K_NOTEX, 0, 127}, {"NT3", K_NOTEX, 0, 127},                          // 86/87: Zusatznoten 2/3 (Anzeige auf TRIG)
     // ARP: spielt waehrend der Trig-Laenge die Akkordtoene ueber OCT Oktaven im Tempo RATE
     {"MODE", K_ARPM, 0, 5}, {"CHRD", K_ACHD, 2, 9}, {"OCT", K_CNT, 0, 3}, {"RATE", K_ARAT, 2, 5},
     {"GATE", K_PCT, 60, 100}, {"ACCT", K_PCT, 0, 100}, PDEF_NONE, PDEF_NONE,
@@ -194,10 +212,12 @@ static const ParamDef COMMON_DEFS[NPARAMS] = {
     {"SND.A", K_NUM, 0, 127}, {"SND.B", K_NUM, 0, 127}, {"SND.C", K_NUM, 0, 127}, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE,
     // ab v14: ENV1-Ziele (Ziel 1 = Lautstaerke wie frueher die AMP-Huellkurve)
     {"DEST1", K_EDEST, MOD_VCA, MOD_VCA}, {"DEPTH1", K_BIP, 127, 127}, {"DEST2", K_EDEST, 0, MOD_VCA}, {"DEPTH2", K_BIP, 64, 127},
-    {"DEST3", K_EDEST, 0, MOD_VCA}, {"DEPTH3", K_BIP, 64, 127}, {"VELO", K_PCT, 0, 100}, PDEF_NONE,
+    {"DEST3", K_EDEST, 0, MOD_VCA}, {"DEPTH3", K_BIP, 64, 127}, {"VELO", K_PCT, 0, 100},
+    {"NT4", K_NOTEX, 0, 127},                                                    // 135: Zusatznote 4 (Anzeige auf TRIG)
     // ENV2-Ziele (Ziel 1 = Filterfrequenz, Tiefe 1 = P_FENV)
     {"DEST1", K_EDEST, P_FREQ + 1, MOD_VCA}, {"DEST2", K_EDEST, 0, MOD_VCA}, {"DEPTH2", K_BIP, 64, 127}, {"DEST3", K_EDEST, 0, MOD_VCA},
-    {"DEPTH3", K_BIP, 64, 127}, {"VELO", K_PCT, 0, 100}, PDEF_NONE, PDEF_NONE,
+    {"DEPTH3", K_BIP, 64, 127}, {"VELO", K_PCT, 0, 100},
+    {"VOICE", K_VMOD, 0, VM_COUNT - 1}, PDEF_NONE,                               // 142: Stimmen-Modus (Anzeige auf TRIG)
     // ENV3 (frei)
     {"ATK", K_NUM, 0, 127}, {"DEC", K_NUM, 60, 127}, {"SUS", K_NUM, 0, 127}, {"REL", K_NUM, 60, 127},
     {"CURVE", K_BIP, 64, 127}, {"VELO", K_PCT, 0, 100}, {"DEST1", K_EDEST, 0, MOD_VCA}, {"DEPTH1", K_BIP, 64, 127},
@@ -429,6 +449,8 @@ inline void fmtParam(const ParamDef& d, int v, char* buf, int n) {
     case K_NUM: snprintf(buf, n, "%d", v); break;
     case K_BIP: snprintf(buf, n, "%+d", v - 64); break;
     case K_NOTE: snprintf(buf, n, "%s%d", notes[v % 12], v / 12 - 1); break;
+    case K_NOTEX: if (v) snprintf(buf, n, "%s%d", notes[v % 12], v / 12 - 1); else snprintf(buf, n, "---"); break;
+    case K_VMOD: snprintf(buf, n, "%s", VMOD_NAMES[v % VM_COUNT]); break;
     case K_PCT: snprintf(buf, n, "%d%%", v); break;
     case K_LEN: {
         float s = lenSteps(v);

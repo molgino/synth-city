@@ -213,7 +213,8 @@ struct Voice {
     void lfoTrigger();
     void lfoStep(int k, int n, float sr);
     void lfoAdvance(int n, float sr);
-    void noteOn(int machine, const uint8_t* base, const uint8_t* locks, float velScale, int gateSamples, float sr);
+    // legato: ein Trig auf eine noch klingende Stimme wechselt nur die Tonhoehe (Huellkurven/LFOs laufen weiter)
+    void noteOn(int machine, const uint8_t* base, const uint8_t* locks, float velScale, int gateSamples, float sr, bool legato = false);
     void noteOff() { aenv.off(); fenv.off(); env3.off(); gateEnv.off(); for (int k = 0; k < 4; k++) if (fmSt[k]) fmSt[k] = 3; }
     bool gated() const { return machine == M_SYNTH || machine == M_FM || machine == M_WTBL || machine == M_GRAN || (machine == M_SAMPLE && P(P_S5)); }
     void update(int n, float sr, float bpm);
