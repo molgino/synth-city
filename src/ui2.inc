@@ -17,10 +17,15 @@ static float v2Scroll[2] = {0, 0};
 static const int V2_RING[] = {-10, -11, PG_MIX, PG_FX, PG_FXB, PG_FXC, PG_CMP, PG_LIVE, PG_PRJ, PG_SONG, PG_SMPR, PG_MST, PG_SYS};   // -10 SEQ, -11 SOUND
 enum { V2_RING_N = sizeof V2_RING / sizeof *V2_RING };
 static bool v2On() { return cfg.ui2 != 0; }
+static int v2RingIndex();
+int v2TabN() { return V2_RING_N; }
+const char* v2TabName(int i) { int p = V2_RING[(i % V2_RING_N + V2_RING_N) % V2_RING_N]; return p == -10 ? "SEQ" : p == -11 ? "SOUND" : PAGE_NAMES[p]; }
+int v2TabPage(int i) { int p = V2_RING[(i % V2_RING_N + V2_RING_N) % V2_RING_N]; return p < 0 ? -1 : p; }
+int v2TabCur() { return v2RingIndex(); }
 
 // ---- Listen-Modell: Gruppen (= Bedienseiten) mit ihren Reglern; SOUND beginnt mit 8 Makros
-struct V2It { bool hdr; int pg, k; const char* title; };
-static V2It v2It[200]; static int v2N = 0;
+struct V2It { bool hdr; int pg, k; const char* title; bool mac; int grp; };   // mac = Makro (Abkuerzung), grp = Gruppennummer
+static V2It v2It[200]; static int v2N = 0, v2Groups = 0;
 static const int V2_SEQ_P[] = {PG_TRG, PG_SEQ, PG_ARP};
 static const int V2_SND_P[] = {PG_SRC, PG_SRC2, PG_SRC3, PG_SRC4, PG_SRC5, PG_FLT, PG_FLT2, PG_AMP, PG_INS, PG_SEND, PG_ENV1, PG_ENV2, PG_ENV3, PG_LFO1, PG_LFO2, PG_LFO3};
 static bool v2Valid(int p, int k) {
@@ -29,15 +34,18 @@ static bool v2Valid(int p, int k) {
     if (idx < 0) return false;
     return paramDef(curP().machine[track] % M_COUNT, idx).kind != K_NONE;
 }
+static int v2FindItem2(int pg, int k) { for (int i = 0; i < v2N; i++) if (!v2It[i].hdr && !v2It[i].mac && v2It[i].pg == pg && v2It[i].k == k) return i; return 0; }
 static bool v2Find(int param, int& pg, int& k) {   // Regler zu einem Parameter (fuer die Makros)
     for (int p : V2_SND_P) { if (!pageAvail(p)) continue; for (int i = 0; i < uiSlots(p); i++) if (uiParam(p, i) == param) { pg = p; k = i; return true; } }
     return false;
 }
-static void v2Build(int view) {
-    v2N = 0;
-    auto add = [](bool hdr, int pg, int k, const char* t) { if (v2N < 200) v2It[v2N++] = V2It{hdr, pg, k, t}; };
+static int v2Key = -1;   // Liste nur neu bauen, wenn sich Ansicht, Spur oder Engine aendert (sonst 2x je Bild)
+static void v2BuildNow(int view) {
+    v2N = 0; v2Groups = 0;
+    bool mac = view == V2_SOUND;
+    auto add = [&](bool hdr, int pg, int k, const char* t) { if (v2N < 200) v2It[v2N++] = V2It{hdr, pg, k, t, mac && !hdr, v2Groups ? v2Groups - 1 : 0}; };
     if (view == V2_SOUND) {
-        add(true, -1, -1, TR("MAKROS", "MACROS"));
+        v2Groups++; add(true, -1, -1, TR("MAKROS", "MACROS"));
         for (int k = 0; k < uiSlots(PG_TRG); k++) { int idx = uiParam(PG_TRG, k); if (idx >= 0 && paramDef(curP().machine[track] % M_COUNT, idx).kind == K_MACH) { add(false, PG_TRG, k, nullptr); break; } }
         int mp[8] = {uiParam(PG_SRC, 0), uiParam(PG_SRC, 1), P_FREQ, P_RESO, ENV_ATK[0], ENV_DEC[0], P_DLY, P_REV};
         for (int i = 0; i < 8; i++) { int pg, k; if (mp[i] >= 0 && v2Find(mp[i], pg, k) && v2Valid(pg, k)) add(false, pg, k, nullptr); }
@@ -47,11 +55,19 @@ static void v2Build(int view) {
     for (int i = 0; i < pn; i++) {
         int p = pl[i];
         if (!pageAvail(p)) continue;
-        int first = v2N; add(true, p, -1, nullptr);
+        mac = false;
+        int first = v2N; v2Groups++; add(true, p, -1, nullptr);
         for (int k = 0; k < uiSlots(p); k++) if (v2Valid(p, k)) add(false, p, k, nullptr);
-        if (v2N == first + 1) v2N = first;   // leere Gruppe weglassen
+        if (v2N == first + 1) { v2N = first; v2Groups--; }   // leere Gruppe weglassen
     }
 }
+static void v2Build(int view) {
+    int key = view * 4096 + track * 64 + (curP().machine[track] % M_COUNT);
+    if (key == v2Key && v2N > 0) return;
+    v2Key = key;
+    v2BuildNow(view);
+}
+static void v2Dirty() { v2Key = -1; }
 static int v2Clamp(int f, int dir) {   // Fokus auf den naechsten Regler (keine Ueberschrift)
     if (v2N == 0) return 0;
     if (f < 0) f = 0;
@@ -291,20 +307,6 @@ static bool v2Input(Input& I, Uint32 now, bool func) {
 }
 
 // ---- Zeichnen
-static void v2Tabs(int y) {   // Reiter der Ansichten (L2/R2)
-    int cur = v2RingIndex(), x = 6;
-    for (int i = 0; i < V2_RING_N; i++) {
-        int p = V2_RING[i];
-        const char* n = p == -10 ? "SEQ" : p == -11 ? "SOUND" : PAGE_NAMES[p];
-        int w = textW(n) + 10;
-        if (i == 2 || i == 8) { fill(x + 1, y + 3, 1, 14, C_OFF2); x += 6; }   // Gruppen: Spur | Mix | Projekt
-        bool on = i == cur;
-        rrect(x, y, w, 20, 5, on ? C_ACC : C_PANEL);
-        text(x + 5, y + 2, n, on ? C_BG : (i < 2 ? C_TEXT : C_DIM));
-        hitAdd(x, y, w, 20, HK_V2VIEW, i);
-        x += w + 3;
-    }
-}
 static void v2Tracks(int x, int y0, int w, int h) {
     const Pattern& P = curP();
     int rh = h / NTRACKS;
@@ -322,8 +324,12 @@ static void v2Tracks(int x, int y0, int w, int h) {
         hitAdd(x, y, w, rh - 3, HK_TRACK, t);
     }
 }
+static const char* v2GrpName(int i) {   // Name der Gruppe, in der Eintrag i liegt
+    for (int j = i; j >= 0; j--) if (v2It[j].hdr) return v2It[j].title ? v2It[j].title : pageLong(v2It[j].pg);
+    return "";
+}
 static void v2List(int x, int y0, int w, int h) {
-    const int rh = 24; int vis = h / rh;
+    const int rh = 24; int vis = (h - 18) / rh;
     int f = v2Foc[v2View];
     float target = f - vis / 2.f; if (target > v2N - vis) target = (float)(v2N - vis); if (target < 0) target = 0;
     float& sc = v2Scroll[v2View];
@@ -332,9 +338,11 @@ static void v2List(int x, int y0, int w, int h) {
     Col tc = TCOL[track];
     const Pattern& P = curP();
     int savePage = page, saveSlot = slot;
+    const int hy = y0, ly = y0 + 18;   // feste Kopfzeile der Gruppe, darunter die Liste
+    h -= 18;
     for (int i = 0; i < v2N; i++) {
-        int y = y0 + (int)((i - sc) * rh);
-        if (y < y0 - 2 || y > y0 + h - rh + 2) continue;
+        int y = ly + (int)((i - sc) * rh);
+        if (y < ly - 2 || y > ly + h - rh + 2) continue;
         const V2It& it = v2It[i];
         if (it.hdr) {
             const char* t = it.title ? it.title : pageLong(it.pg);
@@ -350,8 +358,12 @@ static void v2List(int x, int y0, int w, int h) {
         if (!ok) continue;
         knobText(d, val, vb, sizeof vb, it.k);
         if (sel) { rrect(x, y + 1, w, rh - 2, 6, C_SEL); rrect(x, y + 4, 3, rh - 8, 1, locked ? C_LOCK : tc); }
-        char nm[40]; snprintf(nm, sizeof nm, "%s", label[0] ? label : d.name);
-        text(x + 12, y + 4, nm, sel ? C_TEXT : C_DIM);
+        text(x + 12, y + 4, d.name, sel ? C_TEXT : C_DIM);   // immer der Reglername (Sample-/Zielname steht rechts)
+        if (it.mac) {   // Makro: aus welcher Gruppe der Regler stammt (derselbe Regler steht dort nochmal)
+            int src = v2FindItem2(it.pg, it.k);
+            if (src > 0) { char gn[20]; snprintf(gn, sizeof gn, "%.9s", v2GrpName(src)); text(x + 12 + textW(d.name) + 8, y + 5, gn, dimC(C_CYAN, 0.55f)); }
+        }
+        if (label[0]) { char lb[28]; snprintf(lb, sizeof lb, "%.16s", label); strcpy(vb, lb); }   // Sample-/Dateiname statt Nummer
         // Wertbalken (bipolar ab der Mitte), Wert rechts
         int bx = x + w / 2 - 20, bw = w / 2 - 110;
         float fr = knobFrac(d, val);
@@ -363,8 +375,21 @@ static void v2List(int x, int y0, int w, int h) {
         hitAdd(x, y, w, rh, HK_V2ROW, i);
     }
     page = savePage; slot = saveSlot;
+    {   // feste Kopfzeile: Gruppe der obersten sichtbaren Zeile (nur wenn ihr eigener Kopf weggescrollt ist) + Position des Fokus
+        fill(x, hy, w, 18, C_BG);
+        int top = (int)(sc + 0.999f); if (top >= v2N) top = v2N - 1; if (top < 0) top = 0;
+        bool headVisible = false;
+        for (int j = top; j < v2N && j <= top + 1; j++) if (v2It[j].hdr) headVisible = true;
+        if (!headVisible) text(x + 4, hy + 2, v2GrpName(top), C_CYAN);
+        int gi = 0; for (int j = 0; j <= f && j < v2N; j++) if (v2It[j].hdr) gi++;
+        char pb[48]; int npg = (curP().len[track] + 15) / 16; if (npg < 1) npg = 1;
+        if (npg > 1) snprintf(pb, sizeof pb, TR("PAGE %d/%d   GRUPPE %d/%d", "PAGE %d/%d   GROUP %d/%d"), cursor / 16 + 1, npg, gi, v2Groups);
+        else snprintf(pb, sizeof pb, TR("GRUPPE %d/%d", "GROUP %d/%d"), gi, v2Groups);
+        text(x + w - 8 - textW(pb), hy + 2, pb, C_DIM);
+        fill(x, hy + 16, w, 1, C_OFF2);
+    }
     // Bildlaufleiste
-    if (v2N > vis) { int bh = h * vis / v2N, by = y0 + (int)(h * sc / v2N); fill(x + w + 2, y0, 2, h, C_OFF2); fill(x + w + 2, by, 2, bh, C_DIM); }
+    if (v2N > vis) { int bh = h * vis / v2N; if (bh < 8) bh = 8; int by = ly + (int)((h - bh) * sc / (v2N - vis)); fill(x + w + 2, ly, 3, h, C_OFF2); fill(x + w + 2, by, 3, bh, C_CYAN); }
     (void)P;
 }
 static void v2Steps(int x, int y, int w) {   // 16 Steps + Lock-Spur des gewaehlten Werts
@@ -403,26 +428,21 @@ static void v2Help() {   // was die Tasten JETZT tun
         : TR("[^v]GRUPPE [<>]PATTERN [L1/R1]4 STEPS [X]PAGE KOPIE [Y]EINF. [A]MUTE [B]UNDO [START]SPEICHERN", "[^v]GROUP [<>]PATTERN [L1/R1]4 STEPS [X]COPY PAGE [Y]PASTE [A]MUTE [B]UNDO [START]SAVE");
     else if (v2View == V2_SOUND) h = TR("[<>]GRUPPE [^v]WERT [X/Y]ÄNDERN [L1/R1]SPUR [A]TRIG [B]HÖREN [L2/R2]ANSICHT [SEL]MEHR", "[<>]GROUP [^v]VALUE [X/Y]CHANGE [L1/R1]TRACK [A]TRIG [B]LISTEN [L2/R2]VIEW [SEL]MORE");
     else h = TR("[<>]STEP [^v]WERT [X/Y]ÄNDERN [L1/R1]SPUR [A]TRIG [B]HÖREN [L2/R2]ANSICHT [SEL]MEHR", "[<>]STEP [^v]VALUE [X/Y]CHANGE [L1/R1]TRACK [A]TRIG [B]LISTEN [L2/R2]VIEW [SEL]MORE");
-    fill(0, 452, SW, 28, C_BG);
     hint(6, 456, h, C_ACC, C_DIM);
 }
 static void drawV2() {
     v2Sync();
     if (v2View == V2_NONE) return;
-    drawHeader();
-    fill(0, 43, SW, 410, C_BG);
-    v2Tabs(48);
-    v2Tracks(4, 74, 108, 316);
-    {   // Inhalt
-        int x = 118, y = 72, w = 510, h = 312;
-        rrect(x - 4, y - 2, w + 12, h + 6, 8, C_PANEL);
-        // Erklaerung des gewaehlten Reglers (eine Zeile ueber den Steps)
-        v2List(x, y, w, h - 26);
+    v2Tracks(4, 48, 108, 342);   // Kopfzeile (mit den Ansichten-Reitern) und Hintergrund kommen aus drawAll
+    {   // Inhalt: Gruppen-Kopfzeile, Liste, Erklaerung des gewaehlten Reglers
+        int x = 118, y = 48, w = 506, h = 342;
+        rrect(x - 4, y - 2, w + 14, h + 4, 8, C_PANEL);
+        v2List(x, y, w, h - 20);
         int p = slotParam(slot);
         if (p >= 0) {
             ParamDef d = paramDef(curP().machine[track] % M_COUNT, p);
             const char* hp = paramHelp(d.name);
-            if (hp && *hp) { char hb[90]; snprintf(hb, sizeof hb, "%.76s", hp); text(x + 4, y + h - 22, hb, C_DIM); }
+            if (hp && *hp) { char hb[90]; snprintf(hb, sizeof hb, "%.75s", hp); text(x + 4, y + h - 16, hb, C_DIM); }
         }
     }
     v2Steps(6, 396, 628);

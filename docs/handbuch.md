@@ -26,7 +26,9 @@ Sie startet als App aus dem Ports-Menü oder auf Wunsch direkt beim Booten statt
 
 Umschalten: **SET → SYSTEM → Oberfläche: NEU / KLASSISCH** (die klassische Bedienung ist weiter unten beschrieben).
 
-**Immer am selben Platz:** oben Pattern, Tempo und die Ansichten · links die 8 Spuren mit Pegel und Mute · in der Mitte **eine Liste** · unten die **16 Steps** der Spur · ganz unten eine Leiste, die zeigt, was die Tasten **gerade** tun (auch mit gehaltenem SELECT oder A).
+**Immer am selben Platz:** oben Pattern, Tempo und die **Ansichten als Reiter** (in jeder Ansicht, auch in MIX, PRJ …) · links die 8 Spuren mit Pegel und Mute · in der Mitte **eine Liste** · unten die **16 Steps** der Spur · ganz unten eine Leiste, die zeigt, was die Tasten **gerade** tun (auch mit gehaltenem SELECT oder A).
+
+Über der Liste steht fest, in welcher **Gruppe** du bist (auch wenn ihr Kopf weggescrollt ist), rechts daneben die Position: **PAGE 3/4   GRUPPE 4/17**. In SOUND stehen oben **Makros**, also Abkürzungen zu den wichtigsten Reglern; hinter dem Namen steht klein, aus welcher Gruppe der Regler stammt (dort steht derselbe Regler noch einmal). Bei Sample- und Ziel-Reglern zeigt die Zeile rechts den **Namen** statt einer Nummer.
 
 **Ansichten** (L2/R2 im Kreis): **SEQ** (Trig-Werte, Sequencer, Arpeggiator) · **SOUND** (oben Engine + 8 Makros, dann Quelle, Filter, Amp, Insert, Sends, Hüllkurven, LFOs) · MIX · FX A/B/C · Kompressor · LIVE · PROJEKT · SONG · SAMPLER · MASTER · SET.
 
@@ -48,7 +50,7 @@ Hältst du A auf einem Step, gilt SELECT + X / Y für den **Step**. Die **Lock-S
 
 **MEHR** (SELECT): Ansicht direkt wählen · Steps (Page kopieren/einfügen/leeren/anhängen/entfernen, neue Page = Kopie/leer) · Spur (kopieren/einfügen/leeren) · Sound (Engine wählen, laden, speichern, zurücksetzen) · Live-Aufnahme, Tap-Tempo, Rückgängig/Wiederholen, Speichern. L1/R1 springen zum nächsten Abschnitt.
 
-**Vergleich** (gemessen mit 14 typischen Aufgaben im Selbsttest): klassisch 131 Tastendrücke, neu 106. Besonders kürzer: Cutoff ändern 6 statt 10, Delay-Send 9 statt 14, Attack + Release 13 statt 18. Länger: Engine wechseln 9 statt 4 (bewusst, damit sie nicht aus Versehen wechselt).
+**Vergleich** (gemessen mit 14 typischen Aufgaben im Selbsttest): klassisch 131 Tastendrücke, neu 106. Besonders kürzer: Cutoff ändern 6 statt 10, Delay-Send 9 statt 14, Attack + Release 13 statt 18. Länger: Engine wechseln 9 statt 4 (bewusst, damit sie nicht aus Versehen wechselt). Die neue Oberfläche zeichnet auch etwas schneller als die klassische (2,7 statt 3,4 ms je Bild).
 
 
 ![Seitenkarte (SELECT antippen): alle Seiten auf einen Blick](shot:25)

@@ -1012,7 +1012,7 @@ static void uiScenariosV2() {
     { int f = v2Foc[V2_SEQ], want = v2Clamp(f + 3, 1);
       int y = 72 + (int)((want - v2Scroll[V2_SEQ]) * 24) + 10;
       tapAt(300, y); UCHECK(v2Foc[V2_SEQ] == want, "Zeile antippen waehlt nicht (%d statt %d)", v2Foc[V2_SEQ], want); }
-    tapAt(60, 48 + 10); UCHECK(v2View == V2_SOUND || v2View == V2_SEQ, "Reiter antippen");
+    tapAt(360, 12); UCHECK(v2View == V2_SOUND || v2View == V2_SEQ, "Reiter in der Kopfzeile antippen");
     simDraw = false;
     cfg.ui2 = keepUi;
 }

@@ -416,7 +416,22 @@ static void rrect(int x, int y, int w, int h, int r, Col c, Uint8 a = 255) {
 }
 
 // Hinweistext: [..] wird hervorgehoben
+// Ansichten-Reiter der neuen Oberflaeche (ui2.inc)
+static int v2TabN();
+static const char* v2TabName(int i);
+static int v2TabPage(int i);      // Seite hinter dem Reiter, -1 = SEQ/SOUND (Spurseiten)
+static int v2TabCur();
 static void hint(int x, int y, const char* s, Col key, Col norm) {
+    char ub[220];
+    if (cfg.ui2) {   // neue Oberflaeche: SELECT oeffnet das MEHR-Menue, nicht die Seitenkarte
+        const char* f = strstr(s, "KARTE");
+        if (!f) f = strstr(s, "MAP");
+        if (f) {
+            int pre = (int)(f - s), fl = f[0] == 'K' ? 5 : 3;
+            snprintf(ub, sizeof ub, "%.*s%s%s", pre, s, f[0] == 'K' ? "MEHR" : "MORE", f + fl);
+            s = ub;
+        }
+    }
     bool k = false;
     char ch[4] = {0, 0, 0, 0};
     while (*s) {
@@ -1066,32 +1081,36 @@ static void drawHeader() {
         int is = 30 + (int)(flash[track] * 4);
         drawIcon(m, 206 - is / 2, 20 - is / 2, is, hc);
         text(226, 4, MACHINE_NAMES[m], hc, 2);
-        snprintf(b, sizeof b, "T%d", track + 1);
+        snprintf(b, sizeof b, "T%d", track + 1);   // Page steht in der neuen Oberflaeche in der Gruppen-Kopfzeile
         text(310, 2, b, C_DIM);
     }
-    if (trackPage(page)) {   // Signalweg-Oberflaeche: Pfad statt Reiter
+    if (trackPage(page) && !cfg.ui2) {   // Signalweg-Oberflaeche: Pfad statt Reiter (neue Oberflaeche: immer die Ansichten-Reiter)
         // Navigationspfad der Ebenen: Pattern > Spur > Page > Seite
         int npg = (curP().len[track] + 15) / 16; if (npg < 1) npg = 1;
         snprintf(b, sizeof b, "%s > T%d > P%d/%d > %s", PN(curPi()), track + 1, cursor / 16 + 1, npg, pageLong(page));
         if (textW(b) > 612 - 334) snprintf(b, sizeof b, "%s>T%d>P%d/%d>%s", PN(curPi()), track + 1, cursor / 16 + 1, npg, pageLong(page));
         text(334, 4, b, C_TEXT);
     } else
-    {   // Reiter nur der aktuellen Gruppe (Seitenmenue: SELECT kurz antippen)
+    {   // Reiter: neue Oberflaeche alle Ansichten, sonst die aktuelle Gruppe (Seitenmenue: SELECT kurz antippen)
         int g = PG_GROUP[page], x = 334, right = 612;
-        int list[NUI_PAGES], n = 0, cur = 0;
-        const int* ring; int rn; pageRing(page, ring, rn); (void)g;   // gleiche Reihenfolge wie L2/R2 und die Seitenkarte
-        for (int k = 0; k < rn; k++) { int p = ring[k]; if (pageAvail(p)) { if (p == page) cur = n; list[n++] = p; } }
+        int list[NUI_PAGES + 2], n = 0, cur = 0;
+        if (cfg.ui2) { for (int k = 0; k < v2TabN(); k++) { if (k == v2TabCur()) cur = n; list[n++] = k; } }
+        else {
+            const int* ring; int rn; pageRing(page, ring, rn); (void)g;   // gleiche Reihenfolge wie L2/R2 und die Seitenkarte
+            for (int k = 0; k < rn; k++) { int p = ring[k]; if (pageAvail(p)) { if (p == page) cur = n; list[n++] = p; } }
+        }
+        auto tabName = [&](int i) { return cfg.ui2 ? v2TabName(list[i]) : PAGE_NAMES[list[i]]; };
         // zu viele Reiter: so weit nach links schieben, dass die aktuelle Seite sichtbar bleibt
         int first = 0;
-        auto widthFrom = [&](int f, int upto) { int w = 0; for (int i = f; i <= upto; i++) w += textW(PAGE_NAMES[list[i]]) + 5; return w; };
+        auto widthFrom = [&](int f, int upto) { int w = 0; for (int i = f; i <= upto; i++) w += textW(tabName(i)) + 5; return w; };
         while (first < cur && widthFrom(first, cur) + (first ? 10 : 0) > right - x) first++;
         if (first > 0) { text(x, 4, "<", C_DIM); x += 10; }
         for (int i = first; i < n; i++) {
-            int p = list[i], w = textW(PAGE_NAMES[p]) + 4;
+            const char* nm = tabName(i); int w = textW(nm) + 4;
             if (x + w > right) { text(right - 4, 4, ">", C_DIM); break; }
-            hitAdd(x - 2, 0, w + 4, 22, HK_PAGE, p);
-            if (p == page) { rrect(x, 3, w, 18, 4, C_ACC); text(x + 2, 4, PAGE_NAMES[p], C_BG); }
-            else text(x + 2, 4, PAGE_NAMES[p], C_DIM);
+            if (cfg.ui2) hitAdd(x - 2, 0, w + 4, 22, HK_V2VIEW, list[i]); else hitAdd(x - 2, 0, w + 4, 22, HK_PAGE, list[i]);
+            if (i == cur) { rrect(x, 3, w, 18, 4, C_ACC); text(x + 2, 4, nm, C_BG); }
+            else text(x + 2, 4, nm, C_DIM);
             x += w + 1;
         }
     }
@@ -1106,7 +1125,7 @@ static void drawHeader() {
         }
     } else {
         int hx = 334;
-        if (!trackPage(page)) { text(hx, 23, GROUP_NAMES[PG_GROUP[page]], dimC(C_ACC, 0.8f)); hx += textW(GROUP_NAMES[PG_GROUP[page]]) + 10; }
+        if (!trackPage(page) && !cfg.ui2) { text(hx, 23, GROUP_NAMES[PG_GROUP[page]], dimC(C_ACC, 0.8f)); hx += textW(GROUP_NAMES[PG_GROUP[page]]) + 10; }   // neue Oberflaeche: die Reiter zeigen die Ansicht
         if (cpuLoad > 0.6f) { snprintf(b, sizeof b, "CPU %d%%", (int)(cpuLoad * 100)); text(hx, 23, b, C_TRIG); }   // nur als Warnung
         if (strcmp(midiBackend(), "AUS")) {
             bool act = SDL_GetTicks() - midiActivity < 150;
