@@ -2461,7 +2461,7 @@ NEU SOUND Makros | Y | -
 NEU SOUND Makros | L1 | Spur 5>4
 NEU SOUND Makros | R1 | Spur 5>6
 NEU SOUND Makros | L2 | Ansicht SOUND>SEQ; Seite SRC>TRG
-NEU SOUND Makros | R2 | Ansicht SOUND>-; Seite SRC>MIX
+NEU SOUND Makros | R2 | Ansicht SOUND>EFFEKTE; Seite SRC>FX A
 NEU SOUND Makros | START | PLAY
 NEU SOUND Makros | SELECT | MEHR auf; MEHR-Eintrag 0>1
 NEU SOUND Makros | A lang | Lock-Modus an; Step gehalten; T5 Step 1 0>1; Meldung "LOCK-MODUS STEP 1  (A ODER FERTIG = ENDE)"
@@ -2504,7 +2504,7 @@ NEU SOUND Filter | Y | T5.FREQ 70>69
 NEU SOUND Filter | L1 | Seite FLT>INS; Spur 5>4; Regler 1>2
 NEU SOUND Filter | R1 | Spur 5>6
 NEU SOUND Filter | L2 | Ansicht SOUND>SEQ; Seite FLT>TRG
-NEU SOUND Filter | R2 | Ansicht SOUND>-; Seite FLT>MIX
+NEU SOUND Filter | R2 | Ansicht SOUND>EFFEKTE; Seite FLT>FX A
 NEU SOUND Filter | START | PLAY
 NEU SOUND Filter | SELECT | MEHR auf; MEHR-Eintrag 0>1
 NEU SOUND Filter | A lang | Lock-Modus an; Step gehalten; T5 Step 1 0>1; Meldung "LOCK-MODUS STEP 1  (A ODER FERTIG = ENDE)"
@@ -2547,7 +2547,7 @@ NEU SOUND Huellkurve 1 | Y | T5.DEST1 169>168
 NEU SOUND Huellkurve 1 | L1 | Seite EN1>EN2; Spur 5>4
 NEU SOUND Huellkurve 1 | R1 | Spur 5>6
 NEU SOUND Huellkurve 1 | L2 | Ansicht SOUND>SEQ; Seite EN1>TRG; Regler 5>1
-NEU SOUND Huellkurve 1 | R2 | Ansicht SOUND>-; Seite EN1>MIX
+NEU SOUND Huellkurve 1 | R2 | Ansicht SOUND>EFFEKTE; Seite EN1>FX A; Regler 5>1
 NEU SOUND Huellkurve 1 | START | PLAY
 NEU SOUND Huellkurve 1 | SELECT | MEHR auf; MEHR-Eintrag 0>1
 NEU SOUND Huellkurve 1 | A lang | Lock-Modus an; Step gehalten; T5 Step 1 0>1; Meldung "LOCK-MODUS STEP 1  (A ODER FERTIG = ENDE)"
@@ -2590,7 +2590,7 @@ NEU SOUND Lock-Modus | Y | T5 Step 1 Lock FREQ 255>69
 NEU SOUND Lock-Modus | L1 | -
 NEU SOUND Lock-Modus | R1 | -
 NEU SOUND Lock-Modus | L2 | Ansicht SOUND>SEQ; Seite FLT>TRG
-NEU SOUND Lock-Modus | R2 | Ansicht SOUND>-; Seite FLT>MIX
+NEU SOUND Lock-Modus | R2 | Ansicht SOUND>EFFEKTE; Seite FLT>FX A
 NEU SOUND Lock-Modus | START | PLAY
 NEU SOUND Lock-Modus | SELECT | MEHR auf; MEHR-Eintrag 0>1
 NEU SOUND Lock-Modus | A lang | Lock-Modus aus; Step losgelassen; T5 Step 1 1>0; Meldung "LOCK-MODUS AUS"
@@ -2622,6 +2622,92 @@ NEU SOUND Lock-Modus | A+SEL+L1 | Step 1>13; Lock-Modus aus; Step losgelassen; T
 NEU SOUND Lock-Modus | A+SEL+R1 | Step 1>5; Lock-Modus aus; Step losgelassen; T5 Step 1 1>0; Meldung "LOCK-MODUS AUS"
 NEU SOUND Lock-Modus | Stick R hoch | T5 Step 1 Lock FREQ 255>41
 NEU SOUND Lock-Modus | Stick L rechts | -
+NEU EFFEKTE Bus A | HOCH | Seite FX A>MST; Regler 1>6
+NEU EFFEKTE Bus A | RUNTER | Regler 1>2
+NEU EFFEKTE Bus A | LINKS | Seite FX A>MST
+NEU EFFEKTE Bus A | RECHTS | Seite FX A>FX B
+NEU EFFEKTE Bus A | A | T5 Step 1 0>1
+NEU EFFEKTE Bus A | B | -
+NEU EFFEKTE Bus A | X | Bus A.0 1>2; Bus A.1 9>7; Bus A.2 50>55; Bus A.3 80>40; Bus A.4 127>50; Bus A.5 10>50
+NEU EFFEKTE Bus A | Y | Bus A.0 1>0; Bus A.1 9>0; Bus A.2 50>0; Bus A.3 80>0; Bus A.4 127>0; Bus A.5 10>0
+NEU EFFEKTE Bus A | L1 | Spur 5>4
+NEU EFFEKTE Bus A | R1 | Spur 5>6
+NEU EFFEKTE Bus A | L2 | Ansicht EFFEKTE>SOUND; Seite FX A>SRC
+NEU EFFEKTE Bus A | R2 | Ansicht EFFEKTE>-; Seite FX A>MIX
+NEU EFFEKTE Bus A | START | PLAY
+NEU EFFEKTE Bus A | SELECT | MEHR auf; MEHR-Eintrag 0>2
+NEU EFFEKTE Bus A | A lang | Lock-Modus an; Step gehalten; T5 Step 1 0>1; Meldung "LOCK-MODUS STEP 1  (A ODER FERTIG = ENDE)"
+NEU EFFEKTE Bus A | X lang | Bus A.0 1>5; Bus A.1 9>40; Bus A.2 50>60; Bus A.3 80>2; Bus A.4 127>110; Bus A.5 10>0
+NEU EFFEKTE Bus A | Y lang | Bus A.0 1>0; Bus A.1 9>0; Bus A.2 50>0; Bus A.3 80>0; Bus A.4 127>0; Bus A.5 10>0
+NEU EFFEKTE Bus A | START lang | PLAY
+NEU EFFEKTE Bus A | SELECT lang | -
+NEU EFFEKTE Bus A | SEL+HOCH | Seite FX A>MST
+NEU EFFEKTE Bus A | SEL+RUNTER | Seite FX A>FX B
+NEU EFFEKTE Bus A | SEL+LINKS | Pattern A01>H16; Meldung "PATTERN H16"
+NEU EFFEKTE Bus A | SEL+RECHTS | Pattern A01>A02; Meldung "PATTERN A02"
+NEU EFFEKTE Bus A | SEL+A | Mutes A01 00>10; Meldung "SPUR 5 STUMM"
+NEU EFFEKTE Bus A | SEL+B | Meldung "NICHTS RÜCKGÄNGIG ZU MACHEN"
+NEU EFFEKTE Bus A | SEL+X | Page-Ablage 1; Meldung "PAGE 1 VON SPUR 5 KOPIERT"
+NEU EFFEKTE Bus A | SEL+Y | Meldung "PAGE-ABLAGE LEER (ERST KOPIEREN)"
+NEU EFFEKTE Bus A | SEL+L1 | Step 1>13
+NEU EFFEKTE Bus A | SEL+R1 | Step 1>5
+NEU EFFEKTE Bus A | SEL+L2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
+NEU EFFEKTE Bus A | SEL+R2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
+NEU EFFEKTE Bus A | SEL+START | Meldung "GESPEICHERT"
+NEU EFFEKTE Bus A | A+B | T5 Step 1 0>1; Meldung "LOCKS GELÖSCHT"
+NEU EFFEKTE Bus A | A+X | T5 Step 1 0>1; Bus A.0 1>2; Bus A.1 9>7; Bus A.2 50>55; Bus A.3 80>40; Bus A.4 127>50; Bus A.5 10>50
+NEU EFFEKTE Bus A | A+Y | T5 Step 1 0>1; Bus A.0 1>0; Bus A.1 9>0; Bus A.2 50>0; Bus A.3 80>0; Bus A.4 127>0; Bus A.5 10>0
+NEU EFFEKTE Bus A | A+HOCH | Seite FX A>MST; Regler 1>6; T5 Step 1 0>1
+NEU EFFEKTE Bus A | A+RUNTER | Regler 1>2; T5 Step 1 0>1
+NEU EFFEKTE Bus A | A+L1 | T5 Step 1 0>1
+NEU EFFEKTE Bus A | A+R1 | T5 Step 1 0>1
+NEU EFFEKTE Bus A | A+SEL+L1 | Trig-Ablage voll; Meldung "LEEREN STEP KOPIERT"
+NEU EFFEKTE Bus A | A+SEL+R1 | T5 Step 1 0>1; Meldung "TRIG-ABLAGE LEER (LOCK-MODUS: SELECT + L1)"
+NEU EFFEKTE Bus A | Stick R hoch | Bus A.0 1>0; Bus A.1 9>0; Bus A.2 50>0; Bus A.3 80>0; Bus A.4 127>0; Bus A.5 10>0
+NEU EFFEKTE Bus A | Stick L rechts | -
+NEU EFFEKTE Master | HOCH | Seite MST>CMP; Regler 1>8
+NEU EFFEKTE Master | RUNTER | Regler 1>2
+NEU EFFEKTE Master | LINKS | Seite MST>CMP
+NEU EFFEKTE Master | RECHTS | Seite MST>FX A
+NEU EFFEKTE Master | A | T5 Step 1 0>1
+NEU EFFEKTE Master | B | -
+NEU EFFEKTE Master | X | BPM 120>121
+NEU EFFEKTE Master | Y | BPM 120>119
+NEU EFFEKTE Master | L1 | Spur 5>4
+NEU EFFEKTE Master | R1 | Spur 5>6
+NEU EFFEKTE Master | L2 | Ansicht EFFEKTE>SOUND; Seite MST>SRC
+NEU EFFEKTE Master | R2 | Ansicht EFFEKTE>-; Seite MST>MIX
+NEU EFFEKTE Master | START | PLAY
+NEU EFFEKTE Master | SELECT | MEHR auf; MEHR-Eintrag 0>2
+NEU EFFEKTE Master | A lang | Lock-Modus an; Step gehalten; T5 Step 1 0>1; Meldung "LOCK-MODUS STEP 1  (A ODER FERTIG = ENDE)"
+NEU EFFEKTE Master | X lang | BPM 120>170
+NEU EFFEKTE Master | Y lang | BPM 120>70
+NEU EFFEKTE Master | START lang | PLAY
+NEU EFFEKTE Master | SELECT lang | -
+NEU EFFEKTE Master | SEL+HOCH | Seite MST>CMP
+NEU EFFEKTE Master | SEL+RUNTER | Seite MST>FX A
+NEU EFFEKTE Master | SEL+LINKS | Pattern A01>H16; Meldung "PATTERN H16"
+NEU EFFEKTE Master | SEL+RECHTS | Pattern A01>A02; Meldung "PATTERN A02"
+NEU EFFEKTE Master | SEL+A | Mutes A01 00>10; Meldung "SPUR 5 STUMM"
+NEU EFFEKTE Master | SEL+B | Meldung "NICHTS RÜCKGÄNGIG ZU MACHEN"
+NEU EFFEKTE Master | SEL+X | Page-Ablage 1; Meldung "PAGE 1 VON SPUR 5 KOPIERT"
+NEU EFFEKTE Master | SEL+Y | Meldung "PAGE-ABLAGE LEER (ERST KOPIEREN)"
+NEU EFFEKTE Master | SEL+L1 | Step 1>13
+NEU EFFEKTE Master | SEL+R1 | Step 1>5
+NEU EFFEKTE Master | SEL+L2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
+NEU EFFEKTE Master | SEL+R2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
+NEU EFFEKTE Master | SEL+START | Meldung "GESPEICHERT"
+NEU EFFEKTE Master | A+B | T5 Step 1 0>1; Meldung "LOCKS GELÖSCHT"
+NEU EFFEKTE Master | A+X | T5 Step 1 0>1; BPM 120>121
+NEU EFFEKTE Master | A+Y | T5 Step 1 0>1; BPM 120>119
+NEU EFFEKTE Master | A+HOCH | Seite MST>CMP; Regler 1>8; T5 Step 1 0>1
+NEU EFFEKTE Master | A+RUNTER | Regler 1>2; T5 Step 1 0>1
+NEU EFFEKTE Master | A+L1 | T5 Step 1 0>1
+NEU EFFEKTE Master | A+R1 | T5 Step 1 0>1
+NEU EFFEKTE Master | A+SEL+L1 | Trig-Ablage voll; Meldung "LEEREN STEP KOPIERT"
+NEU EFFEKTE Master | A+SEL+R1 | T5 Step 1 0>1; Meldung "TRIG-ABLAGE LEER (LOCK-MODUS: SELECT + L1)"
+NEU EFFEKTE Master | Stick R hoch | BPM 120>91
+NEU EFFEKTE Master | Stick L rechts | -
 NEU MIX | HOCH | -
 NEU MIX | RUNTER | Mixer-Zeile 0>1
 NEU MIX | LINKS | Spur 5>4
@@ -2632,10 +2718,10 @@ NEU MIX | X | T5.VOL 100>101
 NEU MIX | Y | T5.VOL 100>99
 NEU MIX | L1 | Mixer-Zeile 0>4
 NEU MIX | R1 | Mixer-Zeile 0>1
-NEU MIX | L2 | Ansicht ->SOUND; Seite MIX>SRC
-NEU MIX | R2 | Seite MIX>FX A
+NEU MIX | L2 | Ansicht ->EFFEKTE; Seite MIX>FX A
+NEU MIX | R2 | Seite MIX>LIVE
 NEU MIX | START | PLAY
-NEU MIX | SELECT | MEHR auf; MEHR-Eintrag 0>2
+NEU MIX | SELECT | MEHR auf; MEHR-Eintrag 0>3
 NEU MIX | A lang | Mutes A01 00>10; Meldung "SPUR 5 STUMM"
 NEU MIX | X lang | T5.VOL 100>127
 NEU MIX | Y lang | T5.VOL 100>50
@@ -2665,7 +2751,7 @@ NEU MIX | A+SEL+L1 | Step 1>13; Mutes A01 00>10; Meldung "SPUR 5 STUMM"
 NEU MIX | A+SEL+R1 | Step 1>5; Mutes A01 00>10; Meldung "SPUR 5 STUMM"
 NEU MIX | Stick R hoch | T5.VOL 100>71
 NEU MIX | Stick L rechts | Spur 5>6
-NEU MEHR offen | HOCH | MEHR-Eintrag 0>30
+NEU MEHR offen | HOCH | MEHR-Eintrag 0>26
 NEU MEHR offen | RUNTER | MEHR-Eintrag 0>1
 NEU MEHR offen | LINKS | -
 NEU MEHR offen | RECHTS | -
@@ -2673,8 +2759,8 @@ NEU MEHR offen | A | Ansicht ->SEQ; MEHR zu
 NEU MEHR offen | B | Ansicht ->SEQ; MEHR zu
 NEU MEHR offen | X | -
 NEU MEHR offen | Y | -
-NEU MEHR offen | L1 | MEHR-Eintrag 0>26
-NEU MEHR offen | R1 | MEHR-Eintrag 0>13
+NEU MEHR offen | L1 | MEHR-Eintrag 0>22
+NEU MEHR offen | R1 | MEHR-Eintrag 0>9
 NEU MEHR offen | L2 | -
 NEU MEHR offen | R2 | -
 NEU MEHR offen | START | Ansicht ->SEQ; MEHR zu; PLAY
@@ -2708,7 +2794,7 @@ NEU MEHR offen | A+SEL+L1 | Ansicht ->SEQ; MEHR zu; Step 1>13
 NEU MEHR offen | A+SEL+R1 | Ansicht ->SEQ; MEHR zu; Step 1>5
 NEU MEHR offen | Stick R hoch | -
 NEU MEHR offen | Stick L rechts | -
-NEU MEHR Eintrag 0 | HOCH | MEHR-Eintrag 0>30
+NEU MEHR Eintrag 0 | HOCH | MEHR-Eintrag 0>26
 NEU MEHR Eintrag 0 | RUNTER | MEHR-Eintrag 0>1
 NEU MEHR Eintrag 0 | LINKS | -
 NEU MEHR Eintrag 0 | RECHTS | -
@@ -2716,8 +2802,8 @@ NEU MEHR Eintrag 0 | A | Ansicht ->SEQ; MEHR zu
 NEU MEHR Eintrag 0 | B | Ansicht ->SEQ; MEHR zu
 NEU MEHR Eintrag 0 | X | -
 NEU MEHR Eintrag 0 | Y | -
-NEU MEHR Eintrag 0 | L1 | MEHR-Eintrag 0>26
-NEU MEHR Eintrag 0 | R1 | MEHR-Eintrag 0>13
+NEU MEHR Eintrag 0 | L1 | MEHR-Eintrag 0>22
+NEU MEHR Eintrag 0 | R1 | MEHR-Eintrag 0>9
 NEU MEHR Eintrag 1 | HOCH | MEHR-Eintrag 1>0
 NEU MEHR Eintrag 1 | RUNTER | MEHR-Eintrag 1>2
 NEU MEHR Eintrag 1 | LINKS | -
@@ -2727,297 +2813,257 @@ NEU MEHR Eintrag 1 | B | Ansicht ->SEQ; MEHR zu
 NEU MEHR Eintrag 1 | X | -
 NEU MEHR Eintrag 1 | Y | -
 NEU MEHR Eintrag 1 | L1 | MEHR-Eintrag 1>0
-NEU MEHR Eintrag 1 | R1 | MEHR-Eintrag 1>13
+NEU MEHR Eintrag 1 | R1 | MEHR-Eintrag 1>9
 NEU MEHR Eintrag 2 | HOCH | MEHR-Eintrag 2>1
 NEU MEHR Eintrag 2 | RUNTER | MEHR-Eintrag 2>3
 NEU MEHR Eintrag 2 | LINKS | -
 NEU MEHR Eintrag 2 | RECHTS | -
-NEU MEHR Eintrag 2 | A | MEHR zu; Seite TRG>MIX
+NEU MEHR Eintrag 2 | A | Ansicht ->EFFEKTE; MEHR zu; Seite TRG>FX A
 NEU MEHR Eintrag 2 | B | Ansicht ->SEQ; MEHR zu
 NEU MEHR Eintrag 2 | X | -
 NEU MEHR Eintrag 2 | Y | -
 NEU MEHR Eintrag 2 | L1 | MEHR-Eintrag 2>0
-NEU MEHR Eintrag 2 | R1 | MEHR-Eintrag 2>13
+NEU MEHR Eintrag 2 | R1 | MEHR-Eintrag 2>9
 NEU MEHR Eintrag 3 | HOCH | MEHR-Eintrag 3>2
 NEU MEHR Eintrag 3 | RUNTER | MEHR-Eintrag 3>4
 NEU MEHR Eintrag 3 | LINKS | -
 NEU MEHR Eintrag 3 | RECHTS | -
-NEU MEHR Eintrag 3 | A | MEHR zu; Seite TRG>FX A
+NEU MEHR Eintrag 3 | A | MEHR zu; Seite TRG>MIX
 NEU MEHR Eintrag 3 | B | Ansicht ->SEQ; MEHR zu
 NEU MEHR Eintrag 3 | X | -
 NEU MEHR Eintrag 3 | Y | -
 NEU MEHR Eintrag 3 | L1 | MEHR-Eintrag 3>0
-NEU MEHR Eintrag 3 | R1 | MEHR-Eintrag 3>13
+NEU MEHR Eintrag 3 | R1 | MEHR-Eintrag 3>9
 NEU MEHR Eintrag 4 | HOCH | MEHR-Eintrag 4>3
 NEU MEHR Eintrag 4 | RUNTER | MEHR-Eintrag 4>5
 NEU MEHR Eintrag 4 | LINKS | -
 NEU MEHR Eintrag 4 | RECHTS | -
-NEU MEHR Eintrag 4 | A | MEHR zu; Seite TRG>FX B
+NEU MEHR Eintrag 4 | A | MEHR zu; Seite TRG>LIVE
 NEU MEHR Eintrag 4 | B | Ansicht ->SEQ; MEHR zu
 NEU MEHR Eintrag 4 | X | -
 NEU MEHR Eintrag 4 | Y | -
 NEU MEHR Eintrag 4 | L1 | MEHR-Eintrag 4>0
-NEU MEHR Eintrag 4 | R1 | MEHR-Eintrag 4>13
+NEU MEHR Eintrag 4 | R1 | MEHR-Eintrag 4>9
 NEU MEHR Eintrag 5 | HOCH | MEHR-Eintrag 5>4
 NEU MEHR Eintrag 5 | RUNTER | MEHR-Eintrag 5>6
 NEU MEHR Eintrag 5 | LINKS | -
 NEU MEHR Eintrag 5 | RECHTS | -
-NEU MEHR Eintrag 5 | A | MEHR zu; Seite TRG>FX C
+NEU MEHR Eintrag 5 | A | MEHR zu; Seite TRG>PRJ
 NEU MEHR Eintrag 5 | B | Ansicht ->SEQ; MEHR zu
 NEU MEHR Eintrag 5 | X | -
 NEU MEHR Eintrag 5 | Y | -
 NEU MEHR Eintrag 5 | L1 | MEHR-Eintrag 5>0
-NEU MEHR Eintrag 5 | R1 | MEHR-Eintrag 5>13
+NEU MEHR Eintrag 5 | R1 | MEHR-Eintrag 5>9
 NEU MEHR Eintrag 6 | HOCH | MEHR-Eintrag 6>5
 NEU MEHR Eintrag 6 | RUNTER | MEHR-Eintrag 6>7
 NEU MEHR Eintrag 6 | LINKS | -
 NEU MEHR Eintrag 6 | RECHTS | -
-NEU MEHR Eintrag 6 | A | MEHR zu; Seite TRG>CMP
+NEU MEHR Eintrag 6 | A | MEHR zu; Seite TRG>SNG
 NEU MEHR Eintrag 6 | B | Ansicht ->SEQ; MEHR zu
 NEU MEHR Eintrag 6 | X | -
 NEU MEHR Eintrag 6 | Y | -
 NEU MEHR Eintrag 6 | L1 | MEHR-Eintrag 6>0
-NEU MEHR Eintrag 6 | R1 | MEHR-Eintrag 6>13
+NEU MEHR Eintrag 6 | R1 | MEHR-Eintrag 6>9
 NEU MEHR Eintrag 7 | HOCH | MEHR-Eintrag 7>6
 NEU MEHR Eintrag 7 | RUNTER | MEHR-Eintrag 7>8
 NEU MEHR Eintrag 7 | LINKS | -
 NEU MEHR Eintrag 7 | RECHTS | -
-NEU MEHR Eintrag 7 | A | MEHR zu; Seite TRG>LIVE
+NEU MEHR Eintrag 7 | A | MEHR zu; Seite TRG>SMPR
 NEU MEHR Eintrag 7 | B | Ansicht ->SEQ; MEHR zu
 NEU MEHR Eintrag 7 | X | -
 NEU MEHR Eintrag 7 | Y | -
 NEU MEHR Eintrag 7 | L1 | MEHR-Eintrag 7>0
-NEU MEHR Eintrag 7 | R1 | MEHR-Eintrag 7>13
+NEU MEHR Eintrag 7 | R1 | MEHR-Eintrag 7>9
 NEU MEHR Eintrag 8 | HOCH | MEHR-Eintrag 8>7
 NEU MEHR Eintrag 8 | RUNTER | MEHR-Eintrag 8>9
 NEU MEHR Eintrag 8 | LINKS | -
 NEU MEHR Eintrag 8 | RECHTS | -
-NEU MEHR Eintrag 8 | A | MEHR zu; Seite TRG>PRJ
+NEU MEHR Eintrag 8 | A | MEHR zu; Seite TRG>SET; SET 1>7
 NEU MEHR Eintrag 8 | B | Ansicht ->SEQ; MEHR zu
 NEU MEHR Eintrag 8 | X | -
 NEU MEHR Eintrag 8 | Y | -
 NEU MEHR Eintrag 8 | L1 | MEHR-Eintrag 8>0
-NEU MEHR Eintrag 8 | R1 | MEHR-Eintrag 8>13
+NEU MEHR Eintrag 8 | R1 | MEHR-Eintrag 8>9
 NEU MEHR Eintrag 9 | HOCH | MEHR-Eintrag 9>8
 NEU MEHR Eintrag 9 | RUNTER | MEHR-Eintrag 9>10
 NEU MEHR Eintrag 9 | LINKS | -
 NEU MEHR Eintrag 9 | RECHTS | -
-NEU MEHR Eintrag 9 | A | MEHR zu; Seite TRG>SNG
+NEU MEHR Eintrag 9 | A | Ansicht ->SEQ; MEHR zu; Page-Ablage 1; Meldung "PAGE 1 VON SPUR 5 KOPIERT"
 NEU MEHR Eintrag 9 | B | Ansicht ->SEQ; MEHR zu
 NEU MEHR Eintrag 9 | X | -
 NEU MEHR Eintrag 9 | Y | -
 NEU MEHR Eintrag 9 | L1 | MEHR-Eintrag 9>0
-NEU MEHR Eintrag 9 | R1 | MEHR-Eintrag 9>13
+NEU MEHR Eintrag 9 | R1 | MEHR-Eintrag 9>15
 NEU MEHR Eintrag 10 | HOCH | MEHR-Eintrag 10>9
 NEU MEHR Eintrag 10 | RUNTER | MEHR-Eintrag 10>11
 NEU MEHR Eintrag 10 | LINKS | -
 NEU MEHR Eintrag 10 | RECHTS | -
-NEU MEHR Eintrag 10 | A | MEHR zu; Seite TRG>SMPR
+NEU MEHR Eintrag 10 | A | Ansicht ->SEQ; MEHR zu; Meldung "PAGE-ABLAGE LEER (ERST KOPIEREN)"
 NEU MEHR Eintrag 10 | B | Ansicht ->SEQ; MEHR zu
 NEU MEHR Eintrag 10 | X | -
 NEU MEHR Eintrag 10 | Y | -
-NEU MEHR Eintrag 10 | L1 | MEHR-Eintrag 10>0
-NEU MEHR Eintrag 10 | R1 | MEHR-Eintrag 10>13
+NEU MEHR Eintrag 10 | L1 | MEHR-Eintrag 10>9
+NEU MEHR Eintrag 10 | R1 | MEHR-Eintrag 10>15
 NEU MEHR Eintrag 11 | HOCH | MEHR-Eintrag 11>10
 NEU MEHR Eintrag 11 | RUNTER | MEHR-Eintrag 11>12
 NEU MEHR Eintrag 11 | LINKS | -
 NEU MEHR Eintrag 11 | RECHTS | -
-NEU MEHR Eintrag 11 | A | MEHR zu; Seite TRG>MST
+NEU MEHR Eintrag 11 | A | Ansicht ->SEQ; MEHR zu; Meldung "PAGE 1 GELEERT"
 NEU MEHR Eintrag 11 | B | Ansicht ->SEQ; MEHR zu
 NEU MEHR Eintrag 11 | X | -
 NEU MEHR Eintrag 11 | Y | -
-NEU MEHR Eintrag 11 | L1 | MEHR-Eintrag 11>0
-NEU MEHR Eintrag 11 | R1 | MEHR-Eintrag 11>13
+NEU MEHR Eintrag 11 | L1 | MEHR-Eintrag 11>9
+NEU MEHR Eintrag 11 | R1 | MEHR-Eintrag 11>15
 NEU MEHR Eintrag 12 | HOCH | MEHR-Eintrag 12>11
 NEU MEHR Eintrag 12 | RUNTER | MEHR-Eintrag 12>13
 NEU MEHR Eintrag 12 | LINKS | -
 NEU MEHR Eintrag 12 | RECHTS | -
-NEU MEHR Eintrag 12 | A | MEHR zu; Seite TRG>SET; SET 1>7
+NEU MEHR Eintrag 12 | A | Ansicht ->SEQ; MEHR zu; Step 1>17; T5 Laenge 16>32; Meldung "PAGE ANGEHÄNGT (KOPIE) - 32 STEPS"
 NEU MEHR Eintrag 12 | B | Ansicht ->SEQ; MEHR zu
 NEU MEHR Eintrag 12 | X | -
 NEU MEHR Eintrag 12 | Y | -
-NEU MEHR Eintrag 12 | L1 | MEHR-Eintrag 12>0
-NEU MEHR Eintrag 12 | R1 | MEHR-Eintrag 12>13
+NEU MEHR Eintrag 12 | L1 | MEHR-Eintrag 12>9
+NEU MEHR Eintrag 12 | R1 | MEHR-Eintrag 12>15
 NEU MEHR Eintrag 13 | HOCH | MEHR-Eintrag 13>12
 NEU MEHR Eintrag 13 | RUNTER | MEHR-Eintrag 13>14
 NEU MEHR Eintrag 13 | LINKS | -
 NEU MEHR Eintrag 13 | RECHTS | -
-NEU MEHR Eintrag 13 | A | Ansicht ->SEQ; MEHR zu; Page-Ablage 1; Meldung "PAGE 1 VON SPUR 5 KOPIERT"
+NEU MEHR Eintrag 13 | A | Ansicht ->SEQ; MEHR zu; Meldung "LETZTE PAGE ENTFERNT - 16 STEPS"
 NEU MEHR Eintrag 13 | B | Ansicht ->SEQ; MEHR zu
 NEU MEHR Eintrag 13 | X | -
 NEU MEHR Eintrag 13 | Y | -
-NEU MEHR Eintrag 13 | L1 | MEHR-Eintrag 13>0
-NEU MEHR Eintrag 13 | R1 | MEHR-Eintrag 13>19
+NEU MEHR Eintrag 13 | L1 | MEHR-Eintrag 13>9
+NEU MEHR Eintrag 13 | R1 | MEHR-Eintrag 13>15
 NEU MEHR Eintrag 14 | HOCH | MEHR-Eintrag 14>13
 NEU MEHR Eintrag 14 | RUNTER | MEHR-Eintrag 14>15
-NEU MEHR Eintrag 14 | LINKS | -
-NEU MEHR Eintrag 14 | RECHTS | -
-NEU MEHR Eintrag 14 | A | Ansicht ->SEQ; MEHR zu; Meldung "PAGE-ABLAGE LEER (ERST KOPIEREN)"
+NEU MEHR Eintrag 14 | LINKS | cfg.newPage 1>0
+NEU MEHR Eintrag 14 | RECHTS | cfg.newPage 1>0
+NEU MEHR Eintrag 14 | A | cfg.newPage 1>0
 NEU MEHR Eintrag 14 | B | Ansicht ->SEQ; MEHR zu
-NEU MEHR Eintrag 14 | X | -
-NEU MEHR Eintrag 14 | Y | -
-NEU MEHR Eintrag 14 | L1 | MEHR-Eintrag 14>13
-NEU MEHR Eintrag 14 | R1 | MEHR-Eintrag 14>19
+NEU MEHR Eintrag 14 | X | cfg.newPage 1>0
+NEU MEHR Eintrag 14 | Y | cfg.newPage 1>0
+NEU MEHR Eintrag 14 | L1 | MEHR-Eintrag 14>9
+NEU MEHR Eintrag 14 | R1 | MEHR-Eintrag 14>15
 NEU MEHR Eintrag 15 | HOCH | MEHR-Eintrag 15>14
 NEU MEHR Eintrag 15 | RUNTER | MEHR-Eintrag 15>16
 NEU MEHR Eintrag 15 | LINKS | -
 NEU MEHR Eintrag 15 | RECHTS | -
-NEU MEHR Eintrag 15 | A | Ansicht ->SEQ; MEHR zu; Meldung "PAGE 1 GELEERT"
+NEU MEHR Eintrag 15 | A | Ansicht ->SEQ; MEHR zu; Spur-Ablage T5; Meldung "SPUR 5 KOPIERT (SOUND + STEPS)"
 NEU MEHR Eintrag 15 | B | Ansicht ->SEQ; MEHR zu
 NEU MEHR Eintrag 15 | X | -
 NEU MEHR Eintrag 15 | Y | -
-NEU MEHR Eintrag 15 | L1 | MEHR-Eintrag 15>13
-NEU MEHR Eintrag 15 | R1 | MEHR-Eintrag 15>19
+NEU MEHR Eintrag 15 | L1 | MEHR-Eintrag 15>9
+NEU MEHR Eintrag 15 | R1 | MEHR-Eintrag 15>18
 NEU MEHR Eintrag 16 | HOCH | MEHR-Eintrag 16>15
 NEU MEHR Eintrag 16 | RUNTER | MEHR-Eintrag 16>17
 NEU MEHR Eintrag 16 | LINKS | -
 NEU MEHR Eintrag 16 | RECHTS | -
-NEU MEHR Eintrag 16 | A | Ansicht ->SEQ; MEHR zu; Step 1>17; T5 Laenge 16>32; Meldung "PAGE ANGEHÄNGT (KOPIE) - 32 STEPS"
+NEU MEHR Eintrag 16 | A | Ansicht ->SEQ; MEHR zu; Meldung "SPUR-ABLAGE LEER (ERST KOPIEREN)"
 NEU MEHR Eintrag 16 | B | Ansicht ->SEQ; MEHR zu
 NEU MEHR Eintrag 16 | X | -
 NEU MEHR Eintrag 16 | Y | -
-NEU MEHR Eintrag 16 | L1 | MEHR-Eintrag 16>13
-NEU MEHR Eintrag 16 | R1 | MEHR-Eintrag 16>19
+NEU MEHR Eintrag 16 | L1 | MEHR-Eintrag 16>15
+NEU MEHR Eintrag 16 | R1 | MEHR-Eintrag 16>18
 NEU MEHR Eintrag 17 | HOCH | MEHR-Eintrag 17>16
 NEU MEHR Eintrag 17 | RUNTER | MEHR-Eintrag 17>18
 NEU MEHR Eintrag 17 | LINKS | -
 NEU MEHR Eintrag 17 | RECHTS | -
-NEU MEHR Eintrag 17 | A | Ansicht ->SEQ; MEHR zu; Meldung "LETZTE PAGE ENTFERNT - 16 STEPS"
+NEU MEHR Eintrag 17 | A | Ansicht ->SEQ; MEHR zu; Meldung "ALLE STEPS VON SPUR 5 GELEERT (SOUND BLEIBT)"
 NEU MEHR Eintrag 17 | B | Ansicht ->SEQ; MEHR zu
 NEU MEHR Eintrag 17 | X | -
 NEU MEHR Eintrag 17 | Y | -
-NEU MEHR Eintrag 17 | L1 | MEHR-Eintrag 17>13
-NEU MEHR Eintrag 17 | R1 | MEHR-Eintrag 17>19
+NEU MEHR Eintrag 17 | L1 | MEHR-Eintrag 17>15
+NEU MEHR Eintrag 17 | R1 | MEHR-Eintrag 17>18
 NEU MEHR Eintrag 18 | HOCH | MEHR-Eintrag 18>17
 NEU MEHR Eintrag 18 | RUNTER | MEHR-Eintrag 18>19
-NEU MEHR Eintrag 18 | LINKS | cfg.newPage 1>0
-NEU MEHR Eintrag 18 | RECHTS | cfg.newPage 1>0
-NEU MEHR Eintrag 18 | A | cfg.newPage 1>0
+NEU MEHR Eintrag 18 | LINKS | -
+NEU MEHR Eintrag 18 | RECHTS | -
+NEU MEHR Eintrag 18 | A | MEHR zu; Liste 5 auf
 NEU MEHR Eintrag 18 | B | Ansicht ->SEQ; MEHR zu
-NEU MEHR Eintrag 18 | X | cfg.newPage 1>0
-NEU MEHR Eintrag 18 | Y | cfg.newPage 1>0
-NEU MEHR Eintrag 18 | L1 | MEHR-Eintrag 18>13
-NEU MEHR Eintrag 18 | R1 | MEHR-Eintrag 18>19
+NEU MEHR Eintrag 18 | X | -
+NEU MEHR Eintrag 18 | Y | -
+NEU MEHR Eintrag 18 | L1 | MEHR-Eintrag 18>15
+NEU MEHR Eintrag 18 | R1 | MEHR-Eintrag 18>22
 NEU MEHR Eintrag 19 | HOCH | MEHR-Eintrag 19>18
 NEU MEHR Eintrag 19 | RUNTER | MEHR-Eintrag 19>20
 NEU MEHR Eintrag 19 | LINKS | -
 NEU MEHR Eintrag 19 | RECHTS | -
-NEU MEHR Eintrag 19 | A | Ansicht ->SEQ; MEHR zu; Spur-Ablage T5; Meldung "SPUR 5 KOPIERT (SOUND + STEPS)"
+NEU MEHR Eintrag 19 | A | MEHR zu; Liste 3 auf
 NEU MEHR Eintrag 19 | B | Ansicht ->SEQ; MEHR zu
 NEU MEHR Eintrag 19 | X | -
 NEU MEHR Eintrag 19 | Y | -
-NEU MEHR Eintrag 19 | L1 | MEHR-Eintrag 19>13
+NEU MEHR Eintrag 19 | L1 | MEHR-Eintrag 19>18
 NEU MEHR Eintrag 19 | R1 | MEHR-Eintrag 19>22
 NEU MEHR Eintrag 20 | HOCH | MEHR-Eintrag 20>19
 NEU MEHR Eintrag 20 | RUNTER | MEHR-Eintrag 20>21
 NEU MEHR Eintrag 20 | LINKS | -
 NEU MEHR Eintrag 20 | RECHTS | -
-NEU MEHR Eintrag 20 | A | Ansicht ->SEQ; MEHR zu; Meldung "SPUR-ABLAGE LEER (ERST KOPIEREN)"
+NEU MEHR Eintrag 20 | A | MEHR zu; Tastatur auf
 NEU MEHR Eintrag 20 | B | Ansicht ->SEQ; MEHR zu
 NEU MEHR Eintrag 20 | X | -
 NEU MEHR Eintrag 20 | Y | -
-NEU MEHR Eintrag 20 | L1 | MEHR-Eintrag 20>19
+NEU MEHR Eintrag 20 | L1 | MEHR-Eintrag 20>18
 NEU MEHR Eintrag 20 | R1 | MEHR-Eintrag 20>22
 NEU MEHR Eintrag 21 | HOCH | MEHR-Eintrag 21>20
 NEU MEHR Eintrag 21 | RUNTER | MEHR-Eintrag 21>22
 NEU MEHR Eintrag 21 | LINKS | -
 NEU MEHR Eintrag 21 | RECHTS | -
-NEU MEHR Eintrag 21 | A | Ansicht ->SEQ; MEHR zu; Meldung "ALLE STEPS VON SPUR 5 GELEERT (SOUND BLEIBT)"
+NEU MEHR Eintrag 21 | A | MEHR zu; Abfrage 5
 NEU MEHR Eintrag 21 | B | Ansicht ->SEQ; MEHR zu
 NEU MEHR Eintrag 21 | X | -
 NEU MEHR Eintrag 21 | Y | -
-NEU MEHR Eintrag 21 | L1 | MEHR-Eintrag 21>19
+NEU MEHR Eintrag 21 | L1 | MEHR-Eintrag 21>18
 NEU MEHR Eintrag 21 | R1 | MEHR-Eintrag 21>22
 NEU MEHR Eintrag 22 | HOCH | MEHR-Eintrag 22>21
 NEU MEHR Eintrag 22 | RUNTER | MEHR-Eintrag 22>23
 NEU MEHR Eintrag 22 | LINKS | -
 NEU MEHR Eintrag 22 | RECHTS | -
-NEU MEHR Eintrag 22 | A | MEHR zu; Liste 5 auf
+NEU MEHR Eintrag 22 | A | REC an; Meldung "AUFNAHME AN"
 NEU MEHR Eintrag 22 | B | Ansicht ->SEQ; MEHR zu
 NEU MEHR Eintrag 22 | X | -
 NEU MEHR Eintrag 22 | Y | -
-NEU MEHR Eintrag 22 | L1 | MEHR-Eintrag 22>19
-NEU MEHR Eintrag 22 | R1 | MEHR-Eintrag 22>26
+NEU MEHR Eintrag 22 | L1 | MEHR-Eintrag 22>18
+NEU MEHR Eintrag 22 | R1 | MEHR-Eintrag 22>0
 NEU MEHR Eintrag 23 | HOCH | MEHR-Eintrag 23>22
 NEU MEHR Eintrag 23 | RUNTER | MEHR-Eintrag 23>24
 NEU MEHR Eintrag 23 | LINKS | -
 NEU MEHR Eintrag 23 | RECHTS | -
-NEU MEHR Eintrag 23 | A | MEHR zu; Liste 3 auf
+NEU MEHR Eintrag 23 | A | -
 NEU MEHR Eintrag 23 | B | Ansicht ->SEQ; MEHR zu
 NEU MEHR Eintrag 23 | X | -
 NEU MEHR Eintrag 23 | Y | -
 NEU MEHR Eintrag 23 | L1 | MEHR-Eintrag 23>22
-NEU MEHR Eintrag 23 | R1 | MEHR-Eintrag 23>26
+NEU MEHR Eintrag 23 | R1 | MEHR-Eintrag 23>0
 NEU MEHR Eintrag 24 | HOCH | MEHR-Eintrag 24>23
 NEU MEHR Eintrag 24 | RUNTER | MEHR-Eintrag 24>25
 NEU MEHR Eintrag 24 | LINKS | -
 NEU MEHR Eintrag 24 | RECHTS | -
-NEU MEHR Eintrag 24 | A | MEHR zu; Tastatur auf
+NEU MEHR Eintrag 24 | A | Meldung "NICHTS RÜCKGÄNGIG ZU MACHEN"
 NEU MEHR Eintrag 24 | B | Ansicht ->SEQ; MEHR zu
 NEU MEHR Eintrag 24 | X | -
 NEU MEHR Eintrag 24 | Y | -
 NEU MEHR Eintrag 24 | L1 | MEHR-Eintrag 24>22
-NEU MEHR Eintrag 24 | R1 | MEHR-Eintrag 24>26
+NEU MEHR Eintrag 24 | R1 | MEHR-Eintrag 24>0
 NEU MEHR Eintrag 25 | HOCH | MEHR-Eintrag 25>24
 NEU MEHR Eintrag 25 | RUNTER | MEHR-Eintrag 25>26
 NEU MEHR Eintrag 25 | LINKS | -
 NEU MEHR Eintrag 25 | RECHTS | -
-NEU MEHR Eintrag 25 | A | MEHR zu; Abfrage 5
+NEU MEHR Eintrag 25 | A | Meldung "NICHTS ZU WIEDERHOLEN"
 NEU MEHR Eintrag 25 | B | Ansicht ->SEQ; MEHR zu
 NEU MEHR Eintrag 25 | X | -
 NEU MEHR Eintrag 25 | Y | -
 NEU MEHR Eintrag 25 | L1 | MEHR-Eintrag 25>22
-NEU MEHR Eintrag 25 | R1 | MEHR-Eintrag 25>26
+NEU MEHR Eintrag 25 | R1 | MEHR-Eintrag 25>0
 NEU MEHR Eintrag 26 | HOCH | MEHR-Eintrag 26>25
-NEU MEHR Eintrag 26 | RUNTER | MEHR-Eintrag 26>27
+NEU MEHR Eintrag 26 | RUNTER | MEHR-Eintrag 26>0
 NEU MEHR Eintrag 26 | LINKS | -
 NEU MEHR Eintrag 26 | RECHTS | -
-NEU MEHR Eintrag 26 | A | REC an; Meldung "AUFNAHME AN"
+NEU MEHR Eintrag 26 | A | Ansicht ->SEQ; MEHR zu; Meldung "GESPEICHERT: Matrix"
 NEU MEHR Eintrag 26 | B | Ansicht ->SEQ; MEHR zu
 NEU MEHR Eintrag 26 | X | -
 NEU MEHR Eintrag 26 | Y | -
 NEU MEHR Eintrag 26 | L1 | MEHR-Eintrag 26>22
 NEU MEHR Eintrag 26 | R1 | MEHR-Eintrag 26>0
-NEU MEHR Eintrag 27 | HOCH | MEHR-Eintrag 27>26
-NEU MEHR Eintrag 27 | RUNTER | MEHR-Eintrag 27>28
-NEU MEHR Eintrag 27 | LINKS | -
-NEU MEHR Eintrag 27 | RECHTS | -
-NEU MEHR Eintrag 27 | A | -
-NEU MEHR Eintrag 27 | B | Ansicht ->SEQ; MEHR zu
-NEU MEHR Eintrag 27 | X | -
-NEU MEHR Eintrag 27 | Y | -
-NEU MEHR Eintrag 27 | L1 | MEHR-Eintrag 27>26
-NEU MEHR Eintrag 27 | R1 | MEHR-Eintrag 27>0
-NEU MEHR Eintrag 28 | HOCH | MEHR-Eintrag 28>27
-NEU MEHR Eintrag 28 | RUNTER | MEHR-Eintrag 28>29
-NEU MEHR Eintrag 28 | LINKS | -
-NEU MEHR Eintrag 28 | RECHTS | -
-NEU MEHR Eintrag 28 | A | Meldung "NICHTS RÜCKGÄNGIG ZU MACHEN"
-NEU MEHR Eintrag 28 | B | Ansicht ->SEQ; MEHR zu
-NEU MEHR Eintrag 28 | X | -
-NEU MEHR Eintrag 28 | Y | -
-NEU MEHR Eintrag 28 | L1 | MEHR-Eintrag 28>26
-NEU MEHR Eintrag 28 | R1 | MEHR-Eintrag 28>0
-NEU MEHR Eintrag 29 | HOCH | MEHR-Eintrag 29>28
-NEU MEHR Eintrag 29 | RUNTER | MEHR-Eintrag 29>30
-NEU MEHR Eintrag 29 | LINKS | -
-NEU MEHR Eintrag 29 | RECHTS | -
-NEU MEHR Eintrag 29 | A | Meldung "NICHTS ZU WIEDERHOLEN"
-NEU MEHR Eintrag 29 | B | Ansicht ->SEQ; MEHR zu
-NEU MEHR Eintrag 29 | X | -
-NEU MEHR Eintrag 29 | Y | -
-NEU MEHR Eintrag 29 | L1 | MEHR-Eintrag 29>26
-NEU MEHR Eintrag 29 | R1 | MEHR-Eintrag 29>0
-NEU MEHR Eintrag 30 | HOCH | MEHR-Eintrag 30>29
-NEU MEHR Eintrag 30 | RUNTER | MEHR-Eintrag 30>0
-NEU MEHR Eintrag 30 | LINKS | -
-NEU MEHR Eintrag 30 | RECHTS | -
-NEU MEHR Eintrag 30 | A | Ansicht ->SEQ; MEHR zu; Meldung "GESPEICHERT: Matrix"
-NEU MEHR Eintrag 30 | B | Ansicht ->SEQ; MEHR zu
-NEU MEHR Eintrag 30 | X | -
-NEU MEHR Eintrag 30 | Y | -
-NEU MEHR Eintrag 30 | L1 | MEHR-Eintrag 30>26
-NEU MEHR Eintrag 30 | R1 | MEHR-Eintrag 30>0
 TRIG mit Trig-Ablage | HOCH | Spur 5>4
 TRIG mit Trig-Ablage | RUNTER | Spur 5>6
 TRIG mit Trig-Ablage | LINKS | Step 4>3

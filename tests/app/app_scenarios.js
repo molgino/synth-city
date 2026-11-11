@@ -87,9 +87,10 @@ function assert(c, m) { if (!c) throw new Error(m); }
       await tapBtn('A'); let i = await info(); assert(i.newPage === 1 - np, 'NEUE PAGE nicht umgeschaltet');
       await tapBtn('B'); i = await info(); assert(i.mr === 0, 'MEHR nicht zu');
     });
-    await scenario('NEU: Gegeben SEQ, wenn R2 und L2 angetippt werden, dann SOUND und zurueck', async () => {
+    await scenario('NEU: Gegeben SEQ, wenn R2 zweimal angetippt wird, dann SOUND und EFFEKTE (Busse + Master in einer Liste)', async () => {
       const a = await info(); await tapBtn('R2'); const b = await info(); assert(b.view === 1, 'R2: nicht SOUND (Ansicht ' + b.view + ')');
-      await tapBtn('L2'); const c = await info(); assert(c.view === 0 && c.page === a.page, 'L2 kommt nicht zu SEQ zurueck');
+      await tapBtn('R2'); const c = await info(); assert(c.view === 2 && c.pageName === 'FX A', 'R2: nicht EFFEKTE (' + c.view + '/' + c.pageName + ')');
+      await tapBtn('L2'); await tapBtn('L2'); const d = await info(); assert(d.view === 0 && d.page === a.page, 'L2 kommt nicht zu SEQ zurueck');
     });
     await scenario('NEU: Gegeben SET (L2 von SEQ), wenn Eintraege geaendert und die Ansicht gewechselt wird, dann laeuft das Bild weiter', async () => {
       await tapBtn('L2'); assert((await info()).pageName === 'SET', 'SET nicht erreichbar (' + (await info()).pageName + ')');

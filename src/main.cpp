@@ -2612,6 +2612,8 @@ static void drawSmpEditorIfOpen();
 static void drawPageMenu();
 static void drawV2();
 static void drawMore();
+static bool v2Active();   // ui2: Ansicht mit Liste (SEQ, SOUND, EFFEKTE)
+static void v2Sync();
 static bool pgmOpen = false;   // PAGE-Menue offen (src/pagemenu.inc)
 static void drawMenu() {
     hitModal();
@@ -3390,6 +3392,7 @@ static void drawAll(bool help) {
     nHits = 0; hitModalAt = 0;
     if (slot >= nSlots()) slot = nSlots() - 1;   // von einer Seite mit 12 Reglern gekommen
     animate();
+    if (cfg.ui2) v2Sync();   // Ansicht festlegen, bevor die Kopfzeile die Reiter zeichnet
     clearScreen(C_BG);
     drawHeader();
     if (page == PG_SYS) drawSettings();
@@ -3397,6 +3400,7 @@ static void drawAll(bool help) {
     else if (page == PG_LIVE) { drawLive(); drawOverlays(); }
     else if (page == PG_SMPR) { drawSampler(); drawOverlays(); }
     else if (page == PG_PRJ) { drawPrj(); drawOverlays(); }
+    else if (cfg.ui2 && v2Active()) { drawV2(); drawOverlays(); }   // neue Oberflaeche: SEQ, SOUND, EFFEKTE als Liste
     else if (trackPage(page)) { if (cfg.ui2) drawV2(); else drawSigB(); drawOverlays(); }
     else { drawKnobs(); drawGrid(); drawSteps(); }
     if (help) drawHelp();
@@ -4919,7 +4923,7 @@ static void handleInput(Uint32 now, float dt) {
     if (page == PG_LIVE && !func) { liveInput(I, now, dt); return; }
     if (page == PG_SMPR && !func) { samplerInput(I, now); return; }
     if (page == PG_PRJ && !func) { prjInput(I, now); return; }
-    if (cfg.ui2 && trackPage(page)) v2Input(I, now, func);   // neue Oberflaeche: ^v Liste, L1/R1 Spur, SELECT+^v/X/Y; Rest wie bisher
+    if (cfg.ui2 && (trackPage(page) || v2Active())) v2Input(I, now, func);   // neue Oberflaeche: ^v Liste, L1/R1 Spur, SELECT+^v/X/Y; Rest wie bisher
 
     if (func) {
         if (I.pressed(BT_LEFT) || I.pressed(BT_RIGHT)) {
@@ -5622,12 +5626,13 @@ int main(int argc, char** argv) {
             if (shotPage == 77) { track = 4; curP().len[4] = 64; cursor = 35; page = PG_TRG; slot = 0; for (int s2 = 0; s2 < 64; s2 += 3) curP().s[4][s2].on = 1; }
             if (shotPage == 78) { track = 4; page = PG_FLT; slot = 0; cursor = 5; curP().s[4][5].on = 1; holdPat = curPi(); holdTrack = 4; holdStep = 5; aHeld = true; lockLatch = true; }
         }
-        if (shotPage >= 79 && shotPage <= 82) {   // Kritik: Ansichten ohne die neuen Zonen (MIX, PRJ), WTBL-Sound, Drum-Sound
+        if (shotPage >= 79 && shotPage <= 83) {   // Kritik: Ansichten ohne die neuen Zonen (MIX, PRJ), WTBL-Sound, Drum-Sound
             cfg.ui2 = 1;
             if (shotPage == 79) page = PG_MIX;
             if (shotPage == 80) page = PG_PRJ;
             if (shotPage == 81) { track = 5; Engine::setMachine(curP(), 5, M_WTBL); page = PG_SRC; slot = 0; }
             if (shotPage == 82) { track = 0; page = PG_SRC; slot = 2; }
+            if (shotPage == 83) { page = PG_FX; slot = 0; }   // EFFEKTE-Liste
         }
         if (shotPage >= 60 && shotPage <= 64) {   // 60 FM-Algorithmus, 61 FM-Operator 2, 62 SYNTH Oszillatoren, 63 Effekt-Bus B (Spring)
             if (shotPage <= 61) { applyFactory(curP(), 5, factoryByName("DX E-PIANO")); track = 5; page = shotPage == 60 ? PG_SRC : PG_SRC3; slot = shotPage == 60 ? 0 : 5; }

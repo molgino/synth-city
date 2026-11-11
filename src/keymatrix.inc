@@ -42,7 +42,7 @@ static void kmReset() {
     cfg = kmCfg; g_lang = 0;
     page = PG_TRG; track = 4; slot = 0; cursor = 0;
     menuOpen = false; menuSel = PG_TRG; pgmOpen = false; pgmSel = 0; pgmAll = false; fbOpen = false; kbOpen = false; confirmOpen = false;
-    sedOpen = false; wteOpen = false; mrOpen = false; mrSel = 0; v2View = V2_NONE; v2Foc[0] = 1; v2Foc[1] = 2; sndClip.have = false; setIn = false; setSel = SI_PATTERN; prjSel = PI_PAT0; prjPat = -1; prjBank = -1; clipFrom = -1;
+    sedOpen = false; wteOpen = false; mrOpen = false; mrSel = 0; v2View = V2_NONE; v2Foc[0] = 1; v2Foc[1] = 2; v2Foc[2] = 1; sndClip.have = false; setIn = false; setSel = SI_PATTERN; prjSel = PI_PAT0; prjPat = -1; prjBank = -1; clipFrom = -1;
     songSel = 0; songCol = 0; songExp = false; expField = 2; mixRow = 0; lockLatch = false; aHeld = false;
     haveClip = false; haveTrigClip = false; pageClipStore = -1; pgClipState = 0; trkClipFrom = -1; mutRnd = 0x1234567u; mutAmt = 1; tmplSel = 0;
     smpSrc = 0; smpChops = 0; smpMode = 0; smpNorm = 1; smpFade = 5; smpDest = 0; smpState = 0; pvOn = false; smpLen = 0; smpStart = smpEnd = 0;
@@ -85,7 +85,7 @@ static const char* kmPgName(int p) { return p >= 0 && p < NUI_PAGES ? PAGE_NAMES
 
 static void kmDiff(const KmSnap& a, const KmSnap& b, int pi0) {
     kmN = 0; kmOut[0] = 0; kmItems = 0;
-    if (a.v2View != b.v2View) { static const char* const VN[3] = {"-", "SEQ", "SOUND"}; kmAdd("Ansicht %s>%s", VN[a.v2View + 1], VN[b.v2View + 1]); }
+    if (a.v2View != b.v2View) { static const char* const VN[4] = {"-", "SEQ", "SOUND", "EFFEKTE"}; kmAdd("Ansicht %s>%s", VN[a.v2View + 1], VN[b.v2View + 1]); }
     if (a.mrOpen != b.mrOpen) kmAdd(b.mrOpen ? "MEHR auf" : "MEHR zu");
     if (b.mrOpen && a.mrSel != b.mrSel) kmAdd("MEHR-Eintrag %d>%d", a.mrSel, b.mrSel);
     if (a.sndClip != b.sndClip) kmAdd("Sound-Ablage voll");
@@ -264,7 +264,9 @@ static void kmBuildContexts() {
     kmCtxAdd("NEU SOUND Filter", [](int) { cfg.ui2 = 1; page = PG_FLT; slot = 0; simFrame(); }, 0);
     kmCtxAdd("NEU SOUND Huellkurve 1", [](int) { cfg.ui2 = 1; page = PG_ENV1; slot = 4; simFrame(); }, 0);
     kmCtxAdd("NEU SOUND Lock-Modus", [](int) { cfg.ui2 = 1; page = PG_FLT; slot = 0; simFrame(); simDown[BT_A] = true; for (int i = 0; i < 40; i++) simFrame(); simDown[BT_A] = false; simFrame(); simFrame(); }, 0);
-    kmCtxAdd("NEU MIX", [](int) { cfg.ui2 = 1; v2GoView(2); simFrame(); }, 0);
+    kmCtxAdd("NEU EFFEKTE Bus A", [](int) { cfg.ui2 = 1; page = PG_FX; slot = 0; simFrame(); }, 0);
+    kmCtxAdd("NEU EFFEKTE Master", [](int) { cfg.ui2 = 1; page = PG_MST; slot = 0; simFrame(); }, 0);
+    kmCtxAdd("NEU MIX", [](int) { cfg.ui2 = 1; page = PG_MIX; simFrame(); }, 0);
     kmCtxAdd("NEU MEHR offen", [](int) { cfg.ui2 = 1; mrOpen = true; mrSel = 0; }, 0);
     for (int i = 0; i < MR_COUNT; i++) { char nn[64]; snprintf(nn, sizeof nn, "NEU MEHR Eintrag %d", i); kmCtxAdd(nn, [](int a) { cfg.ui2 = 1; mrOpen = true; mrSel = a; }, i, true); }
     // Ablagen gefuellt: Einfuegen wirklich pruefen

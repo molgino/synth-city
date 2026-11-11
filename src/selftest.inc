@@ -964,8 +964,9 @@ static void uiScenariosV2() {
     tap(BT_R1); UCHECK(track == 1, "R1 wechselt die Spur nicht (%d)", track);
     tap(BT_L1); UCHECK(track == 0, "L1 wechselt die Spur nicht zurueck");
     tap(BT_R2); UCHECK(v2View == V2_SOUND && trackPage(page), "R2: SOUND erwartet (Ansicht %d)", v2View);
+    tap(BT_R2); UCHECK(v2View == V2_FX && page == PG_FX, "R2: EFFEKTE erwartet (Ansicht %d, Seite %d)", v2View, page);
     tap(BT_R2); UCHECK(v2View == V2_NONE && page == PG_MIX, "R2: MIX erwartet (Seite %d)", page);
-    tap(BT_L2); tap(BT_L2); UCHECK(v2View == V2_SEQ, "L2 L2: zurueck zu SEQ");
+    tap(BT_L2); tap(BT_L2); tap(BT_L2); UCHECK(v2View == V2_SEQ, "3x L2: zurueck zu SEQ");
     for (int i = 0; i < V2_RING_N; i++) tap(BT_R2);
     UCHECK(v2View == V2_SEQ, "R2 im Kreis kommt nicht zu SEQ zurueck (Seite %d)", page);
     {   // SELECT + RUNTER: naechste Gruppe
@@ -1041,7 +1042,11 @@ static void uiTasksV2() {
     simReset(); simFrame(); combo(BT_SELECT, BT_RIGHT); rec("Naechstes Pattern", 1);
     simReset(); simFrame(); goTrack(3); combo(BT_SELECT, BT_A); rec("Spur 4 stumm", 2);
     combo(BT_SELECT, BT_A);
-    simReset(); simFrame(); for (int g = 0; g < 2; g++) tap(BT_L2); slot = MS_BPM; stickR(1.f, 300); rec("Tempo aendern", 3);
+    simReset(); simFrame(); tap(BT_R2); tap(BT_R2);   // EFFEKTE, dann mit <> zur Gruppe MASTER
+    for (int g = 0; g < 8 && page != PG_MST; g++) tap(BT_RIGHT);
+    for (int g = 0; g < 10 && !(page == PG_MST && slot == MS_BPM); g++) tap(BT_DOWN);
+    stickR(1.f, 300); rec("Tempo aendern", 3);
+    UCHECK(eng.proj.bpm != 120, "Aufgabe Tempo (neu)");
     simReset(); simFrame(); goTrack(1); v2GoTo(V2_SOUND, PG_SEND, 0); stickR(1.f, 300); rec("Spur 2: Delay-Send", 3);
     simReset(); simFrame(); goTrack(4); v2GoTo(V2_SOUND, PG_LFO1, LF_DEST); tap(BT_X);
     for (int g = 0; g < 400 && fbOpen && !fbDir[0] && !(fbEnt[fbSel].dir && fbEnt[fbSel].idx == 2) && fbSel < fbN - 1; g++) tap(BT_DOWN);
