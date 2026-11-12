@@ -15,6 +15,13 @@ struct FxBus {
     // Spring: 2 Federn, je Dispersions-Allpasskette + Rueckkopplungsleitung
     float* spr[2] = {nullptr}; int sprLen = 0, sprPos = 0;
     float apZ[2][16] = {{0}}, sprLp[2] = {0}, sprHp[2] = {0}, sprFb[2] = {0};
+    // Shimmer: Tonhoehenversatz in der Rueckkopplung (zwei ueberblendete Lesezeiger im Hauptspeicher)
+    float shRd = 0, shFb = 0;
+    // Cloud: granulare Wolke; die Koerner lesen aus dem Hauptspeicher
+    struct Grain { float pos, rate, len, t; int on; };
+    Grain gr[10] = {};
+    float grTimer = 0, frzLen = 0;
+    int grNext = 0;
     // Filter-/Modulationszustaende
     float lpL = 0, lpR = 0, hpL = 0, hpR = 0, inHp = 0, inHpX = 0;
     float ph1 = 0, ph2 = 0, ph3 = 0, wowRnd = 0, wowTarget = 0, dSm = 0, satL = 0, satR = 0;

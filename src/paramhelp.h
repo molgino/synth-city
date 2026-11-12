@@ -117,6 +117,14 @@ static const BusHelp BUS_HELP[] = {
     {4, "WIDE", "Stereo: zwei Federn", "Stereo: two springs"}, {4, "LOCUT", "Bass vor der Feder entfernen", "Remove bass before the spring"},
     {5, "RATE", "Geschwindigkeit der Modulation", "Modulation speed"}, {5, "DEPTH", "Tiefe der Modulation", "Modulation depth"}, {5, "VOICE", "Anzahl Stimmen (1-3, Ensemble)", "Number of voices (1-3, ensemble)"},
     {5, "WIDE", "Stereobreite", "Stereo width"}, {5, "FBK", "Rückkopplung (flangerartig)", "Feedback (flanger-like)"},
+    {6, "SIZE", "Raumgröße und Hallzeit", "Room size and decay time"}, {6, "DAMP", "Höhendämpfung (dunkler)", "High damping (darker)"},
+    {6, "SHIM", "wie viel versetzter Hall zurückgeht (das Schimmern)", "How much pitched reverb feeds back (the shimmer)"},
+    {6, "PTCH", "Versatz der Rückkopplung in Halbtönen (+12 = Oktave)", "Pitch shift of the feedback in semitones (+12 = octave)"},
+    {6, "WIDE", "Stereobreite", "Stereo width"},
+    {7, "GRAIN", "Länge der Körner (30-360 ms)", "Grain length (30-360 ms)"}, {7, "DENS", "wie dicht die Körner liegen", "How dense the grains are"},
+    {7, "SPRAY", "wie weit die Körner in der Vergangenheit streuen", "How far the grains scatter into the past"},
+    {7, "PTCH", "Transposition der Körner in Halbtönen", "Transposition of the grains in semitones"},
+    {7, "FRZ", "einfrieren: die Wolke hält das Material und spielt ohne Eingang weiter", "Freeze: the cloud holds the material and plays on without input"},
 };
 static inline const char* busHelp(int type, const char* name) {
     for (unsigned i = 0; i < sizeof BUS_HELP / sizeof *BUS_HELP; i++)

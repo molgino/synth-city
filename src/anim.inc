@@ -446,6 +446,37 @@ static void busAnimGraph(int gx, int gy, int gw, int gh, int b) {
             }
         }
     } break;
+    case BF_SHIMMER: {   // Toene steigen in Oktaven auf, waehrend sie leiser werden
+        int semi = (int)p[BX_P4] - 24; float shim = p[BX_P3] / 127.f;
+        fill(x0, cy + A - 2, W, 1, C_SEL);
+        for (int k = 0; k < 7; k++) {
+            float f = fmodf(t * 0.22f + k / 7.f, 1.f);
+            int yy = cy + A - 2 - (int)(f * (gh * 0.6f));
+            int xx = x0 + (int)((0.1f + 0.8f * f) * W) + (int)(sinf(t * 1.3f + k) * 8.f);
+            float amp = (1.f - f) * (0.3f + 0.7f * shim);
+            disc(xx, yy, 2 + (int)(amp * 4.f), dimC(c, 0.25f + 0.75f * amp));
+        }
+        for (int k = 0; k < 3; k++) {   // Oktavlinien
+            int yy = cy + A - 2 - (int)((k + 1) * gh * 0.17f);
+            fill(x0, yy, W, 1, dimC(C_SEL, 0.5f));
+        }
+        char b[20]; snprintf(b, sizeof b, "%+d", semi);
+        text(gx + gw - 8 - textW(b), gy + 6, b, c);
+    } break;
+    case BF_CLOUD: {   // Koernerwolke; eingefroren stehen die Koerner still
+        float gl = p[BX_P1] / 127.f, spray = p[BX_P3] / 127.f;
+        bool frz = p[BX_P5] >= 64;
+        for (int k = 0; k < 44; k++) {
+            float rr = fmodf(sinf((float)k * 12.9898f) * 43758.5453f, 1.f); if (rr < 0) rr += 1.f;
+            float r2 = fmodf(sinf((float)k * 78.233f) * 43758.5453f, 1.f); if (r2 < 0) r2 += 1.f;
+            float ph = frz ? rr : fmodf(t * 0.35f + rr, 1.f);
+            float w = 0.5f - 0.5f * cosf(6.2831853f * ph);
+            int xx = x0 + (int)((0.05f + 0.9f * (frz ? rr : fmodf(rr + t * 0.07f, 1.f))) * W);
+            int yy = cy + (int)((r2 - 0.5f) * gh * 0.6f * (0.3f + spray));
+            disc(xx, yy, 1 + (int)(w * (1.f + gl * 3.f)), dimC(c, 0.15f + 0.75f * w));
+        }
+        if (frz) textC(gx + gw / 2, gy + 6, TR("EINGEFROREN", "FROZEN"), C_LOCK);
+    } break;
     default: {   // AUS: ruhiges Gitter
         for (int k = 0; k < 8; k++) { float f = fmodf(t * 0.2f + k / 8.f, 1.f); fill(x0, gy + 6 + (int)(f * (gh - 12)), W, 1, dimC(C_SEL, 1.f - f)); }
         textC(gx + gw / 2, cy - 8, TR("BUS AUS - TYPE WÄHLEN", "BUS OFF - CHOOSE TYPE"), C_DIM);

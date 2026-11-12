@@ -40,6 +40,9 @@ void FxBus::reset() {
     prePos = 0;
     for (int k = 0; k < 2; k++) { if (spr[k]) memset(spr[k], 0, sprLen * sizeof(float)); sprLp[k] = sprHp[k] = sprFb[k] = 0; for (int j = 0; j < 16; j++) apZ[k][j] = 0; }
     sprPos = 0;
+    shRd = 0; shFb = 0;
+    for (int k = 0; k < 10; k++) { gr[k].on = 0; gr[k].t = 0; }
+    grTimer = 0; frzLen = 0; grNext = 0;
     lpL = lpR = hpL = hpR = inHp = inHpX = 0;
     ph1 = ph2 = ph3 = 0; wowRnd = wowTarget = 0; dSm = 0; satL = satR = 0;
     quiet = 1 << 30; peak = 0;
@@ -64,6 +67,8 @@ void FxBus::process(const float* in, float* outL, float* outR, int n, const uint
     // Ausklingzeit, nach der ein Bus ohne Eingang und ohne hoerbaren Ausgang pausieren darf
     double tSteps = DLY_STEPS[p[BX_P1] % 15] * stepSamples;
     int tail = (t == BF_DELAY || t == BF_TAPE) ? (int)tSteps + sr / 4 : (t == BF_CHORUS ? sr / 10 : sr / 2);
+    if (t == BF_SHIMMER) tail = sr * 12;                       // die versetzte Rueckkopplung klingt lange nach
+    if (t == BF_CLOUD) tail = p[BX_P5] >= 64 ? (1 << 30) : sr * 2;   // eingefroren spielt die Wolke ohne Eingang weiter
     if (!any && quiet > tail) { peak = 0; return; }
     const float lvl = p[BX_LVL] / 100.f;
     float pk = 0.f;
@@ -220,6 +225,125 @@ void FxBus::process(const float* in, float* outL, float* outR, int n, const uint
             if (filled < bufLen) filled++;
             float m = (l + r) * 0.5f;
             outL[i] = (m + (l - m) * wid) * lvl; outR[i] = (m + (r - m) * wid) * lvl;
+        }
+    } break;
+    case BF_SHIMMER: {
+        // Hall wie BF_REVERB, aber der Rueckkopplungsweg laeuft durch einen Tonhoehenversatz
+        // (zwei um eine halbe Fensterlaenge versetzte Lesezeiger im Hauptspeicher, dreieckig ueberblendet).
+        float size = p[BX_P1] / 127.f, damp = p[BX_P2] / 127.f, shim = p[BX_P3] / 127.f, wid = p[BX_P5] / 127.f;
+        float rate = exp2f(((int)p[BX_P4] - 24) / 12.f);            // PTCH in Halbtoenen
+        float scale = 0.35f + size * 1.2f;
+        float rt60 = 0.3f * exp2f(size * 4.2f);                     // etwas kuerzer als REVERB: den langen Klang traegt die versetzte Schleife
+        float g[8]; int len[8];
+        static const float fdnMs[8] = {31.7f, 37.9f, 41.3f, 45.7f, 53.9f, 61.1f, 68.3f, 74.9f};
+        for (int k = 0; k < 8; k++) {
+            len[k] = (int)(fdnMs[k] * scale * sr / 1000.f); if (len[k] > fdnLen[k] - 40) len[k] = fdnLen[k] - 40;
+            g[k] = powf(10.f, -3.f * len[k] / (rt60 * sr));
+        }
+        float dco = 0.08f + (1.f - damp) * 0.88f;
+        const float win = 0.08f * sr;                               // Fenster des Versatzes (80 ms)
+        for (int i = 0; i < n; i++) {
+            float x = in[i];
+            for (int k = 0; k < 4; k++) {                           // Eingangs-Diffusion
+                float z = dif[k][difPos[k]];
+                float y = -0.62f * x + z;
+                dif[k][difPos[k]] = x + 0.62f * y;
+                if (++difPos[k] >= difLen[k]) difPos[k] = 0;
+                x = y;
+            }
+            float o[8];
+            for (int k = 0; k < 8; k++) {
+                float d = (float)len[k];
+                float rp = fdnPos[k] - d; while (rp < 0) rp += fdnLen[k];
+                int i0 = (int)rp; float fr = rp - i0; if (i0 >= fdnLen[k]) i0 -= fdnLen[k];
+                int i1 = i0 + 1 >= fdnLen[k] ? 0 : i0 + 1;
+                float v = fdn[k][i0] + (fdn[k][i1] - fdn[k][i0]) * fr;
+                fdnLp[k] += (v - fdnLp[k]) * dco;
+                o[k] = fdnLp[k] * g[k];
+            }
+            for (int h = 1; h < 8; h <<= 1)
+                for (int a2 = 0; a2 < 8; a2 += h << 1)
+                    for (int b2 = a2; b2 < a2 + h; b2++) { float u = o[b2], w2 = o[b2 + h]; o[b2] = u + w2; o[b2 + h] = u - w2; }
+            const float nrm = 0.35355339f;
+            // Hallschweif in den Versatzspeicher, versetzte Kopie zurueck in den Hall
+            float tail = (fdnLp[0] + fdnLp[3] + fdnLp[5] + fdnLp[6]) * 0.25f;
+            bufL[pos] = tail + in[i] * 0.7f;   // Eingang mit in den Versatz: die Oktave steht sofort, nicht erst nach Umlaeufen
+            if (++pos >= bufLen) pos = 0;
+            if (filled < bufLen) filled++;
+            shRd -= rate - 1.f;                                      // hoeher = Leseabstand schrumpft (schneller lesen)
+            while (shRd >= win) shRd -= win;
+            while (shRd < 0.f) shRd += win;
+            float d1 = shRd;
+            float d2 = d1 < win * 0.5f ? d1 + win * 0.5f : d1 - win * 0.5f;
+            float w1 = 1.f - fabsf(d1 - win * 0.5f) / (win * 0.5f);   // Dreiecksfenster
+            float w2 = 1.f - w1;
+            float sh = rd(bufL, bufLen, pos, filled, d1 + 2.f) * w1 + rd(bufL, bufLen, pos, filled, d2 + 2.f) * w2;
+            shFb += (sh - shFb) * 0.5f;                              // etwas glaetten (Fensterkanten)
+            float inj = x * 0.45f + fx_tanh(shFb * (1.f + shim * 7.f)) * 0.34f;   // begrenzt, sonst schaukelt sich die Schleife auf
+            for (int k = 0; k < 8; k++) {
+                fdn[k][fdnPos[k]] = o[k] * nrm + inj * ((k & 1) ? -1.f : 1.f);
+                if (++fdnPos[k] >= fdnLen[k]) fdnPos[k] = 0;
+            }
+            float l = (fdnLp[0] - fdnLp[2] + fdnLp[4] - fdnLp[6]) * 0.2f;   // Pegel wie die anderen Bus-Effekte
+            float r = (fdnLp[1] - fdnLp[3] + fdnLp[5] - fdnLp[7]) * 0.2f;
+            float m = (l + r) * 0.5f;
+            outL[i] = (m + (l - m) * wid) * lvl; outR[i] = (m + (r - m) * wid) * lvl;
+        }
+    } break;
+    case BF_CLOUD: {
+        // Granular: der Eingang laeuft in den Hauptspeicher, Koerner lesen mit zufaelligem Versatz
+        // daraus. FRZ friert das Material ein (nichts Neues wird geschrieben) - aus einem Akkord
+        // wird eine stehende Flaeche.
+        float gl = (0.03f + p[BX_P1] / 127.f * 0.33f) * sr;          // Kornlaenge 30 - 360 ms
+        float dens = 0.1f + p[BX_P2] / 127.f * 1.9f;                 // Koerner je Kornlaenge
+        float spray = p[BX_P3] / 127.f * 1.8f * sr;                  // Zeitstreuung bis 1,8 s
+        float rate = exp2f(((int)p[BX_P4] - 24) / 12.f);
+        float frz = p[BX_P5] / 127.f;
+        float ival = gl / (dens * 2.f);                              // Abstand zwischen zwei Koernern
+        if (ival < 64.f) ival = 64.f;
+        float maxD = (float)(bufLen - 8);
+        for (int i = 0; i < n; i++) {
+            if (frz < 0.5f) {                                        // nicht eingefroren: weiter aufnehmen
+                bufL[pos] = in[i];
+                if (++pos >= bufLen) pos = 0;
+                if (filled < bufLen) filled++;
+                frzLen = (float)filled;
+            }
+            grTimer += 1.f;
+            if (grTimer >= ival) {                                   // neues Korn starten
+                grTimer = 0.f;
+                rng = rng * 1664525u + 1013904223u;
+                float r1 = (rng >> 8) / 16777216.f;
+                rng = rng * 1664525u + 1013904223u;
+                float r2 = (rng >> 8) / 16777216.f;
+                Grain& G = gr[grNext];
+                grNext = (grNext + 1) % 10;
+                float avail = frz >= 0.5f ? frzLen : (float)filled;
+                float ofs = gl + r1 * spray;
+                if (ofs > avail - 8.f) ofs = avail - 8.f;
+                if (ofs < gl) ofs = gl;
+                if (ofs > maxD) ofs = maxD;
+                G.pos = ofs; G.len = gl; G.t = 0.f; G.on = 1;
+                G.rate = rate * (1.f + (r2 - 0.5f) * 0.02f);         // minimale Streuung = Chorus-Breite
+            }
+            float l = 0, r = 0;
+            for (int k = 0; k < 10; k++) {
+                Grain& G = gr[k];
+                if (!G.on) continue;
+                // Lesestelle: bei laufender Aufnahme wandert die Schreibmarke mit, eingefroren steht sie
+                float d = G.pos - G.t * (frz >= 0.5f ? G.rate : G.rate - 1.f);
+                if (d < 1.f || d > maxD) { G.on = 0; continue; }
+                float ph = G.t / G.len;
+                if (ph >= 1.f) { G.on = 0; continue; }
+                float w = 0.5f - 0.5f * cosf(6.2831853f * ph);       // Hann-Fenster
+                float v = rd(bufL, bufLen, pos, filled, d) * w;
+                float pan = 0.5f + 0.5f * fx_sin((float)k / 10.f);   // Koerner im Panorama verteilt
+                l += v * (1.f - pan); r += v * pan;
+                G.t += 1.f;
+            }
+            float m = (l + r) * 0.5f;
+            outL[i] = (m + (l - m) * 1.2f) * 0.8f * lvl;
+            outR[i] = (m + (r - m) * 1.2f) * 0.8f * lvl;
         }
     } break;
     }

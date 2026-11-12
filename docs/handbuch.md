@@ -208,7 +208,7 @@ Jede Spur hat diese Seiten:
 
 Dazu kommen die globalen Seiten (in der Leiste oben grauer dargestellt):
 
-* **FX A / FX B / FX C**: drei **Effekt-Busse** mit frei wählbarem Effekt (Regler TYPE; ein Wechsel setzt die Regler auf die Grundwerte des Effekts). Jeder Bus hat **FWD** (schickt seinen Ausgang zusätzlich in den nächsten Bus, z. B. Delay in den Hall) und **LVL** (Pegel in der Summe). Oben zeigt die Seite den Weg Spuren → Bus → Summe, den Pegel und eine Erklärung des gewählten Reglers. Grundeinstellung: A = Delay, B = Reverb, C = Chorus.
+* **FX A / FX B / FX C**: drei **Effekt-Busse** mit frei wählbarem Effekt (Regler TYPE; ein Wechsel setzt die Regler auf die Grundwerte des Effekts). Jeder Bus hat **FWD** (schickt seinen Ausgang zusätzlich in den nächsten Bus, z. B. Delay in den Hall) und **LVL** (Pegel in der Summe). Oben zeigt die Seite den Weg Spuren → Bus → Summe, den Pegel und eine Erklärung des gewählten Reglers. Grundeinstellung: A = Delay, B = Reverb, C = Chorus. Insgesamt stehen sieben Effekte zur Wahl.
 
 ![Effekt-Bus B als Federhall: Signalweg und Animation](shot:63)
 
@@ -220,6 +220,10 @@ Dazu kommen die globalen Seiten (in der Leiste oben grauer dargestellt):
   | REVERB | Hall mit 8 Leitungen (FDN) und Diffusion: SIZE (0,25 bis 11 s), DAMP, PRE (Predelay bis 250 ms), WIDE, MOD (Bewegung im Schweif) |
   | SPRING | Federhall: DECAY, TONE, **DRIP** (typisches Zirpen), WIDE (zwei Federn), LOCUT |
   | CHORUS | RATE, DEPTH, VOICE (1–3 Stimmen, Ensemble), WIDE, FBK |
+  | SHIMR | **Shimmer**: Hall, dessen Rückkopplung in der Tonhöhe versetzt wird. SIZE, DAMP, **SHIM** (wie viel versetzter Hall zurückgeht), **PTCH** (Versatz in Halbtönen, +12 = Oktave, auch Quinte +7 oder abwärts −12), WIDE. Der Schweif steigt mit jedem Umlauf eine Oktave höher und wird zur Fläche – gut für Pads, Gitarren und langgezogene Akkorde |
+  | CLOUD | **Granularwolke**: der Bus nimmt laufend auf und streut Körner daraus. GRAIN (30–360 ms), DENS (Dichte), SPRAY (wie weit die Körner in die Vergangenheit greifen, bis 1,8 s), PTCH (Transposition der Körner), **FRZ** (einfrieren) |
+
+**CLOUD und FRZ.** Solange FRZ unten steht, hört die Wolke dem Eingang zu. Drehst du FRZ auf, hält sie das Material fest und spielt es weiter, **auch wenn nichts mehr gesendet wird** – aus einem Akkord wird eine stehende Fläche, über die du weiterspielen kannst. FRZ ist wie jeder Bus-Regler automatisierbar: Lege ihn auf einen LFO oder locke ihn pro Step, dann friert die Wolke rhythmisch ein. Mit PTCH −12 wird daraus ein tiefes Fundament, mit +12 ein Flirren.
 
 * **CMP**: Master-Kompressor mit **Sidechain** (siehe unten)
 * **MIX**: Mixer mit Mute/Solo (siehe unten)

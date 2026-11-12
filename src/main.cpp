@@ -5740,6 +5740,11 @@ int main(int argc, char** argv) {
         if (page == PG_SONG) { eng.proj.songLen = 5; uint8_t sp[5][2] = {{0, 4}, {1, 2}, {0, 2}, {2, 1}, {3, 4}}; for (int k = 0; k < 5; k++) { Engine::rowFromPattern(eng.proj, eng.proj.row[k], sp[k][0]); eng.proj.row[k].rep = sp[k][1]; }
                                eng.proj.row[2].pat[4] = 3; eng.proj.row[2].pat[7] = SONG_EMPTY; eng.proj.row[3].mute = 0x0C; songCol = SC_T1 + 4;
                                eng.songOn = true; eng.songPos = 1; eng.songRep = 1; eng.applyRow(1); eng.playing = true; songSel = 2; }
+        if (shotPage >= 87 && shotPage <= 88) {   // Bus SHIMMER / CLOUD
+            page = PG_FXB; slot = 1;
+            Engine::setBusType(eng.proj, 1, shotPage == 87 ? BF_SHIMMER : BF_CLOUD);
+            if (shotPage == 88) eng.proj.bus[1][BX_P5] = 127;   // CLOUD eingefroren
+        }
         if (shotPage >= 85 && shotPage <= 86) {   // Insert DELAY / ROOM (SOUND-Liste, Grafik rechts)
             track = 4; page = PG_INS; slot = 1;
             Pattern& Pi = curP();

@@ -392,8 +392,9 @@ inline bool machineHasSrc35(int m) { return m == M_FM; }   // Klangseiten 3-5 (F
 inline int machineSampleParam(int m) { return (m == M_SAMPLE || m == M_CHOP || m == M_GRAN) ? P_S0 : (m == M_WTBL ? P_X3 : -1); }
 
 // Effekt-Busse A/B/C: TYPE, 5 Regler je nach Typ, FWD (Anteil an den naechsten Bus), LVL (Rueckweg)
-enum BusType { BF_OFF, BF_DELAY, BF_TAPE, BF_REVERB, BF_SPRING, BF_CHORUS, BF_COUNT };   // neue Typen nur hinten anfuegen
-static const char* const BUS_TYPE_NAMES[BF_COUNT] = {"OFF", "DELAY", "TAPE", "REVERB", "SPRING", "CHORUS"};
+enum BusType { BF_OFF, BF_DELAY, BF_TAPE, BF_REVERB, BF_SPRING, BF_CHORUS, BF_SHIMMER, BF_CLOUD, BF_COUNT };   // neue Typen nur hinten anfuegen
+static const char* const BUS_TYPE_NAMES[BF_COUNT] = {"OFF", "DELAY", "TAPE", "REVERB", "SPRING", "CHORUS", "SHIMR", "CLOUD"};
+static_assert(sizeof(BUS_TYPE_NAMES) / sizeof(*BUS_TYPE_NAMES) == BF_COUNT, "BUS_TYPE_NAMES unvollstaendig");
 enum { BX_TYPE = 0, BX_P1, BX_P2, BX_P3, BX_P4, BX_P5, BX_FWD, BX_LVL };
 static const ParamDef BUS_DEFS[BF_COUNT][8] = {
     {{"TYPE", K_FXT, 0, BF_COUNT - 1}, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, {"FWD", K_NUM, 0, 127}, {"LVL", K_NUM, 100, 127}},
@@ -406,7 +407,14 @@ static const ParamDef BUS_DEFS[BF_COUNT][8] = {
     {{"TYPE", K_FXT, 0, BF_COUNT - 1}, {"DECAY", K_NUM, 70, 127}, {"TONE", K_NUM, 70, 127}, {"DRIP", K_NUM, 70, 127}, {"WIDE", K_NUM, 90, 127},
      {"LOCUT", K_NUM, 30, 127}, {"FWD", K_NUM, 0, 127}, {"LVL", K_NUM, 100, 127}},
     {{"TYPE", K_FXT, 0, BF_COUNT - 1}, {"RATE", K_NUM, 40, 127}, {"DEPTH", K_NUM, 60, 127}, {"VOICE", K_CNT, 2, 2}, {"WIDE", K_NUM, 110, 127},
-     {"FBK", K_NUM, 0, 127}, {"FWD", K_NUM, 0, 127}, {"LVL", K_NUM, 110, 127}}};
+     {"FBK", K_NUM, 0, 127}, {"FWD", K_NUM, 0, 127}, {"LVL", K_NUM, 110, 127}},
+    // SHIMMER: Hall, dessen Rueckkopplung versetzt wird (Standard eine Oktave hoch)
+    {{"TYPE", K_FXT, 0, BF_COUNT - 1}, {"SIZE", K_NUM, 95, 127}, {"DAMP", K_NUM, 50, 127}, {"SHIM", K_NUM, 70, 127}, {"PTCH", K_SEMI, 36, 48},
+     {"WIDE", K_NUM, 110, 127}, {"FWD", K_NUM, 0, 127}, {"LVL", K_NUM, 100, 127}},
+    // CLOUD: granulare Wolke aus dem Eingang, FRZ haelt das Material fest
+    {{"TYPE", K_FXT, 0, BF_COUNT - 1}, {"GRAIN", K_NUM, 60, 127}, {"DENS", K_NUM, 70, 127}, {"SPRAY", K_NUM, 40, 127}, {"PTCH", K_SEMI, 24, 48},
+     {"FRZ", K_NUM, 0, 127}, {"FWD", K_NUM, 0, 127}, {"LVL", K_NUM, 100, 127}}};
+static_assert(sizeof(BUS_DEFS) / sizeof(*BUS_DEFS) == BF_COUNT, "BUS_DEFS unvollstaendig: jeder Bus-Typ braucht seine Regler");
 inline const ParamDef& busDef(int bus, int type, int k) {
     if (k == BX_FWD && bus >= NBUS - 1) return PDEF_NONE;   // letzter Bus: kein Weiterleiten
     return BUS_DEFS[(type % BF_COUNT + BF_COUNT) % BF_COUNT][k & 7];

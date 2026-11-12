@@ -923,6 +923,63 @@ static void testInsDelay() {   // Insert DELAY/ROOM: Wiederholung kommt nach der
     }
 }
 
+static float goertzel(const float* x, int n, float f, float sr) {   // Energie bei einer Frequenz
+    float w = 2.f * 3.14159265f * f / sr, c = 2.f * cosf(w);
+    float s1 = 0, s2 = 0;
+    for (int i = 0; i < n; i++) { float s0 = x[i] + c * s1 - s2; s2 = s1; s1 = s0; }
+    return sqrtf(s1 * s1 + s2 * s2 - c * s1 * s2) / n;
+}
+
+static void testShimmerCloud() {   // SHIMMER setzt die Rueckkopplung eine Oktave hoch, CLOUD friert ein
+    curTest = "Bus SHIMMER/CLOUD";
+    static FxBus fb;
+    static float in[44100 * 4], oL[44100 * 4], oR[44100 * 4];
+    const int N = 44100 * 3;
+    const double stepS = 44100 * 60.0 / (120 * 4.0);
+    {   // SHIMMER: 220 Hz hinein, im Schweif muss 440 Hz staerker sein als 220 Hz
+        fb.init(44100);
+        uint8_t p[8]; for (int k = 0; k < 8; k++) p[k] = busDef(0, BF_SHIMMER, k).def;
+        p[BX_TYPE] = BF_SHIMMER; p[BX_P3] = 127;   // SHIM voll
+        for (int i = 0; i < N; i++) in[i] = i < 22050 ? 0.4f * sinf(2.f * 3.14159265f * 220.f * i / 44100.f) : 0.f;
+        for (int i = 0; i < N; i += 32) fb.process(in + i, oL + i, oR + i, N - i < 32 ? N - i : 32, p, stepS);
+        bool fin = true; float pk = 0;
+        for (int i = 0; i < N; i++) { if (!isfinite(oL[i]) || !isfinite(oR[i])) fin = false; float a = fabsf(oL[i]); if (a > pk) pk = a; }
+        CHECK(fin, "SHIMMER: NaN/Inf im Ausgang");
+        CHECK(pk > 0.005f && pk < 2.f, "SHIMMER: Spitze %.3f", pk);
+        const float* tailp = oL + 26460;           // ab 0,6 s: der Eingang ist aus, der Schweif traegt
+        int tn = 22050;
+        float e440 = goertzel(tailp, tn, 440.f, 44100.f), e220 = goertzel(tailp, tn, 220.f, 44100.f);
+        // Gegenprobe: derselbe Hall ohne Versatz hat im Schweif fast nur den Grundton (Verhaeltnis statt Pegel pruefen)
+        fb.init(44100);
+        uint8_t q[8]; for (int k = 0; k < 8; k++) q[k] = busDef(0, BF_REVERB, k).def;
+        q[BX_TYPE] = BF_REVERB; q[BX_P1] = p[BX_P1]; q[BX_P2] = p[BX_P2];
+        for (int i = 0; i < N; i += 32) fb.process(in + i, oL + i, oR + i, N - i < 32 ? N - i : 32, q, stepS);
+        float r440 = goertzel(tailp, tn, 440.f, 44100.f), r220 = goertzel(tailp, tn, 220.f, 44100.f);
+        float qs = e440 / (e220 + 1e-9f), qr = r440 / (r220 + 1e-9f);
+        CHECK(qs > qr * 4.f, "SHIMMER: keine Oktave im Schweif (Anteil %.4f, Hall ohne Versatz %.4f)", qs, qr);
+        printf("  SHIMMER Oktavanteil im Schweif: %.3f (Hall ohne Versatz %.3f), Spitze %.3f\n", qs, qr, pk);
+    }
+    {   // CLOUD: nach dem Eingang still - ohne FRZ verstummt die Wolke, mit FRZ spielt sie weiter
+        float late[2] = {0, 0};
+        for (int run = 0; run < 2; run++) {
+            fb.init(44100);
+            uint8_t p[8]; for (int k = 0; k < 8; k++) p[k] = busDef(0, BF_CLOUD, k).def;
+            p[BX_TYPE] = BF_CLOUD; p[BX_P5] = 0;
+            for (int i = 0; i < N; i++) in[i] = i < 22050 ? 0.4f * sinf(2.f * 3.14159265f * 330.f * i / 44100.f) : 0.f;
+            for (int i = 0; i < N; i += 32) {
+                if (run && i >= 22050) p[BX_P5] = 127;   // FRZ erst aufdrehen, wenn Material da ist
+                fb.process(in + i, oL + i, oR + i, N - i < 32 ? N - i : 32, p, stepS);
+            }
+            bool fin = true;
+            for (int i = 0; i < N; i++) if (!isfinite(oL[i]) || !isfinite(oR[i])) fin = false;
+            CHECK(fin, "CLOUD%s: NaN/Inf im Ausgang", run ? " (FRZ)" : "");
+            for (int i = 44100 * 2; i < N; i++) late[run] += fabsf(oL[i]) + fabsf(oR[i]);
+        }
+        CHECK(late[1] > late[0] * 4.f + 1.f, "CLOUD: FRZ haelt die Wolke nicht (ohne %.1f, mit %.1f)", late[0], late[1]);
+        printf("  CLOUD nach 2 s: ohne FRZ %.1f, mit FRZ %.1f\n", late[0], late[1]);
+    }
+}
+
 static void testCmpRoute() {   // Kompressor-Routing: Spuren mit COMP=AUS gehen am Kompressor vorbei
     curTest = "Kompressor-Routing";
     static float out[3][22050 * 2];
@@ -1255,6 +1312,7 @@ int main(int argc, char** argv) {
     testModTargets();
     testWarp();
     testTrackTap();
+    testShimmerCloud();
     testCmpRoute();
     testInsDelay();
     testStereoSample();

@@ -573,7 +573,7 @@ Seite FX A | R2 | Ansicht EFFEKTE>MASTER; Seite FX A>MST
 Seite FX A | START | PLAY
 Seite FX A | SELECT | MEHR auf; MEHR-Eintrag 0>2
 Seite FX A | A lang | Lock-Modus an; Step gehalten; T5 Step 1 0>1; Meldung "LOCK-MODUS STEP 1  (A ODER FERTIG = ENDE)"
-Seite FX A | X lang | Bus A.0 1>5; Bus A.1 9>40; Bus A.2 50>60; Bus A.3 80>2; Bus A.4 127>110; Bus A.5 10>0
+Seite FX A | X lang | Bus A.0 1>7; Bus A.1 9>60; Bus A.2 50>70; Bus A.3 80>40; Bus A.4 127>24; Bus A.5 10>0
 Seite FX A | Y lang | Bus A.0 1>0; Bus A.1 9>0; Bus A.2 50>0; Bus A.3 80>0; Bus A.4 127>0; Bus A.5 10>0
 Seite FX A | START lang | PLAY
 Seite FX A | SELECT lang | -
@@ -1003,7 +1003,7 @@ Seite FX B | R2 | Ansicht EFFEKTE>MASTER; Seite FX B>MST
 Seite FX B | START | PLAY
 Seite FX B | SELECT | MEHR auf; MEHR-Eintrag 0>2
 Seite FX B | A lang | Lock-Modus an; Step gehalten; T5 Step 1 0>1; Meldung "LOCK-MODUS STEP 1  (A ODER FERTIG = ENDE)"
-Seite FX B | X lang | Bus B.0 3>5; Bus B.1 80>40; Bus B.3 0>2; Bus B.4 100>110; Bus B.5 40>0
+Seite FX B | X lang | Bus B.0 3>7; Bus B.1 80>60; Bus B.2 60>70; Bus B.3 0>40; Bus B.4 100>24; Bus B.5 40>0
 Seite FX B | Y lang | Bus B.0 3>0; Bus B.1 80>0; Bus B.2 60>0; Bus B.4 100>0; Bus B.5 40>0
 Seite FX B | START lang | PLAY
 Seite FX B | SELECT lang | -
@@ -1037,7 +1037,7 @@ Seite FX C | LINKS | Seite FX C>FX B
 Seite FX C | RECHTS | Seite FX C>FX A
 Seite FX C | A | T5 Step 1 0>1
 Seite FX C | B | -
-Seite FX C | X | -
+Seite FX C | X | Bus C.0 5>6; Bus C.1 40>95; Bus C.2 60>50; Bus C.3 2>70; Bus C.4 110>36; Bus C.5 0>110
 Seite FX C | Y | Bus C.0 5>4; Bus C.1 40>70; Bus C.2 60>70; Bus C.3 2>70; Bus C.4 110>90; Bus C.5 0>30
 Seite FX C | L1 | Spur 5>4
 Seite FX C | R1 | Spur 5>6
@@ -1046,7 +1046,7 @@ Seite FX C | R2 | Ansicht EFFEKTE>MASTER; Seite FX C>MST
 Seite FX C | START | PLAY
 Seite FX C | SELECT | MEHR auf; MEHR-Eintrag 0>2
 Seite FX C | A lang | Lock-Modus an; Step gehalten; T5 Step 1 0>1; Meldung "LOCK-MODUS STEP 1  (A ODER FERTIG = ENDE)"
-Seite FX C | X lang | -
+Seite FX C | X lang | Bus C.0 5>7; Bus C.1 40>60; Bus C.2 60>70; Bus C.3 2>40; Bus C.4 110>24
 Seite FX C | Y lang | Bus C.0 5>0; Bus C.1 40>0; Bus C.2 60>0; Bus C.3 2>0; Bus C.4 110>0
 Seite FX C | START lang | PLAY
 Seite FX C | SELECT lang | -
@@ -1064,7 +1064,7 @@ Seite FX C | SEL+L2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 Seite FX C | SEL+R2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 Seite FX C | SEL+START | Meldung "GESPEICHERT"
 Seite FX C | A+B | T5 Step 1 0>1; Meldung "LOCKS GELÖSCHT"
-Seite FX C | A+X | T5 Step 1 0>1
+Seite FX C | A+X | T5 Step 1 0>1; Bus C.0 5>6; Bus C.1 40>95; Bus C.2 60>50; Bus C.3 2>70; Bus C.4 110>36; Bus C.5 0>110
 Seite FX C | A+Y | T5 Step 1 0>1; Bus C.0 5>4; Bus C.1 40>70; Bus C.2 60>70; Bus C.3 2>70; Bus C.4 110>90; Bus C.5 0>30
 Seite FX C | A+HOCH | Seite FX C>FX B; Regler 1>8; T5 Step 1 0>1
 Seite FX C | A+RUNTER | Regler 1>2; T5 Step 1 0>1
@@ -2809,7 +2809,7 @@ NEU EFFEKTE Bus A | R2 | Ansicht EFFEKTE>MASTER; Seite FX A>MST
 NEU EFFEKTE Bus A | START | PLAY
 NEU EFFEKTE Bus A | SELECT | MEHR auf; MEHR-Eintrag 0>2
 NEU EFFEKTE Bus A | A lang | Lock-Modus an; Step gehalten; T5 Step 1 0>1; Meldung "LOCK-MODUS STEP 1  (A ODER FERTIG = ENDE)"
-NEU EFFEKTE Bus A | X lang | Bus A.0 1>5; Bus A.1 9>40; Bus A.2 50>60; Bus A.3 80>2; Bus A.4 127>110; Bus A.5 10>0
+NEU EFFEKTE Bus A | X lang | Bus A.0 1>7; Bus A.1 9>60; Bus A.2 50>70; Bus A.3 80>40; Bus A.4 127>24; Bus A.5 10>0
 NEU EFFEKTE Bus A | Y lang | Bus A.0 1>0; Bus A.1 9>0; Bus A.2 50>0; Bus A.3 80>0; Bus A.4 127>0; Bus A.5 10>0
 NEU EFFEKTE Bus A | START lang | PLAY
 NEU EFFEKTE Bus A | SELECT lang | -
