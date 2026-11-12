@@ -280,6 +280,32 @@ static void goSlot(int target) {
     goItem(pg, target);
     if (slot != target) { printf("  goSlot(%d) haengt in '%s' (Seite %d, Regler %d)\n", target, uiCase, page, slot); fflush(stdout); }
 }
+// Touch-Flaeche aus der zuletzt gezeichneten Registry holen (statt Koordinaten zu raten)
+static bool hitFind(int kind, int a, int& hx, int& hy) {
+    for (int i = nHits - 1; i >= 0; i--)
+        if (hits[i].k == kind && hits[i].a == a) { hx = hits[i].x + hits[i].w / 2; hy = hits[i].y + hits[i].h / 2; return true; }
+    return false;
+}
+static int visibleRow() {   // irgendeine gerade sichtbare Listenzeile (die Liste scrollt im Test nicht animiert)
+    for (int i = 0; i < 14; i++) simFrame();
+    for (int i = nHits - 1; i >= 0; i--) if (hits[i].k == HK_V2ROW) return hits[i].a;
+    return -1;
+}
+static bool tapHit(int kind, int a) {   // Flaeche antippen; false = gibt es nicht
+    int hx, hy;
+    for (int i = 0; i < 14; i++) simFrame();   // die Liste scrollt animiert zum Fokus: auslaufen lassen
+    if (!hitFind(kind, a, hx, hy)) return false;
+    tapAt(hx, hy); return true;
+}
+static bool dragHit(int kind, int a, int dx, int dy, int steps) {   // Flaeche greifen und ziehen
+    int hx, hy;
+    for (int i = 0; i < 14; i++) simFrame();   // Scroll-Animation auslaufen lassen, sonst liegt die Zeile woanders
+    if (!hitFind(kind, a, hx, hy)) return false;
+    remoteTouchInject('t', 1, hx, hy); simFrame();
+    for (int i = 1; i <= steps; i++) { remoteTouchInject('m', 1, hx + dx * i / steps, hy + dy * i / steps); simFrame(); }
+    remoteTouchInject('e', 1, hx + dx, hy + dy); simFrame();
+    return true;
+}
 static void moreRun(int entry) {   // MEHR-Menue (SELECT): Eintrag waehlen und ausfuehren
     simFrame();
     if (!mrOpen) tap(BT_SELECT);
@@ -1033,6 +1059,51 @@ static void uiScenariosV2() {
       int y = 72 + (int)((want - v2Scroll[V2_SEQ]) * 24) + 10;
       tapAt(300, y); UCHECK(v2Foc[V2_SEQ] == want, "Zeile antippen waehlt nicht (%d statt %d)", v2Foc[V2_SEQ], want); }
     tapAt(360, 12); UCHECK(v2View == V2_SOUND || v2View == V2_SEQ, "Reiter in der Kopfzeile antippen");
+
+    // --- volle Touch-Bedienung: alles ohne Tasten erreichbar
+    uiCase = "Touch: alles mit dem Finger";
+    simReset(); simFrame(); simDraw = true; simFrame();
+    { // Spur waehlen und stummschalten (M am rechten Rand der Spurzeile)
+      UCHECK(tapHit(HK_TRACK, 2), "Spur 3 ist nicht antippbar");
+      UCHECK(track == 2, "Spur antippen waehlt sie nicht (%d)", track + 1);
+      bool mu0 = eng.muted(2);
+      UCHECK(tapHit(HK_MUTE, 2), "kein M-Feld an der Spur");
+      UCHECK(eng.muted(2) != mu0, "M am Spurrand schaltet nicht stumm");
+      tapHit(HK_MUTE, 2); UCHECK(eng.muted(2) == mu0, "M schaltet nicht zurueck"); }
+    { // Play/Stop in der Kopfzeile
+      bool p0 = eng.playing;
+      UCHECK(tapHit(HK_PLAY, 0), "PLAY/STOP ist nicht antippbar");
+      UCHECK(eng.playing != p0, "PLAY/STOP in der Kopfzeile reagiert nicht");
+      tapHit(HK_PLAY, 0); UCHECK(eng.playing == p0, "PLAY/STOP schaltet nicht zurueck"); }
+    { // MEHR-Knopf unten rechts
+      UCHECK(tapHit(HK_MORE, -1), "kein MEHR-Knopf");
+      UCHECK(mrOpen, "MEHR-Knopf oeffnet das Menue nicht");
+      tapAt(10, 200); UCHECK(!mrOpen, "daneben tippen schliesst das MEHR-Menue nicht"); }
+    { // Gruppe per Pfeil in der Listen-Kopfzeile (SOUND hat viele Gruppen)
+      v2GoView(1); simFrame();
+      int g0 = v2GroupOf(v2Foc[V2_SOUND]);
+      UCHECK(tapHit(HK_V2GRP, 1), "kein Pfeil > in der Listen-Kopfzeile");
+      UCHECK(v2GroupOf(v2Foc[V2_SOUND]) != g0, "Pfeil > wechselt die Gruppe nicht");
+      UCHECK(tapHit(HK_V2GRP, -1), "kein Pfeil < in der Listen-Kopfzeile");
+      UCHECK(v2GroupOf(v2Foc[V2_SOUND]) == g0, "Pfeil < kommt nicht zurueck"); }
+    { // senkrecht wischen: der Fokus wandert mit
+      v2GoView(1); simFrame();
+      int row = visibleRow();
+      UCHECK(row >= 0, "keine sichtbare Listenzeile");
+      tapHit(HK_V2ROW, row);
+      int f0 = v2Foc[V2_SOUND];
+      UCHECK(dragHit(HK_V2ROW, row, 0, -140, 7), "Listenzeile fuers Wischen nicht gefunden");
+      UCHECK(v2Foc[V2_SOUND] > f0, "Wischen nach oben scrollt die Liste nicht (%d -> %d)", f0, v2Foc[V2_SOUND]); }
+    { // waagerecht ziehen aendert den Wert, nicht die Auswahl
+      v2GoView(1); simFrame();
+      int row = visibleRow();
+      tapHit(HK_V2ROW, row);
+      int f0 = v2Foc[V2_SOUND], idx = uiParam(page, slot);
+      int v0 = idx >= 0 ? curP().p[track][idx] : -1;
+      UCHECK(idx >= 0, "Listenzeile zeigt auf keinen Spur-Parameter (Seite %d, Regler %d)", page, slot);
+      UCHECK(dragHit(HK_V2ROW, row, v0 > 60 ? -150 : 150, 0, 9), "Listenzeile %d nicht als Flaeche gefunden", row);
+      UCHECK(idx < 0 || curP().p[track][idx] != v0, "waagerecht ziehen aendert den Wert nicht (%d, Seite %d, Regler %d)", v0, page, slot);
+      UCHECK(v2Foc[V2_SOUND] == f0, "waagerecht ziehen hat die Auswahl verschoben"); }
     simDraw = false;
 }
 static void v2ListInfo() {

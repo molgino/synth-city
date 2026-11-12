@@ -145,6 +145,22 @@ static int v2RingIndex() {
     return trackPage(page) ? 1 : 0;
 }
 static void v2Step(int dir) { v2GoView(v2RingIndex() + dir); }
+// Wischen in der Liste: der Fokus wandert mit (die Liste folgt ihm ohnehin, freies Scrollen spraenge zurueck)
+static float v2SwipeAcc = 0;
+static void v2ScrollBy(float rows) {
+    if (v2View < 0 || v2View >= V2_VIEWS || v2N <= 0) return;
+    v2SwipeAcc += rows;
+    int d = (int)v2SwipeAcc;
+    if (!d) return;
+    v2SwipeAcc -= d;
+    int f = v2Foc[v2View], dir = d > 0 ? 1 : -1;
+    for (int i = 0; i < (d > 0 ? d : -d); i++) {
+        int n = f + dir;
+        if (n < 0 || n >= v2N) break;
+        f = v2Clamp(n, dir);
+    }
+    v2Foc[v2View] = f; v2Apply();
+}
 
 // ---- MEHR-Menue (SELECT tippen): Ansicht, Steps/Spur kopieren..., Sound, Aufnahme/Tap
 enum { MR_V0 = 0, MR_VN = V2_RING_N, MR_PCOPY = MR_VN, MR_PPASTE, MR_PCLEAR, MR_PADD, MR_PDEL, MR_PNEW, MR_TCOPY, MR_TPASTE, MR_TCLEAR,
@@ -163,7 +179,7 @@ static void mrLabel(int i, char* l, int ln, char* v, int vn) {
     v[0] = 0;
     if (i < MR_VN) {
         int p = V2_RING[i];
-        snprintf(l, ln, "%s", p == -10 ? "SEQ" : p == -11 ? "SOUND" : PAGE_LONG[p]);
+        snprintf(l, ln, "%s", p == -10 ? "SEQ" : p == -11 ? "SOUND" : p == -12 ? TR("EFFEKTE", "FX") : PAGE_LONG[p]);   // -12 fehlte: PAGE_LONG[-12]
         if (i == v2RingIndex()) snprintf(v, vn, "<");
         return;
     }
@@ -349,8 +365,9 @@ static void v2Tracks(int x, int y0, int w, int h) {
         text(x + 25, y + 3, b, mu ? C_DIM : (sel ? c : C_TEXT));
         int mw = (int)((w - 32) * (meterV[t] > 1.f ? 1.f : meterV[t]));
         fill(x + 25, y + rh - 11, w - 32, 3, C_OFF2); if (mw > 0) fill(x + 25, y + rh - 11, mw, 3, c);
-        if (mu) text(x + w - 14, y + 3, "M", C_TRIG);
-        hitAdd(x, y, w, rh - 3, HK_TRACK, t);
+        text(x + w - 15, y + 3, "M", mu ? C_TRIG : dimC(C_DIM, 0.5f));   // immer sichtbar: Flaeche zum Stummschalten
+        hitAdd(x, y, w - 20, rh - 3, HK_TRACK, t);
+        hitAdd(x + w - 20, y, 20, rh - 3, HK_MUTE, t);   // rechter Rand der Spur: Mute
     }
 }
 static const char* v2GrpName(int i) {   // Name der Gruppe, in der Eintrag i liegt
@@ -414,7 +431,14 @@ static void v2List(int x, int y0, int w, int h) {
         char pb[48]; int npg = (curP().len[track] + 15) / 16; if (npg < 1) npg = 1;
         if (npg > 1) snprintf(pb, sizeof pb, TR("PAGE %d/%d   GRUPPE %d/%d", "PAGE %d/%d   GROUP %d/%d"), cursor / 16 + 1, npg, gi, v2Groups);
         else snprintf(pb, sizeof pb, TR("GRUPPE %d/%d", "GROUP %d/%d"), gi, v2Groups);
-        text(x + w - 8 - textW(pb), hy + 2, pb, C_DIM);
+        {   // Gruppe per Finger wechseln: Pfeile links und rechts neben der Anzeige (17 Gruppen sonst muehsam)
+            int pw = textW(pb), px = x + w - 8 - pw;
+            text(px - 16, hy + 2, "<", C_ACC);
+            text(x + w - 6, hy + 2, ">", C_ACC);
+            text(px, hy + 2, pb, C_DIM);
+            hitAdd(px - 22, hy - 1, 20, 20, HK_V2GRP, -1);
+            hitAdd(x + w - 12, hy - 1, 20, 20, HK_V2GRP, 1);
+        }
         fill(x, hy + 16, w, 1, C_OFF2);
     }
     // Bildlaufleiste

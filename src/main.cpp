@@ -1024,7 +1024,7 @@ static void battery(int x, int y) {
 static void drawIcon(int m, int x, int y, int s, Col c);
 // ---------------------------------------------------------------- Touch-Flaechen (Fernbedienung im Browser)
 // Jede Zeichenfunktion meldet ihre bedienbaren Flaechen; Touch prueft gegen das zuletzt gezeichnete Bild (oberste zuerst).
-enum HitKind { HK_TRACK, HK_PAGE, HK_SLOT, HK_STEP, HK_MUTE, HK_SOLO, HK_MIXCH, HK_MENU, HK_YES, HK_NO, HK_LIVE, HK_BTN, HK_SET, HK_SONG, HK_PRJ, HK_BLOCK, HK_LOCKEND, HK_FBROW, HK_FBBACK, HK_FBCANCEL, HK_FBPLAY, HK_PGM, HK_V2ROW, HK_V2VIEW, HK_MORE };   // HK_PGM: PAGE-Menue (a = Eintrag, -1 = oeffnen)
+enum HitKind { HK_TRACK, HK_PAGE, HK_SLOT, HK_STEP, HK_MUTE, HK_SOLO, HK_MIXCH, HK_MENU, HK_YES, HK_NO, HK_LIVE, HK_BTN, HK_SET, HK_SONG, HK_PRJ, HK_BLOCK, HK_LOCKEND, HK_FBROW, HK_FBBACK, HK_FBCANCEL, HK_FBPLAY, HK_PGM, HK_V2ROW, HK_V2VIEW, HK_MORE, HK_V2GRP, HK_PLAY };   // HK_PGM: PAGE-Menue (a = Eintrag, -1 = oeffnen)
 struct Hit { short x, y, w, h; uint8_t k; short a, b; };
 enum { MAX_HITS = 320 };
 static Hit hits[MAX_HITS];
@@ -1064,6 +1064,7 @@ static void drawHeader() {
     }
     if (eng.proj.mst[MS_SWNG]) { snprintf(b, sizeof b, "SW %d%%", 50 + eng.proj.mst[MS_SWNG]); text(84, 21, b, C_DIM); }
     else text(84, 21, eng.playing ? "PLAY" : "STOP", eng.playing ? C_GREEN : C_DIM);
+    hitAdd(80, 17, 52, 16, HK_PLAY, 0);   // Play/Stop antippbar (am Handy gibt es kein START)
     if (eng.songOn && eng.proj.songLen && !eng.recording && !eng.fill) {
         snprintf(b, sizeof b, "SNG%d/%d", eng.songPos + 1, eng.proj.songLen);
         text(140, 21, b, C_CYAN);

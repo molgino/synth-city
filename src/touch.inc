@@ -2,7 +2,9 @@
 //   Antippen: Spur / Seite / Kachel / Reiter / Kartenfeld waehlen, Step = wie A (antippen = Trig an/aus, halten = P-Lock)
 //   Ziehen auf einer Kachel (hoch/rechts = mehr): Wert aendern; mit einem zweiten Finger auf einem Step = P-Lock
 //   Kachel nochmal antippen: Auswahlliste (Sample, LFO-Ziel, Engine, Zeichnen) wie X
-struct TouchPtr { bool on; int kind, a, b, x0, y0, lx, ly; Uint32 t0; bool moved, wasSel, emuA, emuBtn; int btn; float acc; };
+//   In der Liste: waagerecht ziehen = Wert, senkrecht wischen = scrollen (Richtung entscheidet die erste Bewegung)
+struct TouchPtr { bool on; int kind, a, b, x0, y0, lx, ly; Uint32 t0; bool moved, wasSel, emuA, emuBtn; int btn; float acc;
+                  int listRow; signed char drag; };   // Liste: Zeile und Richtung (0 offen, 1 Wert waagerecht, 2 scrollen senkrecht)
 static TouchPtr tch[REMOTE_TOUCH_IDS];
 
 static const Hit* hitAt(int x, int y) {
@@ -22,6 +24,12 @@ static void touchDrag(TouchPtr& t, int x, int y) {
     t.lx = x; t.ly = y;
     if (abs(x - t.x0) + abs(y - t.y0) > 8) t.moved = true;
     if (!t.moved) return;
+    if (t.kind == HK_V2ROW) {   // Liste: erste Bewegung entscheidet, ob Wert oder Scrollen
+        if (!t.drag) t.drag = abs(x - t.x0) >= abs(y - t.y0) ? 1 : 2;
+        if (t.drag == 2) { v2ScrollBy(-dy / 22.f); return; }
+        v2Foc[v2View < 0 ? 1 : v2View] = t.listRow; v2Apply();   // Wert: erst die Zeile in den Fokus
+        t.kind = HK_SLOT; t.a = slot;
+    }
     if (t.kind == HK_SLOT || t.kind == HK_MIXCH) {
         if (t.kind == HK_SLOT) slot = t.a;
         float per = curMax() >= 100 ? 3.f : 16.f;   // grosse Bereiche fein, kleine (Typen, Oktaven) grob
@@ -77,8 +85,12 @@ static void touchDown(TouchPtr& t, int x, int y, Uint32 now) {
     case HK_SET: t.wasSel = setSel == h->a && setIn; setSel = h->a; setIn = true; break;
     case HK_SONG: t.wasSel = songSel == h->a && songCol == h->b; songSel = h->a; songCol = h->b; break;
     case HK_BLOCK: if (menuOpen) menuOpen = false; if (pgmOpen) pgmOpen = false; if (mrOpen) mrOpen = false; break;   // daneben getippt: schliessen
-    case HK_V2ROW: v2Foc[v2View < 0 ? 1 : v2View] = h->a; v2Apply(); t.kind = HK_SLOT; t.a = slot; t.wasSel = false; break;   // Zeile: waehlen, ziehen = Wert
+    case HK_V2ROW: t.listRow = h->a; t.drag = 0;
+                   t.wasSel = v2Foc[v2View < 0 ? 1 : v2View] == h->a;
+                   v2Foc[v2View < 0 ? 1 : v2View] = h->a; v2Apply(); break;   // Zeile: waehlen; ziehen = Wert, wischen = scrollen
     case HK_V2VIEW: v2GoView(h->a); break;
+    case HK_V2GRP: v2Group(h->a); break;   // Pfeile in der Listen-Kopfzeile: vorige/naechste Gruppe
+    case HK_PLAY: startStop(); break;              // PLAY/STOP in der Kopfzeile
     case HK_MORE: if (h->a < 0) { mrOpen = true; mrSel = v2RingIndex(); } else { mrSel = h->a; mrRun(h->a); } break;
     case HK_PGM: if (h->a < 0) openPageMenu(); else { pgmSel = h->a; pgmRun(h->a); } break;
     case HK_LOCKEND: if (lockLatch) remoteHit[BT_A] = true; break;
