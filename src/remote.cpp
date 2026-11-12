@@ -140,7 +140,7 @@ void remoteAudioPush(const float* st, int frames, int rate) {
 bool remoteAudioWanted() { return g_audClients > 0; }
 
 // ---------------------------------------------------------------- Touch-Oberflaeche: Modell + Aktionen
-static char g_model[8192];
+static char g_model[16384];
 static unsigned g_modelSeq = 0;
 static SDL_mutex* g_mdMx = nullptr;
 static volatile unsigned g_mdWant = 0;   // Zeitpunkt der letzten Anfrage
@@ -168,6 +168,13 @@ static SDL_mutex* g_aqMx = nullptr;
 void remoteActPush(int kind, int a, int b) {
     if (!g_aqMx) g_aqMx = SDL_CreateMutex();
     SDL_LockMutex(g_aqMx);
+    // Beim Ziehen an einem Regler kommen viele Werte kurz nacheinander. Sie tragen den Zielwert, der
+    // letzte gilt also - darum den vorigen Wert desselben Reglers ueberschreiben statt die Schlange
+    // zu fuellen (sonst wuerde bei vollem Puffer ausgerechnet der letzte Wert verworfen).
+    if (kind == 11 && g_aqHead != g_aqTail) {
+        RemoteAct& l = g_aq[(g_aqHead - 1) & 127];
+        if (l.kind == kind && l.a == a) { l.b = b; SDL_UnlockMutex(g_aqMx); return; }
+    }
     if (g_aqHead - g_aqTail < 128) g_aq[g_aqHead++ & 127] = RemoteAct{kind, a, b};
     SDL_UnlockMutex(g_aqMx);
 }
@@ -355,7 +362,7 @@ static int wsThread(void* arg) {
         if (!alive) break;
         g_wantAt = SDL_GetTicks();   // Hauptschleife soll Bilder liefern
         if (wantModel) {   // Touch-Oberflaeche: neues Modell schicken, sobald eines vorliegt
-            static __thread char mb[8192];
+            static __thread char mb[16384];
             int ml = remoteModelGet(mb + 2, (int)sizeof mb - 2);
             if (ml > 0) { mb[0] = 'm'; mb[1] = ' '; lastSend = SDL_GetTicks(); if (!wsSend(fd, 1, mb, ml + 2)) break; }
         }

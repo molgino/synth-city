@@ -106,7 +106,11 @@ Was Stufe 1 kann:
 * **Spur wählen und stummschalten**: die Spurspalte zeigt Nummer, Engine und Farbe; das **M** rechts schaltet stumm.
 * **Transport**: Play/Stop, Pattern vor und zurück, Seiten (P1, P2 …) bei längeren Spuren.
 
-Alles Übrige – Klang schrauben, Sampler, Song, Einstellungen – läuft weiter über **BILD**, also das gespiegelte Gerätebild mit der gewohnten Bedienung. Beide Ansichten zeigen dasselbe Projekt; was du in der einen änderst, steht sofort in der anderen.
+**Klang schrauben (Stufe 2).** Der Knopf **SOUND** schaltet von den Pads auf die Regler um. Oben wischst du durch die Gruppen (KLANG, FILTER, VERSTÄRKER, LFO …), darunter steht jeder Regler als breite Zeile mit Name und Wert. **Waagerecht über die Zeile ziehen** ändert den Wert – die ganze Zeilenbreite deckt den ganzen Bereich ab, du musst also nicht zielen. Gelb heißt: Der Wert ist für diesen Step gelockt. **STEPS** führt zurück zu den Pads.
+
+Was du am Handy änderst, ist sofort am Gerät zu sehen und umgekehrt – es ist dasselbe Projekt und dieselbe Liste, nur anders gezeichnet.
+
+Alles Übrige – Sampler, Song, Einstellungen – läuft weiter über **BILD**, also das gespiegelte Gerätebild mit der gewohnten Bedienung. Beide Ansichten zeigen dasselbe Projekt; was du in der einen änderst, steht sofort in der anderen.
 
 ## Akkorde und Stimmen (TRIG-Seite: NT2–NT4, VOICE)
 

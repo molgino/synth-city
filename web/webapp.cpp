@@ -41,7 +41,10 @@ void remoteTouchInject(char type, int id, int x, int y) { touchPush(type, id, x,
 // Touch-Oberflaeche: dieselben Aktionen wie ueber /ws, hier ohne Thread (die Seite ruft gbMsg direkt)
 static RemoteAct g_aq[128];
 static unsigned g_aqHead = 0, g_aqTail = 0;
-void remoteActPush(int kind, int a, int b) { if (g_aqHead - g_aqTail < 128) g_aq[g_aqHead++ & 127] = RemoteAct{kind, a, b}; }
+void remoteActPush(int kind, int a, int b) {   // Reglerwerte zusammenfassen (siehe remote.cpp)
+    if (kind == 11 && g_aqHead != g_aqTail) { RemoteAct& l = g_aq[(g_aqHead - 1) & 127]; if (l.kind == kind && l.a == a) { l.b = b; return; } }
+    if (g_aqHead - g_aqTail < 128) g_aq[g_aqHead++ & 127] = RemoteAct{kind, a, b};
+}
 bool remoteActPop(RemoteAct& e) { if (g_aqHead == g_aqTail) return false; e = g_aq[g_aqTail++ & 127]; return true; }
 void remoteModelSet(const char*) {}            // in der App holt die Seite das Modell direkt (gbModel)
 int remoteModelGet(char*, int) { return 0; }

@@ -28,7 +28,7 @@ extern "C" EMSCRIPTEN_KEEPALIVE int gbState() { return (eng.playing ? 1 : 0) | (
 
 // Touch-Oberflaeche: Modell als JSON (dieselbe Quelle wie ueber /ws beim Geraet)
 extern "C" EMSCRIPTEN_KEEPALIVE const char* gbModel() {
-    static char b[8192];
+    static char b[16384];
     uiModelJson(b, sizeof b);
     return b;
 }

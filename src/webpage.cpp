@@ -402,6 +402,26 @@ body.tui #app{visibility:hidden}
  .ttr{min-height:42px;padding:0 4px}
  .ttr .tn{font-size:11px}.ttr .tnr{display:none}}   /* hochkant ist kein Platz fuer die Nummer: die Farbe sagt es */
 #tBot:empty,#tBot.hide{display:none}
+/* Klang schrauben: Gruppenleiste zum Wischen + Regler als breite Zeilen (waagerecht ziehen = Wert) */
+#tSnd{display:none;grid-template-rows:auto minmax(0,1fr);gap:6px;min-height:0}
+body.tui.snd #tSnd{display:grid}
+body.tui.snd #tGrid{display:none}
+#tGrps{display:flex;gap:6px;overflow-x:auto;overflow-y:hidden;padding-bottom:2px;scrollbar-width:none}
+#tGrps::-webkit-scrollbar{display:none}
+#tGrps .tg{flex:none;min-height:38px;display:flex;align-items:center;padding:0 14px;border-radius:10px;
+ background:var(--panel);border:1px solid var(--line);color:var(--dim);font-size:12px;white-space:nowrap}
+#tGrps .tg.on{background:var(--panel2);color:var(--text);border-color:var(--text)}
+#tPar{display:grid;grid-auto-rows:minmax(44px,1fr);gap:5px;min-height:0;overflow:hidden}
+.tr{position:relative;display:flex;align-items:center;gap:8px;padding:0 12px;border-radius:10px;
+ background:var(--panel);border:1px solid var(--line);overflow:hidden;touch-action:none}
+.tr .bar{position:absolute;left:0;top:0;bottom:0;background:var(--panel2);pointer-events:none}
+.tr .nm{position:relative;flex:1;font-size:13px;color:var(--text)}
+.tr .vl{position:relative;font-size:15px;color:var(--cy);font-weight:bold;min-width:68px;text-align:right}
+.tr.lk .vl{color:var(--lock,#ffba40)}
+.tr.act{border-color:var(--text)}
+/* schmal (Handy hochkant): die Kopfzeile darf nicht umbrechen - Meldung weg, Schrift kleiner */
+@media (max-width:560px){#tMsg{display:none}#tBpm{font-size:11px}#tTop .tb{padding:0 9px;font-size:12px}
+ #tPat{font-size:16px;min-width:48px}#tPlay{min-width:52px}}
 /* Solange kein Modell da ist, bleibt die Flaeche sonst einfach leer - dann weiss niemand, was los ist */
 #tWait{display:none;position:absolute;inset:54px 6px 6px 6px;align-items:center;justify-content:center;
  text-align:center;color:var(--dim);font-size:14px;line-height:1.7;padding:16px}
@@ -430,8 +450,10 @@ body.nopad #scr{grid-column:1 !important}
 </div></div>
 <div id="tui">
  <div id="tTop"><button class="tb" id="tPlay">▶</button><div class="tb" id="tPatD">‹</div><div id="tPat">A01</div><div class="tb" id="tPatU">›</div>
-  <div id="tBpm">120 BPM</div><span id="tMsg"></span><button class="tb" id="tView" title="zum gespiegelten Geraetebild">BILD</button></div>
- <div id="tMain"><div id="tTracks"></div><div id="tGrid"></div></div>
+  <div id="tBpm">120 BPM</div><span id="tMsg"></span><button class="tb" id="tMode">SOUND</button><button class="tb" id="tView" title="zum gespiegelten Geraetebild">BILD</button></div>
+ <div id="tMain"><div id="tTracks"></div>
+  <div id="tGrid"></div>
+  <div id="tSnd"><div id="tGrps"></div><div id="tPar"></div></div></div>
  <div id="tWait">warte auf die Groovebox …</div>
  <div id="tBot"><div id="tPages" style="display:flex;gap:6px;flex-wrap:wrap"></div></div>
 </div>
@@ -514,6 +536,24 @@ function tuiRender(m){
   d.className='tp'+(st===1?' on':'')+(st===2?' tl':'')+(s===m.now?' now':'')+(i%4===0?' beat':'');
   d.style.background=st===1?m.tracks[m.track].c:'';
   d.textContent=s+1;}
+ // Klang: Gruppenleiste und Regler
+ if(m.grps){
+  const gb=$('tGrps');
+  if(gb.childElementCount!==m.grps.length||gb.dataset.v!=m.view){gb.dataset.v=m.view;gb.innerHTML='';
+   m.grps.forEach((g,i)=>{const d=document.createElement('div');d.className='tg';d.textContent=g;
+    d.addEventListener('pointerdown',e=>{e.preventDefault();tAct(10,i,0);},{passive:false});gb.appendChild(d);});}
+  [...gb.children].forEach((d,i)=>{const on=i===m.grp;d.classList.toggle('on',on);
+   if(on&&!gb.dataset.scr){gb.dataset.scr=1;d.scrollIntoView({block:'nearest',inline:'center'});setTimeout(()=>delete gb.dataset.scr,400);}});
+  const pr=$('tPar'),ps=m.params||[];
+  if(pr.childElementCount!==ps.length){pr.innerHTML='';
+   ps.forEach((p,i)=>{const d=document.createElement('div');d.className='tr';
+    d.innerHTML='<div class="bar"></div><span class="nm"></span><span class="vl"></span>';
+    tParDrag(d,i);pr.appendChild(d);});}
+  ps.forEach((p,i)=>{const d=pr.children[i];if(!d||d.dataset.drag)return;
+   d.querySelector('.nm').textContent=p.n;d.querySelector('.vl').textContent=p.t;
+   d.querySelector('.bar').style.width=Math.round(100*p.v/(p.mx||1))+'%';
+   d.classList.toggle('lk',!!p.lk);});
+ }
  // Seiten
  const pb=$('tPages');
  $('tBot').classList.toggle('hide',m.pages<2);
@@ -522,6 +562,27 @@ function tuiRender(m){
    b.addEventListener('pointerdown',e=>{e.preventDefault();tAct(6,p,0);},{passive:false});pb.appendChild(b);}}
  [...pb.children].forEach((b,p)=>b.style.borderColor=p===m.page?'var(--text)':'var(--line)');
 }
+// Regler ziehen: waagerecht = Wert. Die volle Breite deckt den ganzen Bereich ab; waehrend des Ziehens
+// zeigt die Zeile den eigenen Wert (sonst wuerde das nachziehende Modell darunter springen).
+function tParDrag(d,i){
+ let id=null,x0=0,v0=0,mx=127,cur=0;
+ d.addEventListener('pointerdown',e=>{if(!tm||!tm.params||!tm.params[i])return;e.preventDefault();
+  id=e.pointerId;x0=e.clientX;v0=cur=tm.params[i].v;mx=tm.params[i].mx||1;d.dataset.drag='1';d.classList.add('act');
+  try{d.setPointerCapture(id);}catch(err){}},{passive:false});
+ d.addEventListener('pointermove',e=>{if(id===null||e.pointerId!==id)return;e.preventDefault();
+  const w=d.getBoundingClientRect().width||1;
+  let v=Math.round(v0+(e.clientX-x0)/w*mx);v=Math.max(0,Math.min(mx,v));
+  if(v!==cur){cur=v;tAct(11,i,v);
+   d.querySelector('.bar').style.width=Math.round(100*v/mx)+'%';d.querySelector('.vl').textContent=v;}},{passive:false});
+ const end=e=>{if(id===null||(e&&e.pointerId!==id))return;id=null;delete d.dataset.drag;d.classList.remove('act');};
+ d.addEventListener('pointerup',end);d.addEventListener('pointercancel',end);
+}
+$('tMode').addEventListener('pointerdown',e=>{e.preventDefault();
+ const snd=!document.body.classList.contains('snd');document.body.classList.toggle('snd',snd);
+ $('tMode').textContent=snd?'STEPS':'SOUND';
+ if(snd&&tm&&tm.view===0)tAct(9,1,0);   // aus SEQ in die Klang-Ansicht wechseln
+ try{localStorage.tsnd=snd?1:'';}catch(err){}},{passive:false});
+try{if(localStorage.tsnd){document.body.classList.add('snd');$('tMode').textContent='STEPS';}}catch(e){}
 $('tPlay').addEventListener('pointerdown',e=>{e.preventDefault();tAct(4,0,0);},{passive:false});
 $('tPatD').addEventListener('pointerdown',e=>{e.preventDefault();tAct(5,-1,1);},{passive:false});
 $('tPatU').addEventListener('pointerdown',e=>{e.preventDefault();tAct(5,1,1);},{passive:false});

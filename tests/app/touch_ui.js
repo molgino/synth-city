@@ -64,6 +64,38 @@ function check(ok, what, extra) { if (ok) { pass++; console.log('  OK     ' + wh
   check(m2.patIdx !== patBefore, 'Pattern weiterschalten', `${patBefore} -> ${m2.patIdx}`);
   await tapSel('#tPatD');
 
+  // Klang schrauben: Umschalten, Gruppe waehlen, Regler ziehen
+  await tapSel('#tMode'); await pg.waitForTimeout(900);
+  let snd = await pg.evaluate(() => ({snd: document.body.classList.contains('snd'),
+    grps: document.querySelectorAll('#tGrps .tg').length, rows: document.querySelectorAll('#tPar .tr').length}));
+  check(snd.snd && snd.grps > 3 && snd.rows > 0, 'SOUND zeigt Gruppen und Regler', `${snd.grps} Gruppen, ${snd.rows} Regler`);
+
+  const picked = await pg.evaluate(() => {   // eine Gruppe mit mindestens einem Regler ueber 1 Schritt
+    const g = [...document.querySelectorAll('#tGrps .tg')].find(x => x.textContent === 'FILTER') || document.querySelectorAll('#tGrps .tg')[1];
+    const r = g.getBoundingClientRect();
+    g.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, clientX: r.left + 10, clientY: r.top + r.height / 2}));
+    return g.textContent;
+  });
+  await pg.waitForTimeout(900);
+  const drag = (from, to) => pg.evaluate(([a, b]) => {
+    const d = document.querySelector('#tPar .tr'), r = d.getBoundingClientRect();
+    d.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, pointerId: 7, clientX: r.left + r.width * a, clientY: r.top + r.height / 2}));
+    d.dispatchEvent(new PointerEvent('pointermove', {bubbles: true, pointerId: 7, clientX: r.left + r.width * b, clientY: r.top + r.height / 2}));
+    d.dispatchEvent(new PointerEvent('pointerup', {bubbles: true, pointerId: 7}));
+  }, [from, to]);
+  const val = () => pg.evaluate(() => (window.tm && tm.params && tm.params[0]) ? tm.params[0].v : -1);
+  // erst hoch, dann runter - so ist der Test unabhaengig davon, wo der Regler gerade steht
+  await drag(0.2, 0.8); await pg.waitForTimeout(900);
+  const vUp = await val();
+  await drag(0.8, 0.2); await pg.waitForTimeout(900);
+  const vDown = await val();
+  check(vUp > 0, `Regler nach rechts ziehen erhoeht den Wert (Gruppe ${picked})`, 'Wert ' + vUp);
+  check(vDown < vUp, 'Regler nach links ziehen senkt ihn wieder', `${vUp} -> ${vDown}`);
+
+  await tapSel('#tMode'); await pg.waitForTimeout(600);
+  const back = await pg.evaluate(() => !document.body.classList.contains('snd') && [...document.querySelectorAll('.tp')].some(p => p.style.display !== 'none'));
+  check(back, 'zurueck zu STEPS');
+
   // Flaeche + keine JS-Fehler
   const area = await pg.evaluate(() => { let u = 0; document.querySelectorAll('#tui .tp,#tui .ttr,#tui .tb,#tui #tPlay').forEach(e => { const b = e.getBoundingClientRect(); if (b.width > 0) u += b.width * b.height; });
     return Math.round(100 * u / (innerWidth * innerHeight)); });
