@@ -196,9 +196,13 @@ Jede Spur hat diese Seiten:
   | DRIVE (Overdrive) | GAIN, TONE, LEVEL |
   | RING (Ringmodulator) | FREQ, FINE |
   | APAN (Autopan) | RATE, DEPTH |
+  | DELAY (kurzes Echo/Slapback) | TIME (5–340 ms), FBK, TONE |
+  | ROOM (kleiner Raum/Ambience) | SIZE, DAMP, DIFF |
 
   Dazu kommen auf derselben Seite **CRSH** (Bitcrusher), **SRR** (Samplerate-Reduktion) und **DRIV** (Drive).
   Alle Regler, auch TYPE, lassen sich pro Step locken. Die Insert-Effekte sitzen hinter Filter und Hüllkurve, also vor Panorama und den Sends.
+
+  **DELAY** und **ROOM** liegen im Klangweg der Spur, nicht auf einem Send: das Echo folgt also Filter, Panorama und jedem Lock. TIME ist frei in Millisekunden (nicht taktsynchron) – gedacht für Slapback, Doubling und enge Räume, nicht für lange Fahnen. Die Fahne klingt nach dem Notenende weiter (bis zu 4 Sekunden), ohne die Hüllkurve abzuschneiden. Für lange, taktsynchrone Echos und große Hallräume bleiben die Effekt-Busse A/B/C die bessere Adresse – sie kosten nur einmal Rechenzeit statt pro Stimme.
 
 Dazu kommen die globalen Seiten (in der Leiste oben grauer dargestellt):
 

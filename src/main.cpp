@@ -1984,6 +1984,33 @@ static void paramSymbol(const ParamDef& d, int val, float fr, int x, int y, int 
             symCurve(x, y + 3, w, h - 6, c, [&](float t) { float p = (t + symScroll() * 0.5f) * 6.2831853f; return 0.5f + 0.42f * sinf(p * 1.5f) * sinf(p * (cf + fi * (k == 1 ? 2.f : 0.5f)) + t0 * 2.f); }, false);
             return;
         }
+        case INS_DELAY: {   // TIME/FBK/TONE: Echo-Spitzen
+            float tm = k == 0 ? v : pv(P_IP1) / 127.f, fb = k == 1 ? v : pv(P_IP2) / 127.f, tn = k == 2 ? v : pv(P_IP3) / 127.f;
+            float sp = 0.1f + tm * tm * 0.55f;
+            fill(x, cy + h / 3, w, 1, C_OFF2);
+            float ph = fmodf(t0 * 0.5f, 1.f);
+            for (int i = 0; i < 6; i++) {
+                float pos = i * sp; if (pos > 1.f) break;
+                float amp = powf(fb * 0.92f, (float)i) * (0.35f + 0.65f * (k == 2 ? tn : 1.f));
+                int bh = (int)(amp * (h * 0.7f)); if (bh < 1) break;
+                int bx2 = x + (int)(pos * (w - 3));
+                fill(bx2, cy + h / 3 - bh, 2, bh, fabsf(ph - pos) < 0.05f ? C_PLAY : dimC(c, 0.4f + 0.6f * amp));
+            }
+            return;
+        }
+        case INS_ROOM: {   // SIZE/DAMP/DIFF: Reflexionswolke
+            float sz = k == 0 ? v : pv(P_IP1) / 127.f, dp = k == 1 ? v : pv(P_IP2) / 127.f, df = k == 2 ? v : pv(P_IP3) / 127.f;
+            fill(x, cy + h / 3, w, 1, C_OFF2);
+            for (int i = 0; i < 22; i++) {
+                float f = i / 22.f;
+                float rr = fmodf(sinf((float)i * 12.9898f + 1.f) * 43758.5453f, 1.f); if (rr < 0) rr += 1.f;
+                float pos = (0.08f + sz * 0.9f) * (0.2f + f * 1.6f); if (pos > 1.f) continue;
+                float amp = (1.f - f) * (1.f - dp * 0.6f * f) * (0.4f + 0.6f * df);
+                float fade = 0.5f + 0.5f * sinf(t0 * 2.f + i * 0.7f);
+                disc(x + (int)(pos * (w - 3)), cy + h / 3 - (int)(rr * amp * h * 0.6f), 2, dimC(c, 0.2f + 0.6f * amp * fade));
+            }
+            return;
+        }
         case INS_APAN: {   // RATE/DEPTH: Punkt wandert zwischen L und R
             float rate = k == 0 ? v : pv(P_IP1) / 127.f, dep = k == 1 ? v : pv(P_IP2) / 127.f;
             text(x, cy - 8, "L", C_DIM); text(x + w - 8, cy - 8, "R", C_DIM);
@@ -2834,10 +2861,11 @@ static void drawOverlays() {
             if (d.kind == K_INS) {
                 const char* const* names = INS_NAMES;
                 int cnt = INS_COUNT;
-                rrect(150, oy, 340, 34, 8, C_BG, 250);
-                rrect(150, oy, 4, 34, 2, c);
+                int ow = 20 + cnt * 47, ox = 320 - ow / 2;   // Breite nach Anzahl der Typen
+                rrect(ox, oy, ow, 34, 8, C_BG, 250);
+                rrect(ox, oy, 4, 34, 2, c);
                 for (int m = 0; m < cnt; m++) {
-                    int mx = 160 + m * 47;
+                    int mx = ox + 10 + m * 47;
                     if (m == val) rrect(mx - 2, oy + 7, 46, 20, 5, c);
                     textC(mx + 21, oy + 9, names[m], m == val ? C_BG : C_DIM);
                 }
@@ -5712,6 +5740,12 @@ int main(int argc, char** argv) {
         if (page == PG_SONG) { eng.proj.songLen = 5; uint8_t sp[5][2] = {{0, 4}, {1, 2}, {0, 2}, {2, 1}, {3, 4}}; for (int k = 0; k < 5; k++) { Engine::rowFromPattern(eng.proj, eng.proj.row[k], sp[k][0]); eng.proj.row[k].rep = sp[k][1]; }
                                eng.proj.row[2].pat[4] = 3; eng.proj.row[2].pat[7] = SONG_EMPTY; eng.proj.row[3].mute = 0x0C; songCol = SC_T1 + 4;
                                eng.songOn = true; eng.songPos = 1; eng.songRep = 1; eng.applyRow(1); eng.playing = true; songSel = 2; }
+        if (shotPage >= 85 && shotPage <= 86) {   // Insert DELAY / ROOM (SOUND-Liste, Grafik rechts)
+            track = 4; page = PG_INS; slot = 1;
+            Pattern& Pi = curP();
+            Pi.p[4][P_ITYP] = (uint8_t)(shotPage == 85 ? INS_DELAY : INS_ROOM);
+            Pi.p[4][P_IP1] = shotPage == 85 ? 50 : 80; Pi.p[4][P_IP2] = shotPage == 85 ? 90 : 60; Pi.p[4][P_IP3] = 70; Pi.p[4][P_IMIX] = 80;
+        }
         if (shotPage == 21) { holdPat = 0; holdTrack = 4; holdStep = 3; aHeld = true; page = 0; track = 4; slot = 0; }
         if (shotPage == 22) { page = PG_FLT; slot = 0; track = 4; animate(); editAt = 1; editSlot = 0; eng.recording = true; }
         if (shotPage == 23) { page = PG_TRG; slot = 6; track = 4; editSlot = 6; editAt = 1; }

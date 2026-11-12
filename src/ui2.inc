@@ -575,7 +575,13 @@ static void drawV2() {
         int p = slotParam(slot);
         if (p >= 0) {
             ParamDef d = paramDef(curP().machine[track] % M_COUNT, p);
-            const char* hp = paramHelp(d.name);
+            const char* hn = d.name;
+            if (p >= P_IP1 && p <= P_IP3) {   // Insert: P1-P3 heissen je nach Typ anders
+                int ity = curP().p[track][P_ITYP];
+                if (ity > 0 && ity < INS_COUNT) hn = INS_PNAMES[ity][p - P_IP1];
+            }
+            const char* hp = paramHelp(hn);
+            if (!hp || !*hp) hp = paramHelp(d.name);
             if (hp && *hp) { char hb[90]; snprintf(hb, sizeof hb, "%.75s", hp); text(x + 4, y + h - 16, hb, C_DIM); }
         }
     }

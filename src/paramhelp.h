@@ -76,7 +76,7 @@ static const ParamHelp PARAM_HELP[] = {
     {"SMPL", "Sample auswählen (X = Explorer)", "Choose sample (X = browser)"}, {"STRT", "Startpunkt im Sample", "Start point in the sample"}, {"END", "Endpunkt (vor dem Start = rückwärts)", "End point (before start = reverse)"},
     {"LOOP", "Sample in Schleife", "Loop the sample"}, {"GAIN", "Pegel", "Level"}, {"TABL", "Wavetable auswählen", "Choose wavetable"}, {"POS", "Position in der Tabelle / im Sample", "Position in table / sample"},
     {"WARP", "Welle verbiegen", "Bend the wave"}, {"P.ENV", "Hüllkurve bewegt die Position", "Envelope moves the position"}, {"SLCS", "Anzahl der Scheiben", "Number of slices"},
-    {"SLIC", "welche Scheibe spielt", "Which slice plays"}, {"SPRY", "Streuung der Körner", "Grain spread"}, {"SIZE", "Größe", "Size"}, {"PTCH", "Tonhöhe", "Pitch"},
+    {"SLIC", "welche Scheibe spielt", "Which slice plays"}, {"SPRY", "Streuung der Körner", "Grain spread"}, {"SIZE", "Größe (Korngröße bzw. Raumgröße)", "Size (grain size or room size)"}, {"PTCH", "Tonhöhe", "Pitch"},
     {"P.SPR", "Tonhöhen-Streuung der Körner", "Pitch spread of the grains"},
     {"D.TIME", "Echo-Zeit im Takt", "Delay time in beats"}, {"D.FBK", "Echo-Wiederholungen", "Delay repeats"}, {"D.TONE", "Echo-Klangfarbe", "Delay tone"}, {"D.PING", "Echo springt links/rechts", "Delay bounces left/right"},
     {"R.SIZE", "Raumgröße des Halls", "Reverb room size"}, {"R.DAMP", "Hall-Dämpfung (dunkler)", "Reverb damping (darker)"}, {"R.PRE", "Verzögerung vor dem Hall", "Delay before the reverb"}, {"R.WIDE", "Stereobreite des Halls", "Reverb stereo width"},
@@ -96,6 +96,9 @@ static const ParamHelp PARAM_HELP[] = {
     {"XMOD", "OSC2 moduliert die Frequenz von OSC1 (metallisch)", "OSC2 modulates the frequency of OSC1 (metallic)"},
     {"RING", "Ringmodulation OSC1 x OSC2 (Glocke)", "Ring modulation OSC1 x OSC2 (bell)"}, {"OCT", "Oktave", "Octave"},
     {"UWAV", "eigene Wavetable (TABL = USER), X = Explorer", "User wavetable (TABL = USER), X = browser"}, {"DRAW", "Wavetable selbst zeichnen (X öffnet den Editor)", "Draw your own wavetable (X opens the editor)"},
+    {"TIME", "Echo-Zeit des Insert-Delays (5-340 ms)", "Delay time of the insert delay (5-340 ms)"},
+    {"DAMP", "Höhendämpfung des Raums (dunkler)", "High damping of the room (darker)"},
+    {"DIFF", "Dichte des Nachhalls", "Density of the tail"},
     {"SND.A", "Anteil an Effekt-Bus A", "Send to effect bus A"}, {"SND.B", "Anteil an Effekt-Bus B", "Send to effect bus B"}, {"SND.C", "Anteil an Effekt-Bus C", "Send to effect bus C"},
 };
 // Effekt-Busse: Erklaerung je Typ und Regler

@@ -205,6 +205,7 @@ void Voice::noteOn(int m, const uint8_t* b, const uint8_t* locks, float velScale
     vel = clampf(P(P_VEL) / 127.f * velScale, 0.f, 1.f);
     note = (float)quantizeNote(P(P_NOTE), scaleVal);
     gate = gateSamples;
+    insTail = 0;
     if (!wasActive || (m != M_SYNTH && m != M_WTBL) || P(P_S7) == 0) curNote = note;
     active = true;
     if (!leg) lfoTrigger();
@@ -704,6 +705,22 @@ void Voice::update(int n, float sr, float bpm) {
     case INS_RING:
         insRate = 20.f * fastExp2(p1 * 7.f) * fastExp2((p2 - 0.5f) / 12.f * 2.f);
         break;
+    case INS_DELAY: {   // kurzes Delay/Slapback im Klangweg der Stimme
+        float ms = 5.f + p1 * p1 * 335.f;                       // 5 - 340 ms, unten fein aufgeloest
+        float mx = (float)(DLY_N - 4) * 1000.f / sr;
+        insDly = fminf(ms, mx) * sr / 1000.f;
+        insDly2 = insDly * (1.f - 0.18f * p3);                  // rechter Abgriff etwas frueher = Breite
+        insFb2 = p2 * 0.92f;
+        insDamp = 1.f - fastExpE(-6.2831853f * (600.f * fastExp2((1.f - p3) * 4.5f)) / sr);   // TONE: Hoehen im Feedback
+    } break;
+    case INS_ROOM: {   // kleiner Raum aus demselben Puffer: Erstreflexionen + gedaempfte Rueckkopplung
+        float ms = 12.f + p1 * p1 * 150.f;                      // 12 - 162 ms Raumgroesse
+        float mx = (float)(DLY_N - 4) * 1000.f / sr;
+        insDly = fminf(ms, mx) * sr / 1000.f;
+        insDly2 = insDly * 0.63f;
+        insFb2 = 0.25f + p3 * 0.55f;
+        insDamp = 1.f - fastExpE(-6.2831853f * (500.f * fastExp2((1.f - p2) * 4.5f)) / sr);
+    } break;
     default: break;
     }
 
@@ -1177,6 +1194,34 @@ void Voice::render(float* L, float* R, float (*S)[32], int n, float sr) {
                 float lv = sin01(insPh) * insP2;
                 wl = s * (1.f - lv); wr = s * (1.f + lv);
             } break;
+            case INS_DELAY: {
+                float a1 = dw - insDly; if (a1 < 0) a1 += DLY_N;
+                float a2 = dw - insDly2; if (a2 < 0) a2 += DLY_N;
+                int i1 = (int)a1, i2 = (int)a2;
+                float yl = db[i1 & (DLY_N - 1)] + (db[(i1 + 1) & (DLY_N - 1)] - db[i1 & (DLY_N - 1)]) * (a1 - i1);
+                float yr = db[i2 & (DLY_N - 1)] + (db[(i2 + 1) & (DLY_N - 1)] - db[i2 & (DLY_N - 1)]) * (a2 - i2);
+                dLp += (yl - dLp) * insDamp;                     // TONE: jede Wiederholung dunkler
+                db[dw] = s + dLp * insFb2;
+                dw = (dw + 1) & (DLY_N - 1);
+                wl = yl; wr = yr;
+            } break;
+            case INS_ROOM: {   // vier Erstreflexionen (links/rechts versetzt) + gedaempfte Rueckkopplung
+                static const float TAP[4] = {0.37f, 0.58f, 0.79f, 1.f};
+                float sl2 = 0, sr3 = 0;
+                for (int k = 0; k < 4; k++) {
+                    float dl = insDly * TAP[k], dr = insDly2 * TAP[3 - k];
+                    float a1 = dw - dl; if (a1 < 0) a1 += DLY_N;
+                    float a2 = dw - dr; if (a2 < 0) a2 += DLY_N;
+                    float g = 1.f - k * 0.2f;
+                    sl2 += db[(int)a1 & (DLY_N - 1)] * g;
+                    sr3 += db[(int)a2 & (DLY_N - 1)] * g;
+                }
+                sl2 *= 0.4f; sr3 *= 0.4f;
+                dLp += ((sl2 + sr3) * 0.5f - dLp) * insDamp;      // DAMP: Hoehen verschwinden im Raum
+                db[dw] = s + dLp * insFb2;
+                dw = (dw + 1) & (DLY_N - 1);
+                wl = sl2; wr = sr3;
+            } break;
             }
             if (st) { float sd = (dryL - dryR) * 0.5f; wl += sd; wr -= sd; }
             sl = dryL + (wl - dryL) * insMix;
@@ -1207,6 +1252,11 @@ void Voice::render(float* L, float* R, float (*S)[32], int n, float sr) {
     default: if (vcaDone()) active = false; break;
     }
     if (vcaFull && vcaDone()) active = false;   // Haltepegel 0 erreicht (auch Drums)
+    if (!active && insMix > 0.001f && (insType == INS_DELAY || insType == INS_ROOM)) {
+        // Delay-/Raumfahne zu Ende klingen lassen: die Stimme rendert dann nur noch den Insert (Eingang ist still)
+        if (bmax > 2e-4f && insTail < (int)(sr * 4.f)) { active = true; insTail += n; }
+        else insTail = 0;
+    }
 }
 
 // ---------------------------------------------------------------- Reverb

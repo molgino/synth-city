@@ -286,6 +286,39 @@ static void insGraph(int gx, int gy, int gw, int gh, Col c) {
         for (int g = 3; g >= 1; g--) disc(bx, cy, 8 + g * 4, dimC(c, 0.2f * (4 - g)));
         disc(bx, cy, 8, c);
     } break;
+    case INS_DELAY: {   // Anschlag + abklingende Wiederholungen auf der Zeitachse
+        float tm = 0.06f + p1 * p1 * 0.5f, fb = p2 * 0.92f;
+        fill(x0, cy, W, 1, C_SEL);
+        float ph = fmodf(t * 0.5f, 1.f);
+        for (int k = 0; k < 7; k++) {
+            float pos = k * tm;
+            if (pos > 1.f) break;
+            float amp = powf(fb, (float)k) * (k ? 0.85f : 1.f);
+            int bx = x0 + (int)(pos * W), bh = (int)(amp * A);
+            if (bh < 1) break;
+            Col cc = dimC(c, 0.35f + 0.65f * (1.f - k * 0.12f));
+            fill(bx, cy - bh, 2, bh, cc); fill(bx, cy, 2, bh / 3, dimC(cc, 0.5f));
+            if (fabsf(ph - pos) < 0.04f) disc(bx + 1, cy - bh - 5, 3, C_PLAY);
+        }
+        textC(gx + gw / 2, gy + gh - 16, TR("ZEIT  RUECKKOPPLUNG  TON", "TIME  FEEDBACK  TONE"), C_DIM);
+    } break;
+    case INS_ROOM: {   // Erstreflexionen: vier Abgriffe, danach dichter Nachhall
+        float sz = 0.15f + p1 * 0.8f, damp = p2;
+        fill(x0, cy, W, 1, C_SEL);
+        static const float TP[4] = {0.37f, 0.58f, 0.79f, 1.f};
+        for (int k = 0; k < 4; k++) {
+            int bx = x0 + (int)(TP[k] * sz * W), bh = (int)((1.f - k * 0.2f) * A * 0.8f);
+            fill(bx, cy - bh, 2, bh, c);
+        }
+        for (int k = 0; k < 40; k++) {   // Nachhall: Punkte werden dichter und leiser
+            float f = 0.2f + 0.8f * (k / 40.f);
+            float rr = fmodf(sinf((float)k * 12.9898f) * 43758.5453f, 1.f); if (rr < 0) rr += 1.f;
+            float pos = sz * (0.4f + f * 2.2f); if (pos > 1.f) continue;
+            float amp = (1.f - f) * (1.f - damp * 0.6f * f);
+            disc(x0 + (int)(pos * W), cy - (int)(rr * amp * A), 2, dimC(c, 0.2f + 0.5f * amp));
+        }
+        textC(gx + gw / 2, gy + gh - 16, TR("GROESSE  DAEMPFUNG  DIFFUSION", "SIZE  DAMPING  DIFFUSION"), C_DIM);
+    } break;
     default: {   // AUS: Signal fliesst ungehindert durch
         fill(x0, cy, W, 2, C_SEL);
         for (int k = 0; k < 6; k++) { float f = fmodf(t * 0.35f + k / 6.f, 1.f); disc(x0 + (int)(f * W), cy, 3, dimC(c, 0.7f)); }

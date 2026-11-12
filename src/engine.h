@@ -105,6 +105,8 @@ struct ADSR {
     }
 };
 
+enum { DLY_N = 16384 };   // Insert-Delay/Room: Puffer je Stimme (2^n, Maske DLY_N-1)
+
 struct Voice {
     int machine = 0;
     bool active = false;
@@ -196,6 +198,11 @@ struct Voice {
     // Insert-Effekt
     float ib[2048];
     int iw = 0;
+    // Delay/Room-Insert: eigener Puffer (371 ms bei 44,1 kHz), nur diese beiden Typen nutzen ihn
+    float db[DLY_N] = {0};
+    int dw = 0;
+    float dLp = 0, dLpR = 0, insDly = 0, insDly2 = 0, insFb2 = 0, insDamp = 1;
+    int insTail = 0;   // Nachlauf, solange die Delay-/Raumfahne noch klingt
     float insPh = 0, insRate = 0, insMix = 0, insP2 = 0, insP3 = 0, insFb = 0;
     float apZL[6] = {0}, apZR[6] = {0}, apA[2] = {0}, phFbL = 0, phFbR = 0, odLp = 0, odLpR = 0, odG = 1, odLvl = 1, odCo = 1;
     int insType = 0;

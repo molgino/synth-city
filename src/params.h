@@ -196,7 +196,7 @@ static const ParamDef COMMON_DEFS[NPARAMS] = {
     {"RATE", K_NUM, 64, 127}, {"SYNC", K_LSYNC, 0, 11}, {"DEST", K_LDEST, 0, NPARAMS}, {"DEPTH", K_BIP, 64, 127},
     {"WAVE", K_LWAV, 0, LW_COUNT - 1}, {"MODE", K_LMODE, 0, 4}, {"PHASE", K_NUM, 0, 127}, {"FADE", K_BIP, 64, 127},
     // INS (Insert-Effekt; Namen von P1-P3 haengen vom Typ ab, siehe INS_PNAMES)
-    {"TYPE", K_INS, 0, 6}, {"P1", K_NUM, 64, 127}, {"P2", K_NUM, 64, 127}, {"P3", K_NUM, 64, 127},
+    {"TYPE", K_INS, 0, 8}, {"P1", K_NUM, 64, 127}, {"P2", K_NUM, 64, 127}, {"P3", K_NUM, 64, 127},
     {"MIX", K_NUM, 64, 127}, {"CRSH", K_NUM, 0, 127}, {"SRR", K_NUM, 0, 127}, {"DRIV", K_NUM, 0, 127},
     // SRC2 (maschinenabhaengig, siehe SRC2_DEFS)
     PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE,
@@ -283,11 +283,15 @@ inline int stepScale(int note, int dir, int sv) {   // naechste Skalennote in Ri
 inline int scaleType(int sv) { return sv > 0 ? (sv - 1) / 12 % NSCALES + 1 : 0; }   // 0 = aus
 inline int scaleCombine(int type, int root) { return type > 0 ? 1 + (root % 12) + 12 * (type - 1) : 0; }
 
-enum InsType { INS_OFF, INS_CHORUS, INS_PHASER, INS_FLANGER, INS_DRIVE, INS_RING, INS_APAN, INS_COUNT };
-static const char* const INS_NAMES[INS_COUNT] = {"OFF", "CHORS", "PHASE", "FLNGR", "DRIVE", "RING", "APAN"};
+enum InsType { INS_OFF, INS_CHORUS, INS_PHASER, INS_FLANGER, INS_DRIVE, INS_RING, INS_APAN, INS_DELAY, INS_ROOM, INS_COUNT };   // neue Typen nur hinten anfuegen
+static const char* const INS_NAMES[INS_COUNT] = {"OFF", "CHORS", "PHASE", "FLNGR", "DRIVE", "RING", "APAN", "DELAY", "ROOM"};
 static const char* const INS_PNAMES[INS_COUNT][3] = {
     {"-", "-", "-"}, {"RATE", "DEPTH", "WIDTH"}, {"RATE", "DEPTH", "FBK"}, {"RATE", "DEPTH", "FBK"},
-    {"GAIN", "TONE", "LEVEL"}, {"FREQ", "FINE", "-"}, {"RATE", "DEPTH", "-"}};
+    {"GAIN", "TONE", "LEVEL"}, {"FREQ", "FINE", "-"}, {"RATE", "DEPTH", "-"},
+    {"TIME", "FBK", "TONE"}, {"SIZE", "DAMP", "DIFF"}};
+static_assert(sizeof(INS_NAMES) / sizeof(*INS_NAMES) == INS_COUNT, "INS_NAMES unvollstaendig");
+static_assert(sizeof(INS_PNAMES) / sizeof(*INS_PNAMES) == INS_COUNT, "INS_PNAMES unvollstaendig");
+static_assert(INS_COUNT - 1 == 8, "INS: Hoechstwert des Reglers TYPE in PARAM_DEFS (INS-Seite) mitziehen");
 
 static const ParamDef SRC_DEFS[M_COUNT][8] = {
     // KICK
@@ -387,7 +391,7 @@ inline bool machineHasSrc35(int m) { return m == M_FM; }   // Klangseiten 3-5 (F
 inline int machineSampleParam(int m) { return (m == M_SAMPLE || m == M_CHOP || m == M_GRAN) ? P_S0 : (m == M_WTBL ? P_X3 : -1); }
 
 // Effekt-Busse A/B/C: TYPE, 5 Regler je nach Typ, FWD (Anteil an den naechsten Bus), LVL (Rueckweg)
-enum BusType { BF_OFF, BF_DELAY, BF_TAPE, BF_REVERB, BF_SPRING, BF_CHORUS, BF_COUNT };
+enum BusType { BF_OFF, BF_DELAY, BF_TAPE, BF_REVERB, BF_SPRING, BF_CHORUS, BF_COUNT };   // neue Typen nur hinten anfuegen
 static const char* const BUS_TYPE_NAMES[BF_COUNT] = {"OFF", "DELAY", "TAPE", "REVERB", "SPRING", "CHORUS"};
 enum { BX_TYPE = 0, BX_P1, BX_P2, BX_P3, BX_P4, BX_P5, BX_FWD, BX_LVL };
 static const ParamDef BUS_DEFS[BF_COUNT][8] = {

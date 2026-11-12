@@ -487,7 +487,7 @@ Seite INS | R2 | Ansicht SOUND>EFFEKTE; Seite INS>FX A
 Seite INS | START | PLAY
 Seite INS | SELECT | MEHR auf; MEHR-Eintrag 0>1
 Seite INS | A lang | Lock-Modus an; Step gehalten; T5 Step 1 0>1; Meldung "LOCK-MODUS STEP 1  (A ODER FERTIG = ENDE)"
-Seite INS | X lang | T5.TYPE 0>6
+Seite INS | X lang | T5.TYPE 0>8
 Seite INS | Y lang | -
 Seite INS | START lang | PLAY
 Seite INS | SELECT lang | -

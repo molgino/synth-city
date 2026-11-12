@@ -852,6 +852,57 @@ static void testLoop() {
 }
 
 // Sampler-Abgriff: eine Spur getrennt mitschreiben, Master bleibt gleich
+static void testInsDelay() {   // Insert DELAY/ROOM: Wiederholung kommt nach der eingestellten Zeit, Fahne klingt aus
+    curTest = "Insert Delay/Room";
+    static float out[44100 * 2];
+    for (int ty = 0; ty < 2; ty++) {
+        static Engine RI[2];
+        Engine& X = RI[ty];
+        X.init(44100); X.stop(); X.audioThreads = 1; X.defaultProject(false); X.proj.bpm = 120;
+        Pattern& P = X.proj.pat[0];
+        Engine::initTrack(P, 0, M_KICK);
+        for (int t = 1; t < NTRACKS; t++) for (int s2 = 0; s2 < NSTEPS; s2++) P.s[t][s2].on = 0;
+        for (int s2 = 0; s2 < NSTEPS; s2++) P.s[0][s2].on = 0;
+        P.s[0][0].on = 1;
+        P.p[0][P_ITYP] = (uint8_t)(ty ? INS_ROOM : INS_DELAY);
+        P.p[0][P_IP1] = ty ? 90 : 60;     // TIME / SIZE
+        P.p[0][P_IP2] = ty ? 40 : 100;    // FBK / DAMP
+        P.p[0][P_IP3] = 64;
+        P.p[0][P_IMIX] = 100;   // nicht ganz nass, damit der Anschlag selbst hoerbar bleibt
+        P.p[0][P_AREL] = 0; P.p[0][P_ASUS] = 0;
+        X.start();
+        for (int i = 0; i < 44100; i += 256) { int n = 44100 - i < 256 ? 44100 - i : 256; X.render(out + i * 2, n); }
+        float e1 = 0, e2 = 0, pk = 0; bool fin = true;
+        for (int i = 0; i < 44100; i++) {
+            float v = fabsf(out[i * 2]) + fabsf(out[i * 2 + 1]);
+            if (!isfinite(out[i * 2]) || !isfinite(out[i * 2 + 1])) fin = false;
+            if (v > pk) pk = v;
+            if (i < 2000) e1 += v; else if (i < 20000) e2 += v;   // Anschlag / danach
+        }
+        const char* nm = ty ? "ROOM" : "DELAY";
+        CHECK(fin, "%s: NaN/Inf im Ausgang", nm);
+        CHECK(pk > 0.01f && pk < 4.f, "%s: Spitze %.3f", nm, pk);
+        CHECK(e2 > e1 * 0.05f, "%s: keine Wiederholungen nach dem Anschlag (%.1f gegen %.1f)", nm, e2, e1);
+        printf("  Insert %-5s Spitze %.2f, Fahne %.0f%% vom Anschlag\n", nm, pk, 100.0 * e2 / (e1 + 1e-9));
+    }
+    {   // Die Fahne ueberlebt das Ende der Huellkurve (Nachlauf), ohne Insert ist nach dem Anschlag Ruhe
+        static Engine RJ[2]; float tail[2] = {0, 0};
+        for (int run = 0; run < 2; run++) {
+            Engine& X = RJ[run];
+            X.init(44100); X.stop(); X.audioThreads = 1; X.defaultProject(false); X.proj.bpm = 120;
+            Pattern& P = X.proj.pat[0];
+            Engine::initTrack(P, 0, M_KICK);
+            for (int t = 0; t < NTRACKS; t++) for (int s2 = 0; s2 < NSTEPS; s2++) P.s[t][s2].on = 0;
+            P.s[0][0].on = 1;
+            if (run) { P.p[0][P_ITYP] = INS_DELAY; P.p[0][P_IP1] = 80; P.p[0][P_IP2] = 110; P.p[0][P_IP3] = 100; P.p[0][P_IMIX] = 127; }
+            X.start();
+            for (int i = 0; i < 44100; i += 256) { int n = 44100 - i < 256 ? 44100 - i : 256; X.render(out + i * 2, n); }
+            for (int i = 22050; i < 44100; i++) tail[run] += fabsf(out[i * 2]) + fabsf(out[i * 2 + 1]);
+        }
+        CHECK(tail[1] > tail[0] + 0.5f, "Delay-Fahne bricht mit der Huellkurve ab (ohne %.3f, mit %.3f)", tail[0], tail[1]);
+    }
+}
+
 static void testCmpRoute() {   // Kompressor-Routing: Spuren mit COMP=AUS gehen am Kompressor vorbei
     curTest = "Kompressor-Routing";
     static float out[3][22050 * 2];
@@ -1185,6 +1236,7 @@ int main(int argc, char** argv) {
     testWarp();
     testTrackTap();
     testCmpRoute();
+    testInsDelay();
     testStereoSample();
     testLoop();
     testPcm24(sdir);
