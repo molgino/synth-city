@@ -267,7 +267,7 @@ const char WEB_SCREEN[] = R"HTML(<!doctype html>
 <link rel="manifest" href="/manifest.json"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="icon" href="/icon-192.png">
 <title>SYNTH CITY – Fernbedienung</title>
 <style>
-:root{--bg:#080612;--panel:#141026;--panel2:#20183a;--line:#3a2f60;--text:#d6eeff;--dim:#8a80b0;--acc:#ff2e88;--cy:#00e0ff;--gr:#2bff9a;--b:clamp(44px,7vmin,64px)}
+:root{--bg:#0e0f12;--panel:#1e2129;--panel2:#30333f;--line:#464b58;--text:#e4e8ee;--dim:#8c94a2;--acc:#ff3c8c;--cy:#68c8e0;--gr:#40d696;--b:clamp(44px,7vmin,64px)}
 *{box-sizing:border-box;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;height:100%;background:linear-gradient(180deg,#080612,#140a2a 60%,#2a0a3a) fixed;color:var(--text);font:14px ui-monospace,Menlo,Consolas,monospace;overflow:hidden}
 #app{height:100%;display:flex;flex-direction:column;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
@@ -299,6 +299,7 @@ canvas{display:block;flex:none;width:320px;height:240px;image-rendering:pixelate
 .mid{display:flex;flex-direction:column;align-items:center;gap:8px}
 .mid .row{display:flex;gap:8px}
 .mid .btn{width:calc(var(--b)*1.5);height:calc(var(--b)*.6);font-size:12px;border-radius:20px}
+.ms{display:none}
 .stk{display:none;grid-template-columns:repeat(3,calc(var(--b)*.6));grid-template-rows:repeat(3,calc(var(--b)*.6));gap:3px;touch-action:none}
 .stk .btn{width:auto;height:auto;font-size:11px;border-radius:8px}
 body.sticks .stk{display:grid}
@@ -312,6 +313,9 @@ kbd{background:var(--panel2);border:1px solid var(--line);border-radius:5px;padd
  .lside{grid-column:1;grid-row:1}.rside{grid-column:3;grid-row:1}
  #scr{grid-column:2;grid-row:1;height:100%;width:100%}
  .mid{flex-direction:row}
+ /* Das Bild nimmt 4:3 der Hoehe, also 133,33vh Breite. Was uebrig bleibt, teilen sich die beiden
+    Balken; daraus die Knopfgroesse (Steuerkreuz = 2,9 x --b), mindestens 40 px fuer den Finger. */
+ :root{--b:clamp(40px,calc((100vw - 133.33vh - 36px)/5.8),72px)}
 }
 @media (max-height:420px){header{padding:2px 8px}h1{font-size:12px}#stat{font-size:10px}.hb{padding:2px 8px}}
 #cvw{position:relative;flex:none;touch-action:none;overflow:hidden;border-radius:6px}
@@ -321,31 +325,60 @@ kbd{background:var(--panel2);border:1px solid var(--line);border-radius:5px;padd
 .rip.hold{border-color:var(--acc);animation:none;opacity:.8}
 @keyframes rip{from{transform:scale(.4);opacity:1}to{transform:scale(1.6);opacity:0}}
 /* Bild-Vollbild: nur das Bild, so gross wie moeglich, schwebende Mini-Leiste */
-body.full header,body.full #ctl,body.full #midL{display:none !important}
-body.full #app{padding:0}body.full #stage{padding:0;gap:0;grid-template-columns:1fr !important;grid-template-rows:minmax(0,1fr) !important}
+body.full header,body.full #midL{display:none !important}
+body.full #app{padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+body.full #stage{padding:0;gap:0;grid-template-columns:1fr !important;grid-template-rows:minmax(0,1fr) !important}
 body.full #scr{grid-column:1 !important;grid-row:1 !important;width:100%;height:100%}
+body.full #ctl{display:none !important}
+/* Querformat-Vollbild: das Bild ist 4:3, der Schirm viel breiter - die Balken links und rechts, die dabei
+   ohnehin frei bleiben, tragen die Bedienung. So ist der Schirm voll genutzt und die Finger liegen
+   nicht auf dem Bild. "Tasten" (Knopf in der Leiste) blendet sie weg, dann ist nur das Bild da. */
+@media (orientation:landscape) and (min-aspect-ratio:13/10){
+ body.full:not(.nopad) #ctl{display:contents !important}
+ body.full:not(.nopad) #stage{grid-template-columns:auto minmax(0,1fr) auto !important;grid-template-rows:minmax(0,1fr) !important;align-items:center}
+ body.full:not(.nopad) #scr{grid-column:2 !important}
+ body.full .side{gap:max(8px,2vh)}
+ /* Mit sichtbarer Bedienung gehoert die Leiste nach unten in den Balken - oben wuerde sie die
+    Ansichten-Reiter im Bild verdecken. Knoepfe etwas groesser, sie werden mit dem Daumen getroffen. */
+ /* SELECT und START als volle Knoepfe in die Balken: linker und rechter Daumen, wie am Geraet.
+    Die Leiste behaelt nur noch die Schalter und steht schmal gestapelt am Rand, damit sie
+    nicht ins Bild ragt (der Balken ist nur halb so breit wie die Leiste in einer Zeile). */
+ body.full:not(.nopad) .ms{display:flex;width:calc(var(--b)*2.3);height:calc(var(--b)*.72);font-size:12px;border-radius:20px}
+ body.full:not(.nopad) #fbar{flex-direction:column;opacity:.8}
+ body.full:not(.nopad) #fbar [data-b],body.full:not(.nopad) #fSide{display:none}
+ body.full:not(.nopad) #fbar .btn{height:32px;font-size:11px;padding:0 10px}
+}
 body.full canvas,body.full #cvw{border-radius:0}body.full canvas{box-shadow:none}
 #fbar{display:none;position:fixed;right:max(6px,env(safe-area-inset-right));top:max(6px,env(safe-area-inset-top));z-index:8;gap:6px;opacity:.55;touch-action:none}
 body.full #fbar{display:flex}#fbar:hover,#fbar:active{opacity:1}
 #fbar .btn{width:auto;height:30px;padding:0 10px;font-size:11px;border-radius:15px;background:#20183acc}
 body.full.fleft #fbar{right:auto;left:max(6px,env(safe-area-inset-left))}
+/* Die Leiste darf NIE ueber dem Bild liegen: oben rechts sitzen dort die Ansichten-Reiter, die waeren
+   dann nicht antippbar. fit() legt sie in den freien Balken neben das Bild; ist dort kein Platz
+   (4:3-Schirm), bleibt nur ein kleiner Griff, der sie auf Tap fuer ein paar Sekunden ausfaehrt. */
+#fbar.mini .btn{display:none}
+#fbar.mini{width:30px;height:30px;border-radius:15px;background:#20283acc;border:1px solid var(--line);
+ align-items:center;justify-content:center;opacity:.5}
+#fbar.mini::after{content:'···';color:var(--dim);font-size:15px;line-height:1}
 body.nopad #ctl{display:none}
 body.nopad #stage{grid-template-columns:1fr !important}
 body.nopad #scr{grid-column:1 !important}
 </style></head><body><div id="app">
 <header><span id="dot"></span><h1>SYNTH CITY</h1><span id="stat">…</span><span class="sp"></span>
 <button class="hb" id="bAud" title="Ton im Browser">🔈 Ton</button><input id="vol" type="range" min="0" max="100" value="80" style="width:70px;display:none"><button class="hb" id="zo" title="Verkleinern (−)">−</button><button class="hb" id="zl" title="Zoom zurücksetzen (0)">100%</button><button class="hb" id="zi" title="Vergrößern (+)">+</button><button class="hb" id="bPad">Tasten</button><button class="hb" id="bSt">Sticks</button><button class="hb" id="bHelp">?</button><button class="hb" id="bFull" title="Nur das Bild, so groß wie möglich (V)">Vollbild</button><button class="hb" id="bFs" title="Browser-Vollbild">⛶</button><a href="/" class="hb" style="text-decoration:none">Dateien</a></header>
-<div id="fbar"><div class="btn" data-b="SELECT">SEL</div><div class="btn" data-b="START">START</div><div class="btn" id="fSide" title="Leiste auf die andere Seite">⇆</div><div class="btn" id="fExit" title="Vollbild beenden (V)">✕</div></div>
+<div id="fbar"><div class="btn" data-b="SELECT">SEL</div><div class="btn" data-b="START">START</div><div class="btn" id="fPad" title="Bedienung an den Seiten ein-/ausblenden">TASTEN</div><div class="btn" id="fSide" title="Leiste auf die andere Seite">⇆</div><div class="btn" id="fExit" title="Vollbild beenden (V)">✕</div></div>
 <div id="stage">
  <div id="scr"><div id="cvw"><canvas id="cv" width="640" height="480" tabindex="0"></canvas><div id="lost"><div><div class="spin"></div><b>Verbindung verloren</b><br><span id="lostT">verbinde neu …</span><br><button id="lostR">Neu laden</button></div></div></div>
   <div class="mid" id="midL"><div class="row"><div class="btn" data-b="SELECT">SELECT</div><div class="btn" data-b="START">START</div></div></div></div>
  <div id="ctl">
   <div class="side lside"><div class="shd"><div class="btn" data-b="L2">L2</div><div class="btn" data-b="L1">L1</div></div>
    <div class="dpad" id="dpad"><i class="u">▲</i><i class="l">◀</i><i class="c"></i><i class="r">▶</i><i class="d">▼</i></div>
-   <div class="stk"><span></span><div class="btn" data-b="LY" data-v="1">↑</div><span></span><div class="btn" data-b="LX" data-v="-1">←</div><span style="align-self:center;text-align:center;color:var(--dim)">L</span><div class="btn" data-b="LX" data-v="1">→</div><span></span><div class="btn" data-b="LY" data-v="-1">↓</div><span></span></div></div>
+   <div class="stk"><span></span><div class="btn" data-b="LY" data-v="1">↑</div><span></span><div class="btn" data-b="LX" data-v="-1">←</div><span style="align-self:center;text-align:center;color:var(--dim)">L</span><div class="btn" data-b="LX" data-v="1">→</div><span></span><div class="btn" data-b="LY" data-v="-1">↓</div><span></span></div>
+   <div class="btn ms" data-b="SELECT">SELECT</div></div>
   <div class="side rside"><div class="shd"><div class="btn" data-b="R1">R1</div><div class="btn" data-b="R2">R2</div></div>
    <div class="face"><div class="btn x" data-b="X">X</div><div class="btn y" data-b="Y">Y</div><div class="btn a" data-b="A">A</div><div class="btn b" data-b="B">B</div></div>
-   <div class="stk"><span></span><div class="btn" data-b="RY" data-v="1">↑</div><span></span><div class="btn" data-b="RX" data-v="-1">←</div><span style="align-self:center;text-align:center;color:var(--dim)">R</span><div class="btn" data-b="RX" data-v="1">→</div><span></span><div class="btn" data-b="RY" data-v="-1">↓</div><span></span></div></div>
+   <div class="stk"><span></span><div class="btn" data-b="RY" data-v="1">↑</div><span></span><div class="btn" data-b="RX" data-v="-1">←</div><span style="align-self:center;text-align:center;color:var(--dim)">R</span><div class="btn" data-b="RX" data-v="1">→</div><span></span><div class="btn" data-b="RY" data-v="-1">↓</div><span></span></div>
+   <div class="btn ms" data-b="START">START</div></div>
  </div>
 </div></div>
 <div id="help"><div><b style="color:#fff">Tastatur</b><br>
@@ -373,7 +406,17 @@ function draw(){if(dirty){cx.putImageData(img,0,0);dirty=false;}pollPad();reques
 requestAnimationFrame(draw);
 // Bild immer ganz sichtbar und so gross wie moeglich (4:3), SELECT/START darunter
 function fit(){const sc=$('scr'),r=sc.getBoundingClientRect(),mh=$('midL').offsetHeight+10;let w=r.width,h=r.height-mh;
- if(w<=0||h<=0)return;if(w/h>4/3)w=h*4/3;else h=w*3/4;w=Math.floor(w);h=Math.floor(h);cv.style.width=w+'px';cv.style.height=h+'px';$('cvw').style.width=w+'px';$('cvw').style.height=h+'px';fw=w;fh=h;applyZoom();}
+ if(w<=0||h<=0)return;if(w/h>4/3)w=h*4/3;else h=w*3/4;w=Math.floor(w);h=Math.floor(h);cv.style.width=w+'px';cv.style.height=h+'px';$('cvw').style.width=w+'px';$('cvw').style.height=h+'px';fw=w;fh=h;applyZoom();placeBar(w);}
+// Die Leiste neben das Bild legen (freier Balken), sonst auf den Griff einklappen
+function placeBar(w){const fb=$('fbar');if(!fb)return;
+ if(!document.body.classList.contains('full')||!document.body.classList.contains('nopad')){
+  fb.classList.remove('mini');fb.style.top='';fb.style.transform='';return;}
+ const gap=Math.floor((innerWidth-w)/2);
+ if(gap>=96){fb.classList.remove('mini');fb.style.top='50%';fb.style.transform='translateY(-50%)';}
+ else{fb.style.top='';fb.style.transform='';if(!fb.dataset.open)fb.classList.add('mini');}}
+$('fbar').addEventListener('pointerdown',e=>{const fb=$('fbar');if(!fb.classList.contains('mini'))return;
+ e.stopPropagation();e.preventDefault();fb.classList.remove('mini');fb.dataset.open='1';
+ clearTimeout(fb._t);fb._t=setTimeout(()=>{delete fb.dataset.open;placeBar(fw);},5000);},true);
 addEventListener('resize',fit);if(window.ResizeObserver)new ResizeObserver(fit).observe($('scr'));setTimeout(fit,0);
 // ---- Verbindung: WebSocket (Bildstrom + Tasten), sonst Abfrage
 let ws=null,wsFails=0,everWs=false,pingT=0,lastRx=performance.now(),lostAt=0,tries=0;
@@ -558,7 +601,9 @@ function pollPad(){const gps=navigator.getGamepads?navigator.getGamepads():[];
   [['LX',0,1],['LY',1,-1],['RX',2,1],['RY',3,-1]].forEach(([n,ai,sg])=>{const a=gp.axes[ai]||0,v=a>0.5?sg:(a<-0.5?-sg:0),k='g'+gp.index+n,o=gpState[k]||0;
    if(v!==o){if(o)release(n,o);if(v)press(n,v);if(v)gpState[k]=v;else delete gpState[k];}});}}
 // ---- Kopfzeile
-$('bPad').onclick=()=>{document.body.classList.toggle('nopad');try{localStorage.nopad=document.body.classList.contains('nopad')?1:'';}catch(e){}setTimeout(fit,30);};
+const togglePad=()=>{document.body.classList.toggle('nopad');try{localStorage.nopad=document.body.classList.contains('nopad')?1:'';}catch(e){}setTimeout(fit,30);};
+$('bPad').onclick=togglePad;
+$('fPad').addEventListener('pointerdown',e=>{e.stopPropagation();e.preventDefault();togglePad();});
 try{if(localStorage.nopad)document.body.classList.add('nopad');}catch(e){}
 $('bHelp').onclick=()=>$('help').classList.add('show');$('help').onclick=()=>$('help').classList.remove('show');
 $('bSt').onclick=()=>{document.body.classList.toggle('sticks');try{localStorage.sticks=document.body.classList.contains('sticks')?1:'';}catch(e){}};
