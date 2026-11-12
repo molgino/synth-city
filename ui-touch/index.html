@@ -187,6 +187,8 @@ body.tui.keys #tGrid,body.tui.keys #tSnd{display:none}
  grid-template-rows:auto minmax(0,1fr);gap:10px}
 body.pick #tPick{display:grid}
 #tPickT{font-size:15px;color:var(--cy)}
+#tPickL.wide{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
+#tPickL.wide .pk{justify-content:flex-start;font-size:13px;padding:0 12px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;display:block;line-height:52px}
 #tPickL{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));grid-auto-rows:minmax(52px,auto);
  gap:8px;overflow-y:auto;overscroll-behavior:contain;align-content:start}
 #tPickL .pk{display:flex;align-items:center;justify-content:center;border-radius:10px;background:var(--panel);
@@ -347,8 +349,9 @@ function tuiRender(m){
   ps.forEach((p,i)=>{const d=pr.children[i];if(!d||d.dataset.drag)return;
    d.querySelector('.nm').textContent=p.n;d.querySelector('.vl').textContent=p.t;
    d.querySelector('.bar').style.width=Math.round(100*p.v/(p.mx||1))+'%';
-   d.classList.toggle('lk',!!p.lk);d.classList.toggle('sel',!!p.opts);
-   if(p.opts)d.querySelector('.bar').style.width='0';});
+   const pick=!!(p.opts||p.slots);
+   d.classList.toggle('lk',!!p.lk);d.classList.toggle('sel',pick);
+   if(pick)d.querySelector('.bar').style.width='0';});
  }
  // Seiten
  const pb=$('tPages');
@@ -360,17 +363,20 @@ function tuiRender(m){
 }
 // Regler ziehen: waagerecht = Wert. Die volle Breite deckt den ganzen Bereich ab; waehrend des Ziehens
 // zeigt die Zeile den eigenen Wert (sonst wuerde das nachziehende Modell darunter springen).
+// Auswahl: opts = Werte 0..max der Reihe nach, slots = ausdrueckliche Paare (Sample-Plaetze)
 function tPickOpen(i){const p=tm.params[i];document.body.classList.add('pick');
  $('tPickT').textContent=p.n;const l=$('tPickL');l.innerHTML='';
- p.opts.forEach((o,v)=>{const b=document.createElement('div');b.className='pk'+(v===p.v?' on':'');b.textContent=o;
-  b.addEventListener('pointerdown',e=>{e.preventDefault();tAct(11,i,v);document.body.classList.remove('pick');},{passive:false});
+ const list=p.slots?p.slots:(p.opts||[]).map((o,v)=>({v,n:o}));
+ l.classList.toggle('wide',!!p.slots);   // Sample-Namen brauchen Platz
+ list.forEach(o=>{const b=document.createElement('div');b.className='pk'+(o.v===p.v?' on':'');b.textContent=o.n;
+  b.addEventListener('pointerdown',e=>{e.preventDefault();tAct(11,i,o.v);document.body.classList.remove('pick');},{passive:false});
   l.appendChild(b);});
  const on=l.querySelector('.pk.on');if(on)setTimeout(()=>on.scrollIntoView({block:'nearest'}),0);}
 $('tPickX').addEventListener('pointerdown',e=>{e.preventDefault();document.body.classList.remove('pick');},{passive:false});
 function tParDrag(d,i){
  let id=null,x0=0,v0=0,mx=127,cur=0;
  d.addEventListener('pointerdown',e=>{if(!tm||!tm.params||!tm.params[i])return;e.preventDefault();
-  if(tm.params[i].opts){tPickOpen(i);return;}   // Auswahlregler: Liste statt Schieber
+  if(tm.params[i].opts||tm.params[i].slots){tPickOpen(i);return;}   // Auswahlregler: Liste statt Schieber
   id=e.pointerId;x0=e.clientX;v0=cur=tm.params[i].v;mx=tm.params[i].mx||1;d.dataset.drag='1';d.classList.add('act');
   try{d.setPointerCapture(id);}catch(err){}},{passive:false});
  d.addEventListener('pointermove',e=>{if(id===null||e.pointerId!==id)return;e.preventDefault();
