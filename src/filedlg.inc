@@ -229,7 +229,8 @@ static void fbListFiles(const char* dir, const char* ext, int idx) {
 }
 static bool ldestValid(int m, int pi) {   // pi = Parameterindex; nur echte Klangparameter als LFO-Ziel
     int k = paramDef(m, pi).kind;
-    return k != K_NONE && k != K_MACH && k != K_TLEN && k != K_TSPD && k != K_LDEST && k != K_EDEST;
+    // NT2-NT4 bleiben erlaubt (ein S&H-LFO darauf gibt wandernde Akkorde), der Stimmen-Modus nicht
+    return k != K_NONE && k != K_MACH && k != K_TLEN && k != K_TSPD && k != K_LDEST && k != K_EDEST && k != K_VMOD;
 }
 static int ldestUiPage(int pi) {   // Spurseite, auf der Parameter pi liegt (-1 = keine)
     for (int u = 0; u < NUI_PAGES; u++) for (int k = 0; k < uiSlots(u); k++) if (uiParam(u, k) == pi) return u;

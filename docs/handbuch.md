@@ -10,17 +10,56 @@ Sie startet als App aus dem Ports-Menü oder auf Wunsch direkt beim Booten statt
 ![Spurseite TRIG: links die 8 Spuren, oben der Signalweg, darunter Grafik, Regler und die 16 Steps](shot:0)
 
 * Beim **ersten Start** ist der Demo-Song **„Neon Nights“** geladen: **START** spielt ihn ab (Song-Modus, 4 Patterns). Jederzeit wieder: SET → „Demo-Song laden“.
-* **Bedienen geht komplett mit Steuerkreuz und Tasten** – die Sticks sind nur Abkürzungen. Überall gilt: **L2/R2 = Seite**, **SELECT antippen = Seitenkarte**, **START = Play/Stop** (beim Spielen halten = **FILL**). Auf Spurseiten: **L1/R1 = Regler**, **X/Y = Wert**.
-* **SELECT antippen** öffnet die **Seitenkarte** mit allen Seiten (Signalweg der Spur, LIVE/Mix/FX, Song/Projekt/Einstellungen). **SELECT halten** zeigt die Tastenhilfe.
+* **Bedienen geht komplett mit Steuerkreuz und Tasten** – die Sticks sind nur Abkürzungen. Überall gilt: **L2/R2 = Ansicht**, **SELECT antippen = MEHR-Menü**, **START = Play/Stop** (beim Spielen halten = **FILL**). In den Listen: **▲▼ = Regler**, **L1/R1 = Spur**, **X/Y = Wert**.
+* **SELECT antippen** öffnet das **MEHR-Menü** (Ansicht wählen, Page/Spur/Sound kopieren, Engine, Speichern). **SELECT halten** zeigt die Tastenhilfe. Am Handy gibt es dafür unten rechts den Knopf **MEHR**.
 * Unten im Bedienfeld steht zu jedem Regler eine kurze Erklärung.
 * Fertige Klänge: Seite PRJ → **PRESET** über Platz 32 hinaus drehen → **Werksklänge** (z. B. „NIGHT DRIVE BASS“, „PUNCH KICK“, „HAZE PAD“) → **P.LADEN**. Ein Werksklang setzt auch die Engine.
 * **Rave & Acid (Werksklänge):** „303 ACID“, „303 SQUARE ACID“, „ACID SCREAMER“, „ACID DEEP“ (Acid-Bässe im 303-Stil), „REESE BASS“, „REESE GROWL“ (Jungle/DnB), „HOOVER“, „HOOVER LEAD“, „RAVE STAB“ (Moll-Akkord auf einer Taste), „DUB CHORD“, „SUPERSAW“, „TRANCE PLUCK“, „WOBBLE BASS“, „JUNGLE SUB“, „HOUSE ORGAN“ (FM).
   * **Acid spielen wie auf der 303:** Die Acid-Presets haben eine kurze Notenlänge (LEN 0.71). **Slide** = einen Trig mit LEN über 1 Step locken – die Note läuft dann zur nächsten hin (GLID bestimmt die Gleitzeit). **Akzent** = höhere Anschlagstärke (VEL-Lock): VELF öffnet dabei das Filter weiter. Am meisten passiert mit FREQ, RESO und auf HÜLLKURVE 2 mit DEPTH1 und DEC – am besten per LFO oder P-Lock bewegen.
 * Vertan? **SELECT + B** macht die letzte Änderung rückgängig (12 Schritte), SET → „Wiederholen“ stellt sie wieder her.
 
-## Oberfläche: Signalweg
+## Die Oberfläche
 
-![Seitenkarte (SELECT antippen): alle Seiten auf einen Blick](shot:25)
+![SEQ: Trig-Werte als Liste, Spuren links, Steps unten](shot:70)
+![SOUND: alle Klang-Regler als Liste in Gruppen; orange = Cutoff-Locks in den Steps](shot:71)
+![MEHR (SELECT): Ansicht wechseln, Steps/Spur/Sound kopieren, Engine, Sound laden](shot:72)
+
+**Immer am selben Platz:** oben Pattern, Tempo und die **Ansichten als Reiter** (in jeder Ansicht, auch in MIX, PRJ …) · links die 8 Spuren mit Pegel und Mute · in der Mitte **eine Liste** · unten die **16 Steps** der Spur · ganz unten eine Leiste, die zeigt, was die Tasten **gerade** tun (auch mit gehaltenem SELECT oder A).
+
+Über der Liste steht fest, in welcher **Gruppe** du bist (auch wenn ihr Kopf weggescrollt ist), rechts daneben die Position: **PAGE 3/4   GRUPPE 4/17**. In SOUND stehen oben **Makros**, also Abkürzungen zu den wichtigsten Reglern; hinter dem Namen steht klein, aus welcher Gruppe der Regler stammt (dort steht derselbe Regler noch einmal). Bei Sample- und Ziel-Reglern zeigt die Zeile rechts den **Namen** statt einer Nummer.
+
+**Ansichten** (L2/R2 im Kreis, 9 statt vorher 24 Seiten):
+
+| Ansicht | Inhalt |
+|---|---|
+| **SEQ** | Trig-Werte, Sequencer, Arpeggiator |
+| **SOUND** | oben Engine + 8 Makros, dann Quelle, Filter, Amp, Insert, Sends, Hüllkurven, LFOs |
+| **EFFEKTE** | Effekt-Bus A, B, C, Kompressor und Master in **einer** Liste (vorher fünf getrennte Seiten) |
+| **MIX** | 8 Kanalzüge mit Pegeln, Mutes und Sends |
+| **LIVE · PROJEKT · SONG · SAMPLER · SET** | eigenständige Werkzeuge im Vollbild |
+
+In SEQ, SOUND und EFFEKTE bleiben Spuren links und Steps unten sichtbar; die anderen fünf brauchen die ganze Fläche. **A setzt auch in SOUND und EFFEKTE einen Trig** der gewählten Spur, du musst also zum Beat-Bauen nicht zurückwechseln.
+
+| Taste | SEQ | SOUND |
+|---|---|---|
+| ▲▼ | Wert wählen | Wert wählen |
+| ◀▶ | Step | Gruppe (Quelle → Filter → Hüllkurve …); in EFFEKTE: Bus A → B → C → Kompressor → Master |
+| L1 / R1 | Spur | Spur |
+| X / Y, rechter Stick | Wert ändern | Wert ändern (ENGINE: X/Y öffnet die Liste) |
+| A | Trig an/aus · halten + X/Y = Lock · lang = Lock-Modus | gleich (Step vorher in SEQ wählen oder im Lock-Modus mit ◀▶) |
+| B | Spur vorhören | Spur vorhören |
+| L2 / R2 | Ansicht | Ansicht |
+| SELECT tippen | **MEHR** | **MEHR** |
+| SELECT + ▲▼ | vorige/nächste Gruppe | vorige/nächste Gruppe |
+| SELECT + X / Y | **Page** kopieren / einfügen | **Sound** kopieren / einfügen |
+| SELECT + ◀▶ · A · B · L1/R1 · START | Pattern · Mute · Rückgängig · 4 Steps · Speichern | gleich |
+
+Hältst du A auf einem Step, gilt SELECT + X / Y für den **Step**. Die **Lock-Spur**: Hat der gewählte Regler Locks, zeigen die Steps sie als orange Balken (Höhe = Wert).
+
+**MEHR** (SELECT): Ansicht direkt wählen · Steps (Page kopieren/einfügen/leeren/anhängen/entfernen, neue Page = Kopie/leer) · Spur (kopieren/einfügen/leeren) · Sound (Engine wählen, laden, speichern, zurücksetzen) · Live-Aufnahme, Tap-Tempo, Rückgängig/Wiederholen, Speichern. L1/R1 springen zum nächsten Abschnitt.
+
+**Bedienweg** (gemessen mit typischen Aufgaben im Selbsttest): 106 Tastendrücke für die 14 Aufgaben, gegenüber 131 in der früheren Kachel-Oberfläche. Besonders kürzer: Cutoff ändern 6 statt 10, Delay-Send 9 statt 14, Attack + Release 13 statt 18. Länger nur: Engine wechseln 9 statt 4 – bewusst, damit sie nicht aus Versehen wechselt und den Klang löscht. Das Bild baut sich in 2,7 statt 3,4 ms auf.
+
 ![Tastenhilfe (SELECT halten)](shot:20)
 
 **Animationen:** Leere Flächen zeigen das echte Audiosignal: Oszilloskop, Spektrum und Takt-Ringe in freien Kacheln, eine Piano-Roll auf TRIG, die Oszillatoren auf der OSC-Seite, fließende Partikel zu den Effekt-Bussen auf SENDS, und je Effekt-Bus eine eigene Animation (Delay-Echos, Tonband-Spulen, Hall-Ringe, schwingende Feder, Chorus-Stimmen). Auch Einstellungen, Song, LIVE und Projekt haben passende Bilder. Jede Regler-Kachel zeigt oben Name und Wert und darunter ein bewegtes Bild des Werts (Hüllkurve, Welle, Oktav-Treppe, Akkord, Arp-Folge, Lautsprecher, Hall-Ringe …).
@@ -48,9 +87,25 @@ Die 8 Spuren liegen auf dem Bildschirm genau so wie die Tasten: **Steuerkreuz �
 | linker Stick ↑/↓ | Tempo ±1 BPM |
 | START | Play / Stop |
 
-## Akkorde (ARP-Seite, MODE = AKKD)
+## Akkorde und Stimmen (TRIG-Seite: NT2–NT4, VOICE)
 
-Im ARP-Modus **AKKD** spielt ein Trig alle Töne des gewählten Akkords (**CHRD**: Oktave, Quinte, Dur, Moll, sus4, Maj7, Min7, Dom7, Dim oder Skala = Terzschichtung der Projektskala) gleichzeitig – bis zu 4 Stimmen pro Spur, mit den Klangeinstellungen der Spur.
+Jede Spur spielt bis zu **4 Töne gleichzeitig**. Es gibt zwei Wege dorthin.
+
+**Freie Akkorde (NT2, NT3, NT4).** Auf der TRIG-Seite stehen in der dritten Reihe drei zusätzliche Noten. `---` heißt aus. Setzt du sie, klingen sie zusammen mit NOTE – frei wählbar, also auch Umkehrungen, weite Lagen oder Quartenschichtungen, die keine Akkordtabelle anbietet. Wie jeder Regler sind sie **pro Step lockbar**: Step halten und den Wert ändern, dann hat dieser eine Step seinen eigenen Akkord. So entsteht eine Akkordfolge in einer einzigen Spur.
+
+**Akkordtypen (ARP-Seite, MODE = AKKD).** Im ARP-Modus **AKKD** spielt ein Trig die Töne des gewählten Akkords (**CHRD**: Oktave, Quinte, Dur, Moll, sus4, Maj7, Min7, Dom7, Dim oder Skala = Terzschichtung der Projektskala). Das ist der schnelle Weg, wenn ein Standardakkord reicht – er folgt der Tonhöhe von NOTE.
+
+Sind beide gesetzt, **gewinnen die freien Noten**. Steht der Arpeggiator auf UP, DOWN, UPDN oder RAND, speisen die freien Noten auch ihn: der Arp spielt dann deine eigenen Töne statt der Tabelle, über OCT Oktaven.
+
+**VOICE** (TRIG-Seite, letzter Regler) bestimmt, wie die Spur mit Stimmen umgeht:
+
+| VOICE | Verhalten |
+|---|---|
+| **POLY** | NT2–NT4 klingen mit (bis 4 Töne). Jeder Trig löst die Hüllkurven neu aus. Grundeinstellung. |
+| **MONO** | Nur ein Ton, Zusatznoten werden ignoriert. Jeder Trig löst neu aus. |
+| **LEGATO** | Wie MONO, aber ein Trig auf einen noch klingenden Ton wechselt **nur die Tonhöhe**: Hüllkurven und LFOs laufen weiter, das Sample springt nicht zurück. Mit GLID (SYNTH/WTBL) gleitet die Tonhöhe. |
+
+LEGATO ist der Unterschied zwischen einer stakkato gestochenen Bassline und einer, die fließt: setze zwei Trigs hintereinander mit LEN auf „halten“, und der zweite bindet an den ersten an. Für Drum-Engines hat VOICE keine Wirkung – die sind immer einstimmig.
 
 ## Klangerzeugung
 
@@ -66,6 +121,8 @@ Im ARP-Modus **AKKD** spielt ein Trig alle Töne des gewählten Akkords (**CHRD*
 | CLAP  | TUNE, DCAY, SPRD (Abstand), RPTS (Anzahl Schläge) |
 | SYNTH | WAV1, WAV2 (SAW/SQR/TRI/SIN), DETN, MIX, SUB, NOIS, PW, GLID. Seite **OSC**: OCT1, OCT2 (±3 Oktaven), LVL1, LVL2 (Pegel je Oszillator), SUB.O (Sub −1/−2 Oktaven), SYNC (Hard-Sync OSC2 → OSC1), XMOD (OSC2 moduliert OSC1), RING (Ringmodulation) |
 | FM    | **4 Operatoren, 8 Algorithmen.** Seite FM: ALGO, FBK (Feedback OP4), VELO (Anschlag → Modulation), PITCH/P.DEC (Tonhöhen-Hüllkurve ±24 Halbtöne), NOIS. Je Operator eine eigene Seite **OPERATOR 1–4**: RAT (0,25–16), FINE (±0,5 für unharmonische Glocken), DETN (±50 Cent), O.LVL (Träger: Lautstärke, Modulator: Helligkeit), O.ATK/O.DEC/O.SUS/O.REL (eigene Hüllkurve) |
+| PERC  | **Perkussion: ein Klangraum statt vier Nachbildungen.** Seite **KÖRPER**: TUNE (Grundton bei NOTE 60 – die Engine folgt der Note, Toms sind also gestimmte Kicks), DCAY, SWEP (Sweep-Tiefe bis 4 Oktaven), S.TIM, **RISE** (Sweep läuft nach oben statt nach unten – das kann keine der klassischen Drum-Engines), **HARM** (unharmonischer Oberton: aus Fell wird Metall), **FOLD** (Wellenfaltung), BODY (Sättigung). Seite **TRANSIENT**: NLVL, N.DEC, N.ATK (0 = Klick, hoch = anschwellend), N.FRQ, N.WID (schmal = metallisch, weit = Rauschteppich), **RPTS** (Wiederholungen = Clap), SPRD, **GRIT** (zufällige Pegelsprünge wie ein Shaker). Mit NT2–NT4 lassen sich gestimmte Perkussions-Akkorde spielen |
+| DRON  | **Drone: stehende Fläche.** Seite **TEILTÖNE**: PART (1–8 Teiltöne), SPRD (Spreizung), BEAT (Schwebung), WAVE, ODD (nur ungerade Teiltöne = hohl), NOIS, DRFT, GLID. Seite **BEWEGUNG**: MRAT/MDEP (sehr langsame innere Bewegung), SHMR (Schimmer eine Oktave höher), SUB, RAND. Mit LEN auf „halten" und VOICE = **LEGATO** läuft die Fläche ohne Neuanschlag weiter |
 | SMPL  | **Stereo** (Stereo-WAVs bleiben stereo), SMPL (Sample-Auswahl), TUNE (±24 Halbtöne), FINE, STRT, END (END < STRT = rückwärts), LOOP, GAIN. Seite **WARP**: Time-Warp (siehe unten) |
 | TOM   | TUNE, DCAY, SWEP (Pitch-Abfall), NOIS (Anschlag), BODY |
 | RIM   | TUNE, DCAY, TONE, CLCK |
@@ -94,7 +151,7 @@ Beim Drehen erscheint der **Engine-Wähler** mit Symbolen für alle 13 Engines.
 | START | speichern als `samples/wavetables/draw-NN.wav` (16 Frames × 2048) und der Spur zuweisen |
 | B | abbrechen (vorige Tabelle bleibt) |
 
-Jede Spur spielt eine Stimme; SYNTH, FM, WTBL und die Sample-Engines spielen im ARP-Modus **AKKD** bis zu 4 Akkordtöne gleichzeitig.
+Spuren mit Tonhöhe (SYNTH, FM, WTBL, Sample-Engines) spielen bis zu 4 Töne gleichzeitig – über die freien Noten NT2–NT4 oder den ARP-Modus **AKKD**, siehe „Akkorde und Stimmen“. Der Regler **VOICE** schaltet auf MONO oder LEGATO um.
 Die Engine gilt pro Spur und Pattern. Wechselst du sie, werden nur die SRC-Regler auf die Grundwerte der neuen Engine gesetzt.
 
 Jede Spur hat diese Seiten:

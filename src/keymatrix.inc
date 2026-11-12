@@ -41,7 +41,7 @@ static void kmReset() {
     cfg = kmCfg; g_lang = 0;
     page = PG_TRG; track = 4; slot = 0; cursor = 0;
     menuOpen = false; menuSel = PG_TRG; pgmOpen = false; pgmSel = 0; pgmAll = false; fbOpen = false; kbOpen = false; confirmOpen = false;
-    sedOpen = false; wteOpen = false; setIn = false; setSel = SI_PATTERN; prjSel = PI_PAT0; prjPat = -1; prjBank = -1; clipFrom = -1;
+    sedOpen = false; wteOpen = false; mrOpen = false; mrSel = 0; v2View = V2_NONE; v2Foc[0] = 1; v2Foc[1] = 2; v2Foc[2] = 1; sndClip.have = false; setIn = false; setSel = SI_PATTERN; prjSel = PI_PAT0; prjPat = -1; prjBank = -1; clipFrom = -1;
     songSel = 0; songCol = 0; songExp = false; expField = 2; mixRow = 0; lockLatch = false; aHeld = false;
     haveClip = false; haveTrigClip = false; pageClipStore = -1; pgClipState = 0; trkClipFrom = -1; mutRnd = 0x1234567u; mutAmt = 1; tmplSel = 0;
     smpSrc = 0; smpChops = 0; smpMode = 0; smpNorm = 1; smpFade = 5; smpDest = 0; smpState = 0; pvOn = false; smpLen = 0; smpStart = smpEnd = 0;
@@ -58,7 +58,7 @@ static void kmReset() {
 struct KmSnap {
     int page, track, slot, cursor, menuOpen, menuSel, pgmOpen, pgmSel, pgmAll, fbOpen, fbMode, fbSel, kbOpen, confirmOpen, confirmAct, sedOpen, wteOpen;
     int setIn, setSel, prjSel, prjPat, songSel, songCol, songExp, mixRow, lockLatch, aHeld, playing, fill, recording, curPat, nextPat, songOn, solo, dj;
-    int haveClip, haveTrigClip, pageClip, pgClip, trkClip, mutAmt, tmplSel, smp[9], expFrom, expTo, usbApply, audioApply, quit;
+    int haveClip, haveTrigClip, pageClip, pgClip, trkClip, mutAmt, tmplSel, smp[9], expFrom, expTo, usbApply, audioApply, quit, v2View, mrOpen, mrSel, sndClip;
 };
 static KmSnap kmTake() {
     KmSnap s; memset(&s, 0, sizeof s);
@@ -69,6 +69,7 @@ static KmSnap kmTake() {
     s.songOn = eng.songOn; for (int t = 0; t < NTRACKS; t++) s.solo |= eng.solo[t] << t; s.dj = (int)(eng.dj * 100);
     s.haveClip = haveClip; s.haveTrigClip = haveTrigClip; s.pageClip = pageClipStore; s.pgClip = pgClipState; s.trkClip = trkClipFrom; s.mutAmt = mutAmt; s.tmplSel = tmplSel;
     int sm[9] = {smpSrc, smpChops, smpMode, smpNorm, smpFade, smpDest, smpState, pvOn, cfg.recPages}; memcpy(s.smp, sm, sizeof sm);
+    s.v2View = v2View; s.mrOpen = mrOpen; s.mrSel = mrSel; s.sndClip = sndClip.have;
     s.expFrom = expFrom; s.expTo = expTo; s.usbApply = usbApplyAt != 0; s.audioApply = audioApplyAt != 0; s.quit = quitReq;
     return s;
 }
@@ -83,6 +84,10 @@ static const char* kmPgName(int p) { return p >= 0 && p < NUI_PAGES ? PAGE_NAMES
 
 static void kmDiff(const KmSnap& a, const KmSnap& b, int pi0) {
     kmN = 0; kmOut[0] = 0; kmItems = 0;
+    if (a.v2View != b.v2View) { static const char* const VN[4] = {"-", "SEQ", "SOUND", "EFFEKTE"}; kmAdd("Ansicht %s>%s", VN[a.v2View + 1], VN[b.v2View + 1]); }
+    if (a.mrOpen != b.mrOpen) kmAdd(b.mrOpen ? "MEHR auf" : "MEHR zu");
+    if (b.mrOpen && a.mrSel != b.mrSel) kmAdd("MEHR-Eintrag %d>%d", a.mrSel, b.mrSel);
+    if (a.sndClip != b.sndClip) kmAdd("Sound-Ablage voll");
     if (a.page != b.page) kmAdd("Seite %s>%s", kmPgName(a.page), kmPgName(b.page));
     if (a.track != b.track) kmAdd("Spur %d>%d", a.track + 1, b.track + 1);
     if (a.slot != b.slot) kmAdd("Regler %d>%d", a.slot + 1, b.slot + 1);
@@ -181,7 +186,7 @@ static void kmRules(const char* where) {
     else if (track < 0 || track >= NTRACKS) snprintf(e, sizeof e, "Spur %d", track);
     else if (slot < 0 || slot >= nSlots()) snprintf(e, sizeof e, "Regler %d von %d", slot, nSlots());
     else if (cursor < 0 || cursor >= NSTEPS) snprintf(e, sizeof e, "Cursor %d", cursor);
-    else if ((int)menuOpen + (int)pgmOpen + (int)fbOpen + (int)kbOpen + (int)sedOpen + (int)wteOpen > 1) snprintf(e, sizeof e, "mehrere Fenster gleichzeitig offen");
+    else if ((int)menuOpen + (int)pgmOpen + (int)fbOpen + (int)kbOpen + (int)sedOpen + (int)wteOpen + (int)mrOpen > 1) snprintf(e, sizeof e, "mehrere Fenster gleichzeitig offen");
     else if (eng.curPat < 0 || eng.curPat >= NPATTERNS || eng.nextPat >= NPATTERNS) snprintf(e, sizeof e, "Pattern %d/%d", eng.curPat, eng.nextPat);
     else for (int t = 0; t < NTRACKS && !e[0]; t++) {
         if (P.len[t] < 1 || P.len[t] > NSTEPS) snprintf(e, sizeof e, "T%d Laenge %d", t + 1, P.len[t]);
@@ -250,6 +255,18 @@ static void kmBuildContexts() {
     kmCtxAdd("TRIG spielt", [](int) { lockA(); eng.start(); unlockA(); simFrame(); }, 0);
     kmCtxAdd("TRIG Spur 32 Steps, Page 2", [](int) { curP().len[track] = 32; cursor = 20; }, 0);
     kmCtxAdd("Seitenkarte offen", [](int) { menuOpen = true; menuSel = PG_TRG; }, 0);
+    // Oberflaeche: jede Taste in SEQ, SOUND (Makros, Filter, Huellkurve), Lock-Modus, MEHR-Menue
+    kmCtxAdd("NEU SEQ", [](int) { page = PG_TRG; slot = 0; simFrame(); }, 0);
+    kmCtxAdd("NEU SEQ Trig auf Step 1", [](int) { curP().s[track][0].on = 1; page = PG_TRG; slot = 0; simFrame(); }, 0);
+    kmCtxAdd("NEU SOUND Makros", [](int) { v2GoView(1); simFrame(); }, 0);
+    kmCtxAdd("NEU SOUND Filter", [](int) { page = PG_FLT; slot = 0; simFrame(); }, 0);
+    kmCtxAdd("NEU SOUND Huellkurve 1", [](int) { page = PG_ENV1; slot = 4; simFrame(); }, 0);
+    kmCtxAdd("NEU SOUND Lock-Modus", [](int) { page = PG_FLT; slot = 0; simFrame(); simDown[BT_A] = true; for (int i = 0; i < 40; i++) simFrame(); simDown[BT_A] = false; simFrame(); simFrame(); }, 0);
+    kmCtxAdd("NEU EFFEKTE Bus A", [](int) { page = PG_FX; slot = 0; simFrame(); }, 0);
+    kmCtxAdd("NEU EFFEKTE Master", [](int) { page = PG_MST; slot = 0; simFrame(); }, 0);
+    kmCtxAdd("NEU MIX", [](int) { page = PG_MIX; simFrame(); }, 0);
+    kmCtxAdd("NEU MEHR offen", [](int) { mrOpen = true; mrSel = 0; }, 0);
+    for (int i = 0; i < MR_COUNT; i++) { char nn[64]; snprintf(nn, sizeof nn, "NEU MEHR Eintrag %d", i); kmCtxAdd(nn, [](int a) { mrOpen = true; mrSel = a; }, i, true); }
     // Ablagen gefuellt: Einfuegen wirklich pruefen
     kmCtxAdd("TRIG mit Trig-Ablage", [](int) { memset(&trigClip, 0, sizeof trigClip); memset(trigClip.lock, NO_LOCK, NPARAMS); trigClip.on = 1; trigClip.lock[P_NOTE] = 48; haveTrigClip = true; cursor = 3; }, 0);
     kmCtxAdd("Seitenkarte mit Seiten-Ablage FILTER1 von T1", [](int) { menuOpen = true; menuSel = PG_FLT; pageClipStore = PG_FLT; pageClipTrack = 0; pageClipMachine = curP().machine[0];
@@ -317,7 +334,7 @@ static void kmCheckSaveLoad(int seed, int step) {
 }
 static void kmCheckUndo(uint32_t& r, int seed, int step) {
     // auf einer Spurseite 1-5 Aenderungen mit Pausen (= je ein Rueckgaengig-Schritt), dann alles zurueck und wieder vor
-    page = PG_TRG; menuOpen = pgmOpen = fbOpen = kbOpen = confirmOpen = sedOpen = wteOpen = false; lockLatch = aHeld = false;
+    v2View = V2_NONE; page = PG_TRG; slot = 0; mrOpen = false; menuOpen = pgmOpen = fbOpen = kbOpen = confirmOpen = sedOpen = wteOpen = false; lockLatch = aHeld = false;
     for (int i = 0; i < 60; i++) simFrame();   // vorherige Aenderungen abschliessen
     int pi = curPi(); Pattern before = eng.proj.pat[pi];
     int n = 1 + (int)(r % 5), done = 0;
@@ -331,6 +348,7 @@ static void kmCheckUndo(uint32_t& r, int seed, int step) {
         default: kmTap(BT_Y); break;
         }
         for (int i = 0; i < 60; i++) simFrame();   // > 0,8 s Pause: eigener Schritt
+        if (getenv("GB_KM_DEBUG")) printf("    Undo-Probe k=%d op=%u page=%d slot=%d view=%d fb=%d pi=%d/%d changed=%d\n", k, r % 4, page, slot, v2View, fbOpen, pi, curPi(), !kmPatEq(prev, eng.proj.pat[pi]));
         if (!kmPatEq(prev, eng.proj.pat[pi])) done++;
     }
     Pattern after = eng.proj.pat[pi]; kmUndoChecks++; kmUndoSteps += done;

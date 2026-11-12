@@ -23,12 +23,13 @@ struct Input {
     Uint32 downSince[BT_COUNT] = {0}, lastRep[BT_COUNT] = {0};
     float ly = 0, ry = 0; // oben = positiv
     float lx = 0, rx = 0; // rechts = positiv
+    unsigned mask = 0;    // Bit je Taste: in diesem Bild schon verbraucht (pressed/repeat liefern false), wird je Bild geleert
 
     void open();
     bool loadMap(const char* path);
     bool saveMap(const char* path);
     void poll(); // einmal pro Frame nach SDL_PollEvent
-    bool pressed(int b) const { return down[b] && !prev[b]; }
+    bool pressed(int b) const { return down[b] && !prev[b] && !(mask >> b & 1); }
     bool released(int b) const { return !down[b] && prev[b]; }
     bool repeat(int b, Uint32 now, Uint32 delay = 280, Uint32 rate = 55);
     Uint32 heldMs(int b, Uint32 now) const { return down[b] ? now - downSince[b] : 0; }

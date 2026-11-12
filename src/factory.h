@@ -20,6 +20,15 @@ static const FSound FACTORY[] = {
     {M_TOM, "SYN TOM", {{P_S0, 40}, {P_S1, 75}, {P_S2, 70}, {P_S3, 20}, {P_S4, 30}, {P_DLY, 30}, {255, 0}}},
     {M_RIM, "RIMSHOT", {{P_S0, 70}, {P_S1, 25}, {P_S2, 80}, {P_S3, 90}, {P_REV, 20}, {255, 0}}},
     {M_SHKR, "SHAKER", {{P_S0, 95}, {P_S1, 35}, {P_S2, 40}, {P_S3, 50}, {P_VOL, 50}, {255, 0}}},
+    // PERC: eine Engine fuer alles - TUNE/DCAY/SWEP formen den Koerper, NLVL/N.FRQ/RPTS das Geraeusch
+    {M_PERC, "PERC KICK", {{P_S0, 30}, {P_S1, 60}, {P_S2, 85}, {P_S3, 35}, {P_S7, 85}, {P_X0, 25}, {P_X1, 10}, {P_X3, 40}, {P_VOL, 108}, {255, 0}}},
+    {M_PERC, "PERC TOM", {{P_S0, 62}, {P_S1, 78}, {P_S2, 40}, {P_S3, 70}, {P_S5, 18}, {P_X0, 30}, {P_X1, 30}, {P_X3, 70}, {P_DLY, 25}, {255, 0}}},
+    {M_PERC, "PERC SNARE", {{P_S0, 58}, {P_S1, 38}, {P_S2, 35}, {P_S3, 25}, {P_X0, 95}, {P_X1, 45}, {P_X3, 85}, {P_X4, 95}, {P_REV, 25}, {255, 0}}},
+    {M_PERC, "PERC CLAP", {{P_S1, 4}, {P_X0, 112}, {P_X1, 42}, {P_X3, 78}, {P_X4, 85}, {P_X5, 3}, {P_X6, 46}, {P_REV, 42}, {255, 0}}},
+    {M_PERC, "METAL HIT", {{P_S0, 92}, {P_S1, 62}, {P_S2, 12}, {P_S5, 118}, {P_S6, 70}, {P_X0, 70}, {P_X1, 52}, {P_X3, 112}, {P_X4, 20}, {P_REV, 50}, {255, 0}}},
+    {M_PERC, "REVERSE HIT", {{P_S0, 55}, {P_S1, 95}, {P_S2, 90}, {P_S3, 105}, {P_S4, 100}, {P_X0, 60}, {P_X1, 95}, {P_X2, 95}, {P_X3, 80}, {P_REV, 55}, {255, 0}}},
+    {M_PERC, "SHAKER FOLD", {{P_S1, 6}, {P_X0, 88}, {P_X1, 26}, {P_X2, 42}, {P_X3, 105}, {P_X4, 60}, {P_X7, 95}, {P_VOL, 70}, {255, 0}}},
+    {M_PERC, "WOOD CLICK", {{P_S0, 86}, {P_S1, 20}, {P_S2, 55}, {P_S3, 10}, {P_S6, 95}, {P_X0, 55}, {P_X1, 8}, {P_X3, 95}, {P_X4, 35}, {255, 0}}},
     // Synths
     {M_SYNTH, "NIGHT DRIVE BASS", {{P_S0, 0}, {P_S1, 1}, {P_S2, 66}, {P_S3, 50}, {P_S4, 90}, {P_FTYP, FT_LP24}, {P_FREQ, 58}, {P_RESO, 45},
                                    {P_FENV, 100}, {P_FDEC, 45}, {P_ADEC, 50}, {P_ASUS, 90}, {P_VOL, 127}, {P_NOTE, 36}}},
@@ -46,6 +55,20 @@ static const FSound FACTORY[] = {
                            {P_AREL, 80}, {P_REV, 70}, {P_LEN, 110}, {255, 0}}},
     {M_WTBL, "DIGITAL PLUCK", {{P_S0, 3}, {P_S1, 30}, {P_S6, 100}, {P_FTYP, FT_LP24}, {P_FREQ, 80}, {P_FENV, 90}, {P_ADEC, 40}, {P_ASUS, 0},
                                {P_DLY, 45}, {P_NOTE, 60}, {P_VOL, 127}, {255, 0}}},
+    // DRONE: stehende Flaechen - LEN lang (halten) und VOICE = LEGATO lassen sie ohne Neuanschlag weiterlaufen
+    {M_DRONE, "DEEP DRONE", {{P_S0, 5}, {P_S1, 42}, {P_S2, 50}, {P_S3, 3}, {P_S4, 30}, {P_S5, 8}, {P_X3, 80},
+                             {P_FTYP, FT_LP24}, {P_FREQ, 54}, {P_AATK, 80}, {P_ASUS, 127}, {P_AREL, 105},
+                             {P_REV, 85}, {P_LEN, 127}, {P_VMOD, VM_LEGATO}, {P_NOTE, 36}, {255, 0}}},
+    {M_DRONE, "GLASS DRONE", {{P_S0, 7}, {P_S1, 95}, {P_S2, 85}, {P_S3, 3}, {P_S4, 120}, {P_S5, 4}, {P_X0, 35}, {P_X1, 70}, {P_X2, 90},
+                              {P_FTYP, FT_LP12}, {P_FREQ, 95}, {P_AATK, 95}, {P_ASUS, 127}, {P_AREL, 110},
+                              {P_REV, 110}, {P_LEN, 127}, {P_VMOD, VM_LEGATO}, {P_NOTE, 60}, {255, 0}}},
+    {M_DRONE, "HOLLOW DRONE", {{P_S0, 4}, {P_S1, 60}, {P_S2, 70}, {P_S3, 2}, {P_S4, 127}, {P_S5, 20}, {P_S6, 90}, {P_X0, 18}, {P_X1, 85},
+                               {P_FTYP, FT_LP24}, {P_FREQ, 72}, {P_RESO, 45}, {P_AATK, 70}, {P_ASUS, 127}, {P_AREL, 100},
+                               {P_REV, 95}, {P_LEN, 127}, {P_VMOD, VM_LEGATO}, {P_NOTE, 48}, {P_VOL, 120}, {255, 0}}},
+    {M_DRONE, "STORM DRONE", {{P_S0, 7}, {P_S1, 110}, {P_S2, 110}, {P_S3, 0}, {P_S4, 64}, {P_S5, 60}, {P_S6, 110},
+                              {P_X0, 10}, {P_X1, 100}, {P_X3, 100}, {P_X4, 100},
+                              {P_FTYP, FT_LP24}, {P_FREQ, 58}, {P_RESO, 40}, {P_AATK, 100}, {P_ASUS, 127}, {P_AREL, 115},
+                              {P_REV, 100}, {P_LEN, 127}, {P_VMOD, VM_LEGATO}, {P_NOTE, 31}, {P_VOL, 120}, {255, 0}}},
     // ---- Rave & Acid (90er): 303-Acid, Reese, Hoover, Stabs, Supersaw, House-Orgel
     // Acid: Ladder-Filter mit hoher Resonanz, kurzer Filter-Decay, GLID = Slide bei ueberlappenden Trigs (LEN > 1 Step), VELF = Akzent
     {M_SYNTH, "303 ACID", {{P_S0, 0}, {P_S3, 0}, {P_FTYP, FT_LADR}, {P_FREQ, 32}, {P_RESO, 108}, {P_FENV, 112}, {P_FDEC, 36},

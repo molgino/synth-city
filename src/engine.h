@@ -115,6 +115,15 @@ struct Voice {
     // Oszillatoren
     float ph1 = 0, ph2 = 0, phs = 0, phM = 0, fbPrev = 0;
     float hph[6] = {0};
+    // PERC: Koerper + Transient (teilt sich penv/denv/nenv/aux mit den klassischen Drums)
+    float pcFold = 0, pcHarm = 0, pcRise = 0, pcSweep = 0, pcNLvl = 0, pcGrit = 0, pcNAtk = 0;
+    int pcRpts = 0, pcLeft = 0, pcTimer = 0, pcIval = 1;
+    bool pcAtkDone = false;   // Rausch-Attack fertig -> ab jetzt faellt die Huellkurve
+    // DRONE: stehende Flaeche aus bis zu 8 verstimmten Partials
+    float drPh[8] = {0}, drRat[8] = {0}, drLvl[8] = {0}, drMov = 0, drSm = 0, drSmT = 0;
+    float drSubPh = 0, drShmPh = 0;   // eigene Phasen (phs/phM gehoeren SYNTH: Sync und Kreuzmodulation)
+    int drN = 0;
+    float drNois = 0, drMovInc = 0, drMovDep = 0, drShmr = 0, drSub = 0, drRand = 0, drWave = 0;
     // Drum-Huellkurven
     float denv = 0, ddco = 0, penv = 0, pco = 0, nenv = 0, nco = 0, cenv = 0, cco = 0;
     int clapLeft = 0, clapTimer = 0, clapInterval = 1; float burst = 0, bco = 0; bool clapTail = false;
@@ -158,6 +167,8 @@ struct Voice {
     inline ADSR& envOf(int e) { return e == 0 ? aenv : (e == 1 ? fenv : env3); }
     float envVal(int e);   // aktueller Wert mit Kurvenform
     bool vcaDone();
+    // Die Stimme wird noch gehalten (kein Note-Off, nicht im Ausklang) - nur dann darf Legato anbinden
+    bool held() const { return vcaFull ? (aenv.st != 0 && aenv.st != 4) : (gateEnv.st != 0 && gateEnv.st != 4); }
     float stepSec = 0.125f;   // Laenge eines 16tels (fuer synchrone LFOs)
     float hold = 0; int holdC = 0;
     float glideCo = 0;
@@ -213,9 +224,12 @@ struct Voice {
     void lfoTrigger();
     void lfoStep(int k, int n, float sr);
     void lfoAdvance(int n, float sr);
-    void noteOn(int machine, const uint8_t* base, const uint8_t* locks, float velScale, int gateSamples, float sr);
+    // legato: ein Trig auf eine noch klingende Stimme wechselt nur die Tonhoehe (Huellkurven/LFOs laufen weiter)
+    void noteOn(int machine, const uint8_t* base, const uint8_t* locks, float velScale, int gateSamples, float sr, bool legato = false);
     void noteOff() { aenv.off(); fenv.off(); env3.off(); gateEnv.off(); for (int k = 0; k < 4; k++) if (fmSt[k]) fmSt[k] = 3; }
-    bool gated() const { return machine == M_SYNTH || machine == M_FM || machine == M_WTBL || machine == M_GRAN || (machine == M_SAMPLE && P(P_S5)); }
+    // Engines, die ohne Note-Off endlos weiterklingen wuerden (Stop/neuer Trig muss sie loslassen)
+    bool gated() const { return machine == M_SYNTH || machine == M_FM || machine == M_WTBL || machine == M_GRAN
+                             || machine == M_DRONE || (machine == M_SAMPLE && P(P_S5)); }
     void update(int n, float sr, float bpm);
     void render(float* L, float* R, float (*S)[32], int n, float sr);   // S = Sends an Bus A/B/C
     template <bool RIGHT> inline float filter1t(float x);
@@ -320,9 +334,10 @@ private:
     struct Retrig { int left = 0; int interval = 0; int timer = 0; float vel = 1, fade = 0; uint8_t lk[NPARAMS]; } rt[NTRACKS];
     // Arpeggiator je Spur: spielt waehrend der Trig-Laenge die Akkordtoene
     struct Arp { int left = 0; int interval = 0; int timer = 0; int idx = 0, n = 0, mode = 0, gate = 0; float vel = 1, acc = 0;
+                 bool legato = false;   // Spur steht auf LEGATO: der Arp bindet die Toene
                  uint8_t notes[48]; uint8_t lk[NPARAMS]; Rng rng; } ar[NTRACKS];
     void arpFire(int t);
-    void playNote(int t, const uint8_t* lk, float velScale, int gs, bool toMidi);
+    void playNote(int t, const uint8_t* lk, float velScale, int gs, bool toMidi, bool legato = false);
     SVF djL, djR;
     float cEnv = 0;
     Rng rng;

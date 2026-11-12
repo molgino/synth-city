@@ -227,6 +227,7 @@ static void simReset() {
     simLX = simLY = simRX = simRY = 0;
     for (int i = 0; i < 6; i++) simFrame();
     page = PG_TRG; track = 0; slot = 0; cursor = 0; menuOpen = false; confirmOpen = false; aHeld = false; lockLatch = false;
+    mrOpen = false; pgmOpen = false;   // Fenster der Oberflaeche: ein offenes MEHR-Menue faengt sonst alle Tasten ab
     eng.curPat = 0; eng.nextPat = -1; eng.songOn = false;
     for (int i = 0; i < 4; i++) simFrame();
     simKeys = 0;
@@ -245,29 +246,45 @@ static void caseCount(bool ok) {
 #define UCHECK(c, ...) do { if (c) { uiPass++; caseCount(true); } else { uiFail++; caseCount(false); printf("  FEHLER [%s] Zeile %d: ", uiCase, __LINE__); printf(__VA_ARGS__); printf("\n"); } } while (0)
 
 // Weg zur Seite: in derselben Gruppe mit L2/R2, sonst ueber die Seitenkarte (SELECT, Steuerkreuz, A)
-static void goPage(int target) {
-    for (int guard = 0; guard < 24 && page != target; guard++) {
-        const int *r1, *r2; int n1, n2;
-        pageRing(page, r1, n1); pageRing(target, r2, n2);
-        if (r1 == r2) {
-            int ci = 0, ti = 0;
-            for (int i = 0; i < n1; i++) { if (r1[i] == page) ci = i; if (r1[i] == target) ti = i; }
-            int fw = (ti - ci + n1) % n1;
-            tap(fw <= n1 - fw ? BT_R2 : BT_L2);   // kuerzerer Weg im Ring
-        } else {
-            tap(BT_SELECT);
-            int tr, tc, r, c; mapPos(target, tr, tc);
-            for (int k = 0; k < 6; k++) { mapPos(menuSel, r, c); if (r == tr) break; tap(r < tr ? BT_DOWN : BT_UP); }
-            for (int k = 0; k < 8 && menuSel != target; k++) { mapPos(menuSel, r, c); tap(c < tc ? BT_RIGHT : BT_LEFT); }
-            tap(BT_A);
-        }
+// Die Oberflaeche: Ansicht per L2/R2 (Ring V2_RING), darin die Liste per Steuerkreuz hoch/runter.
+// Die Liste beginnt mit Makros, die auf dieselbe Seite zeigen - deshalb ueber v2FindItem2 den
+// echten Gruppeneintrag ansteuern und nicht einfach bis "page == target" tippen.
+static void goView(int target) {   // Ansicht, in der die Zielseite liegt
+    simFrame();
+    int want = v2RingOfPage(target);   // 0 SEQ, 1 SOUND, 2 EFFEKTE, ab 3 eigene Ansicht
+    for (int g = 0; g < V2_RING_N * 2; g++) {
+        if (want >= 3 ? page == target : v2View == want) return;
+        tap(BT_R2);
     }
 }
-static void goSlot(int target) {   // linker Stick: je Antippen ein Feld
-    int guard = 0;
-    while (slot / 4 != target / 4 && guard++ < 40) flickL(0, slot / 4 < target / 4 ? -1 : 1);
-    while (slot % 4 != target % 4 && guard++ < 80) flickL(slot % 4 < target % 4 ? 1 : -1, 0);
-    if (guard >= 40) { printf("  goSlot(%d) haengt in '%s' (Seite %d, Slot %d, Explorer %d)\n", target, uiCase, page, slot, (int)fbOpen); fflush(stdout); }
+static void goItem(int pg, int k) {   // Listeneintrag (Seite, Regler) ansteuern
+    if (!v2Active()) return;
+    for (int g = 0; g < 240; g++) {
+        int want = v2FindAny(pg, k);
+        if (want < 0) return;           // Regler gibt es in dieser Liste nicht
+        int cur = v2Foc[v2View];
+        if (cur == want) return;        // Eintrag erreicht (v2Apply setzt page/slot)
+        tap(cur < want ? BT_DOWN : BT_UP);
+    }
+}
+static void goPage(int target) {
+    goView(target);
+    if (!v2Active()) { if (page != target) { printf("  goPage(%d) haengt in '%s' (Seite %d)\n", target, uiCase, page); fflush(stdout); } return; }
+    goItem(target, 0);
+    for (int k = 1; k < 12 && page != target; k++) goItem(target, k);   // Regler 0 kann leer sein
+    if (page != target) { printf("  goPage(%d) haengt in '%s' (Seite %d)\n", target, uiCase, page); fflush(stdout); }
+}
+static void goSlot(int target) {
+    if (!v2Active()) return;
+    int pg = page;
+    goItem(pg, target);
+    if (slot != target) { printf("  goSlot(%d) haengt in '%s' (Seite %d, Regler %d)\n", target, uiCase, page, slot); fflush(stdout); }
+}
+static void moreRun(int entry) {   // MEHR-Menue (SELECT): Eintrag waehlen und ausfuehren
+    simFrame();
+    if (!mrOpen) tap(BT_SELECT);
+    mrSel = entry; simFrame();
+    tap(BT_A);
 }
 static void goPrj(int target) {   // PRJ-Seite: Steuerkreuz bis zum Feld
     for (int guard = 0; guard < 60 && prjSel != target; guard++) {
@@ -276,7 +293,11 @@ static void goPrj(int target) {   // PRJ-Seite: Steuerkreuz bis zum Feld
     }
     if (prjSel != target) { printf("  goPrj(%d) haengt in '%s' (bei %d)\n", target, uiCase, prjSel); fflush(stdout); }
 }
-static void goTrack(int t) { for (int g = 0; track != t && g < 20; g++) tap(track < t ? BT_DOWN : BT_UP); }   // Grenzen: ein Test darf nie haengen
+static void goTrack(int t) {   // Spurseiten: Spur mit L1/R1, sonst Steuerkreuz   // Grenzen: ein Test darf nie haengen
+    simFrame();
+    bool v2 = trackPage(page);
+    for (int g = 0; track != t && g < 20; g++) tap(track < t ? (v2 ? BT_R1 : BT_DOWN) : (v2 ? BT_L1 : BT_UP));
+}
 static void goStep(int s) { for (int g = 0; cursor != s && g < 300; g++) tap(cursor < s ? BT_RIGHT : BT_LEFT); }
 
 static void uiScenarios() {
@@ -287,21 +308,20 @@ static void uiScenarios() {
     tap(BT_A); UCHECK(curP().s[0][0].on == 0, "A loescht den Trig nicht");
 
     uiCase = "Navigation";
-    simReset();
-    tap(BT_RIGHT); tap(BT_RIGHT); tap(BT_DOWN);
-    UCHECK(cursor == 2 && track == 1, "Cursor %d Spur %d statt 2/1", cursor, track);
-    tap(BT_R2); UCHECK(page == PG_SEQ, "R2: Modulationsreihe -> SEQ erwartet (Seite %d)", page);
-    tap(BT_L2); UCHECK(page == PG_TRG, "L2 kehrt nicht zurueck (Seite %d)", page);
-    tap(BT_R1); UCHECK(slot == 1, "R1: Regler 2 erwartet (Regler %d)", slot + 1);
-    tap(BT_L1); UCHECK(slot == 0, "L1: Regler 1 erwartet (Regler %d)", slot + 1);
-    tap(BT_L2); UCHECK(page == PG_LFO3, "L2 von TRIG: Ring -> LFO3 erwartet (Seite %d)", page);
-    tap(BT_SELECT); UCHECK(menuOpen, "SELECT oeffnet die Seitenkarte nicht");
-    tap(BT_UP); tap(BT_UP);   // LFO3 (unterste Zeile Modulation) -> Klangweg -> Quelle
-    { int r, c; mapPos(menuSel, r, c); UCHECK(r == 3, "Karte: Steuerkreuz hoch erreicht die Quell-Zeile nicht (Zeile %d)", r); }
-    tap(BT_A); UCHECK(!menuOpen && trackPage(page), "Karte: A oeffnet keine Spurseite");
-    page = PG_TRG; slot = 0; simWait(32);
-    flickL(1, 0); UCHECK(slot == 1, "Linker Stick: Kachel %d statt 1", slot);
-    flickL(0, -1); UCHECK(slot == 5, "Linker Stick runter: Kachel %d statt 5", slot);
+    simReset(); simFrame();
+    tap(BT_RIGHT); tap(BT_RIGHT);        // SEQ: Steuerkreuz links/rechts = Step
+    UCHECK(cursor == 2, "Cursor %d statt 2", cursor);
+    tap(BT_R1); UCHECK(track == 1, "R1 waehlt die Spur nicht (%d)", track);
+    tap(BT_L1); UCHECK(track == 0, "L1 kehrt nicht zur Spur 1 zurueck (%d)", track);
+    tap(BT_DOWN); UCHECK(slot == 1 && page == PG_TRG, "RUNTER: naechster Regler erwartet (Seite %d, Regler %d)", page, slot + 1);
+    tap(BT_UP); UCHECK(slot == 0, "HOCH: erster Regler erwartet (Regler %d)", slot + 1);
+    tap(BT_R2); UCHECK(v2View == V2_SOUND, "R2: Ansicht SOUND erwartet (%d)", v2View);
+    tap(BT_R2); UCHECK(v2View == V2_FX, "R2: Ansicht EFFEKTE erwartet (%d)", v2View);
+    tap(BT_L2); tap(BT_L2); UCHECK(v2View == V2_SEQ, "2x L2: zurueck zu SEQ (%d)", v2View);
+    tap(BT_SELECT); UCHECK(mrOpen, "SELECT oeffnet das MEHR-Menue nicht");
+    tap(BT_B); UCHECK(!mrOpen, "B schliesst das MEHR-Menue nicht");
+    goPage(PG_FLT); UCHECK(page == PG_FLT, "FILTER-Gruppe nicht erreichbar (Seite %d)", page);
+    goPage(PG_TRG); UCHECK(page == PG_TRG, "zurueck zu TRIG nicht moeglich (Seite %d)", page);
 
     uiCase = "Wert aendern";
     simReset(); goPage(PG_FLT); goSlot(0);
@@ -310,8 +330,9 @@ static void uiScenarios() {
     stickR(1.f, 400); UCHECK(curP().p[0][P_FREQ] > f0 - 1, "rechter Stick hebt FREQ nicht");
 
     uiCase = "P-Lock";
-    simReset(); goPage(PG_FLT); goSlot(0);
-    goStep(4);
+    simReset(); simFrame();
+    goStep(4);                 // Step in SEQ waehlen (dort liegt das Steuerkreuz auf den Steps)
+    goPage(PG_FLT); goSlot(0);
     curP().s[0][4].on = 0; memset(curP().s[0][4].lock, NO_LOCK, NPARAMS);
     holdDown(BT_A); tap(BT_Y); release(BT_A);
     UCHECK(curP().s[0][4].on == 1 && curP().s[0][4].lock[P_FREQ] != NO_LOCK, "A halten + Y: kein Lock (on=%d)", curP().s[0][4].on);
@@ -326,7 +347,7 @@ static void uiScenarios() {
     UCHECK(lockLatch, "A lang halten rastet den Lock-Modus nicht ein");
     tap(BT_X); tap(BT_RIGHT);
     UCHECK(cursor == 1 && lockLatch, "im Lock-Modus: Rechts -> Step %d", cursor);
-    tap(BT_R1); UCHECK(lockLatch && slot == 1, "im Lock-Modus: R1 waehlt keinen Regler (Regler %d)", slot + 1);
+    tap(BT_DOWN); UCHECK(lockLatch && slot == 1, "im Lock-Modus: RUNTER waehlt keinen Regler (Regler %d)", slot + 1);
     tap(BT_R2); UCHECK(lockLatch && page != PG_FLT, "im Lock-Modus: R2 wechselt die Seite nicht");
     goPage(PG_SRC); UCHECK(lockLatch && page == PG_SRC, "im Lock-Modus: Klangseite nicht erreichbar (Seite %d)", page);
     tap(BT_X); UCHECK(holdS().lock[P_S0 + slot] != NO_LOCK || slot > 7, "im Lock-Modus: Lock auf der Klangseite fehlt");
@@ -354,12 +375,12 @@ static void uiScenarios() {
     tap(BT_START); UCHECK(eng.playing, "START spielt nicht");
     tap(BT_START); UCHECK(!eng.playing, "START stoppt nicht");
 
-    uiCase = "Seitenmenue";
-    simReset();
-    tap(BT_SELECT); UCHECK(menuOpen, "SELECT antippen oeffnet kein Menue");
+    uiCase = "MEHR-Menue";
+    simReset(); simFrame();
+    tap(BT_SELECT); UCHECK(mrOpen, "SELECT antippen oeffnet kein Menue");
     tap(BT_B); tap(BT_SELECT);
-    if (menuOpen) { tap(BT_B); }
-    UCHECK(!menuOpen, "Menue laesst sich nicht schliessen");
+    if (mrOpen) { tap(BT_B); }
+    UCHECK(!mrOpen, "Menue laesst sich nicht schliessen");
 
     uiCase = "Song-Seite verlassen";
     simReset(); page = PG_SONG; simWait(50);
@@ -375,10 +396,10 @@ static void uiScenarios() {
         UCHECK(page == PG_SRC3 && !strcmp(pageLong(page), "OPERATOR 2"), "FM: Operator-2-Seite nicht erreichbar (Seite %d)", page);
         slot = OP_LVL; int l0 = curP().p[5][FM_OPB[1] + OP_LVL];
         tap(BT_X); UCHECK(curP().p[5][FM_OPB[1] + OP_LVL] == l0 + 1, "FM: X aendert O.LVL nicht");
-        tap(BT_R1); UCHECK(slot == OP_ATK, "FM: R1 -> O.ATK erwartet (Regler %d)", slot + 1);
+        tap(BT_DOWN); UCHECK(slot == OP_ATK, "FM: RUNTER -> O.ATK erwartet (Regler %d)", slot + 1);
         goPage(PG_SRC5); UCHECK(page == PG_SRC5, "FM: Operator 4 nicht erreichbar");
         lockA(); Engine::setMachine(curP(), 5, M_KICK); unlockA(); simWait(2);
-        UCHECK(page != PG_SRC5 && !pageAvail(PG_SRC3), "Operator-Seiten bei KICK noch sichtbar");
+        simFrame(); UCHECK(!pageAvail(PG_SRC3) && !v2HasPage(PG_SRC3), "Operator-Seiten bei KICK noch in der Liste");
         lockA(); Engine::setMachine(curP(), 5, M_FM); unlockA();
     }
 
@@ -543,35 +564,33 @@ static void uiScenarios() {
     simReset(); goPage(PG_SEQ); combo(BT_SELECT, BT_R1); UCHECK(cursor == 4, "SELECT+R1: Step %d statt 5", cursor + 1);
     combo(BT_SELECT, BT_L1); UCHECK(cursor == 0, "SELECT+L1: Step %d statt 1", cursor + 1);
 
-    uiCase = "PAGE-Menue";
+    uiCase = "PAGE-Menue (im MEHR-Menue)";
     {
         simReset(); goPage(PG_TRG);
         int keepNew = cfg.newPage; cfg.newPage = 1;
         Pattern& P = curP(); P.len[0] = 16; P.s[0][3].on = 1; P.s[0][3].lock[P_NOTE] = 50;
-        combo(BT_SELECT, BT_L1); UCHECK(pgmOpen, "SELECT+L1 oeffnet das PAGE-Menue nicht");
-        tap(BT_A); UCHECK(!pgmOpen && pgClipState == 1, "Page kopieren: Zustand %d", pgClipState);
-        combo(BT_SELECT, BT_R1); pgmSel = PM_ADD; tap(BT_A);
+        tap(BT_SELECT); UCHECK(mrOpen, "SELECT oeffnet das MEHR-Menue nicht");
+        mrSel = MR_PCOPY; tap(BT_A); UCHECK(!mrOpen && pgClipState == 1, "Page kopieren: Zustand %d", pgClipState);
+        moreRun(MR_PADD);
         UCHECK(P.len[0] == 32 && P.s[0][19].on == 1 && P.s[0][19].lock[P_NOTE] == 50 && cursor >= 16, "Page anhaengen (Kopie): Laenge %d, Step 20 %d, Cursor %d", P.len[0], P.s[0][19].on, cursor);
-        combo(BT_SELECT, BT_L1); pgmSel = PM_CLEAR; tap(BT_A);
+        moreRun(MR_PCLEAR);
         UCHECK(P.s[0][19].on == 0 && P.s[0][3].on == 1, "Page leeren falsch");
-        combo(BT_SELECT, BT_L1); pgmSel = PM_PASTE; tap(BT_A);
+        moreRun(MR_PPASTE);
         UCHECK(P.s[0][19].on == 1 && P.s[0][19].lock[P_NOTE] == 50, "Page einfuegen falsch");
-        combo(BT_SELECT, BT_L1); pgmSel = PM_NEW; tap(BT_X); UCHECK(cfg.newPage == 0 && pgmOpen, "NEUE PAGE nicht umschaltbar");
-        pgmSel = PM_ADD; tap(BT_A); UCHECK(P.len[0] == 48 && P.s[0][35].on == 0, "Page anhaengen (leer) falsch");
-        combo(BT_SELECT, BT_L1); pgmSel = PM_DEL; tap(BT_A); UCHECK(P.len[0] == 32, "Letzte Page entfernen: %d", P.len[0]);
-        combo(BT_SELECT, BT_L1); tap(BT_B); UCHECK(!pgmOpen, "B schliesst das PAGE-Menue nicht");
-        // Handy-App/Touch: Page-Leiste antippen oeffnet das Menue, Zeile antippen fuehrt aus, daneben schliesst
-        simFrame(); tapAt(58, 427); UCHECK(pgmOpen, "Antippen von PAGE (unten links) oeffnet das PAGE-Menue nicht");
-        { int nw = cfg.newPage; int w = 400, rh = 26, h = 64 + PM_COUNT * rh + 30, x0 = (640 - w) / 2, y0 = (480 - h) / 2 - 10;
-          tapAt(x0 + w / 2, y0 + 50 + PM_NEW * rh + 8); UCHECK(cfg.newPage == !nw && pgmOpen, "NEUE PAGE per Antippen nicht umgeschaltet");
-          cfg.newPage = nw; tapAt(10, 10); UCHECK(!pgmOpen, "Antippen neben das PAGE-Menue schliesst es nicht"); }
+        moreRun(MR_PNEW); UCHECK(cfg.newPage == 0, "NEUE PAGE nicht umschaltbar");
+        moreRun(MR_PADD); UCHECK(P.len[0] == 48 && P.s[0][35].on == 0, "Page anhaengen (leer) falsch");
+        moreRun(MR_PDEL); UCHECK(P.len[0] == 32, "Letzte Page entfernen: %d", P.len[0]);
+        tap(BT_SELECT); tap(BT_B); UCHECK(!mrOpen, "B schliesst das MEHR-Menue nicht");
+        // Handy-App/Touch: MEHR antippen oeffnet das Menue, Zeile antippen fuehrt aus
+        simFrame(); tapAt(610, 462); UCHECK(mrOpen, "Antippen von MEHR oeffnet das Menue nicht");
+        tap(BT_B);
         // SET: PAGE-Menue und NEUE PAGE auch in den Einstellungen (Bereich SPUR)
         { int nw = cfg.newPage; setChange(SI_NEWPAGE, 1); UCHECK(cfg.newPage == !nw, "SET: Neue Page nicht umschaltbar"); cfg.newPage = nw;
           page = PG_SYS; setAction(SI_PAGEMENU); UCHECK(pgmOpen && page == PG_TRG, "SET: PAGE-Menue oeffnen geht nicht"); tap(BT_B); }
-        combo(BT_SELECT, BT_L1); pgmSel = PM_TCOPY; tap(BT_A);
-        goTrack(2); goPage(PG_TRG); combo(BT_SELECT, BT_L1); pgmSel = PM_TPASTE; tap(BT_A);
+        moreRun(MR_TCOPY);
+        goTrack(2); goPage(PG_TRG); moreRun(MR_TPASTE);
         UCHECK(P.machine[2] == P.machine[0] && P.len[2] == P.len[0] && P.s[2][19].on == 1 && P.s[2][19].lock[P_NOTE] == 50, "Spur einfuegen falsch");
-        combo(BT_SELECT, BT_L1); pgmSel = PM_TCLEAR; tap(BT_A);
+        moreRun(MR_TCLEAR);
         UCHECK(P.s[2][19].on == 0 && P.s[2][3].on == 0 && P.machine[2] == P.machine[0], "Spur leeren falsch");
         lockA(); Engine::initTrack(P, 2, M_HAT); P.machine[2] = M_HAT; P.len[2] = 16; unlockA();
         cfg.newPage = 1; P.len[1] = 16; P.s[1][2].on = 1; P.s[1][18].on = 0;   // Verlaengern ueber LEN: Kopie
@@ -930,42 +949,145 @@ static void uiScenarios() {
 
 // Bedienweg: Tastenzahl je typischer Aufgabe (je kleiner, desto schneller). Startpunkt: TRIG-Seite, Spur 1, Step 1.
 struct Task { const char* name; int keys; int steps; };
-static void uiTasks() {
+
+// ---- Oberflaeche: Szenarien + Bedienweg
+static int v2FindItem(int pg, int k) { for (int i = 0; i < v2N; i++) if (!v2It[i].hdr && v2It[i].pg == pg && v2It[i].k == k) return i; return -1; }
+static int v2GroupOf(int i) { while (i > 0 && !v2It[i].hdr) i--; return i; }
+static void v2GoTo(int view, int pg, int k) {   // wie ein Mensch: L2/R2 zur Ansicht, Gruppe springen (SOUND <>, SEQ SELECT+^v), dann ^v
+    for (int g = 0; g < 4 && v2View != view; g++) tap(view == V2_SOUND ? BT_R2 : BT_L2);
+    v2Build(v2View);
+    int t = -1; for (int i = (view == V2_SOUND ? 10 : 0); i < v2N && t < 0; i++) if (!v2It[i].hdr && v2It[i].pg == pg && v2It[i].k == k) t = i;   // Gruppe, nicht Makro
+    if (t < 0) t = v2FindItem(pg, k);
+    if (t < 0) return;
+    int tg = v2GroupOf(t);
+    int mac = view == V2_SOUND ? v2FindItem(pg, k) : -1;   // Makro oben ist evtl. naeher
+    if (mac >= 0 && mac < 10 && mac != t) {
+        int dm = abs(mac - v2Foc[v2View]);
+        if (dm <= 4 && v2GroupOf(v2Foc[v2View]) == 0) { t = mac; tg = 0; }
+    }
+    for (int g = 0; g < 30 && v2GroupOf(v2Foc[v2View]) != tg; g++) {
+        int cg = v2GroupOf(v2Foc[v2View]);
+        bool fwd = (tg > cg && tg - cg < v2N / 2) || (tg < cg && cg - tg > v2N / 2);
+        if (view == V2_SOUND) tap(fwd ? BT_RIGHT : BT_LEFT); else combo(BT_SELECT, fwd ? BT_DOWN : BT_UP);
+    }
+    for (int g = 0; g < 60 && v2Foc[v2View] != t; g++) tap(v2Foc[v2View] < t ? BT_DOWN : BT_UP);
+}
+static void uiScenariosV2() {
+    
+    uiCase = "Neue Oberfläche: Ansichten und Liste";
+    simReset(); simFrame();
+    UCHECK(v2View == V2_SEQ && page == PG_TRG, "Start nicht in SEQ (Ansicht %d, Seite %d)", v2View, page);
+    int f0 = v2Foc[V2_SEQ]; tap(BT_DOWN);
+    UCHECK(v2Foc[V2_SEQ] != f0 && !v2It[v2Foc[V2_SEQ]].hdr, "RUNTER waehlt keinen anderen Wert");
+    UCHECK(track == 0, "RUNTER hat die Spur gewechselt");
+    tap(BT_R1); UCHECK(track == 1, "R1 wechselt die Spur nicht (%d)", track);
+    tap(BT_L1); UCHECK(track == 0, "L1 wechselt die Spur nicht zurueck");
+    tap(BT_R2); UCHECK(v2View == V2_SOUND && trackPage(page), "R2: SOUND erwartet (Ansicht %d)", v2View);
+    tap(BT_R2); UCHECK(v2View == V2_FX && v2HasPage(page), "R2: EFFEKTE erwartet (Ansicht %d, Seite %d)", v2View, page);
+    tap(BT_R2); UCHECK(v2View == V2_NONE && page == PG_MIX, "R2: MIX erwartet (Seite %d)", page);
+    tap(BT_L2); tap(BT_L2); tap(BT_L2); UCHECK(v2View == V2_SEQ, "3x L2: zurueck zu SEQ");
+    for (int i = 0; i < V2_RING_N; i++) tap(BT_R2);
+    UCHECK(v2View == V2_SEQ, "R2 im Kreis kommt nicht zu SEQ zurueck (Seite %d)", page);
+    {   // SELECT + RUNTER: naechste Gruppe
+        v2Build(V2_SEQ); int g0 = v2It[v2Foc[V2_SEQ]].pg; combo(BT_SELECT, BT_DOWN);
+        UCHECK(v2It[v2Foc[V2_SEQ]].pg != g0, "SELECT+RUNTER springt nicht zur naechsten Gruppe");
+        combo(BT_SELECT, BT_R1); UCHECK(cursor == 4, "SELECT+R1: 4 Steps erwartet (%d)", cursor);
+        cursor = 0;
+    }
+    uiCase = "Neue Oberfläche: Wert, Lock, Trig";
+    simReset(); simFrame(); goTrack(4);
+    goStep(5); tap(BT_A); UCHECK(curP().s[4][5].on == 1, "SEQ: A setzt keinen Trig auf Step 6");
+    v2GoTo(V2_SOUND, PG_FLT, 0);
+    UCHECK(page == PG_FLT && slot == 0 && cursor == 5, "Cutoff nicht gewaehlt (Seite %d Regler %d Step %d)", page, slot, cursor);
+    int fq = curP().p[4][P_FREQ]; tap(BT_X); UCHECK(curP().p[4][P_FREQ] == fq + 1, "X aendert Cutoff nicht");
+    tap(BT_Y);
+    {   // SOUND: <> = Gruppe, der Step bleibt
+        int g0 = v2GroupOf(v2Foc[V2_SOUND]); tap(BT_RIGHT);
+        UCHECK(v2GroupOf(v2Foc[V2_SOUND]) != g0 && cursor == 5, "SOUND: RECHTS springt nicht zur naechsten Gruppe");
+        tap(BT_LEFT); UCHECK(v2GroupOf(v2Foc[V2_SOUND]) == g0, "SOUND: LINKS kommt nicht zur vorigen Gruppe zurueck");
+        v2GoTo(V2_SOUND, PG_FLT, 0);
+    }
+    holdDown(BT_A); tap(BT_X); release(BT_A);
+    UCHECK(curP().s[4][5].lock[P_FREQ] == fq + 1, "A halten + X: kein Cutoff-Lock (%d)", curP().s[4][5].lock[P_FREQ]);
+    curP().s[4][5].on = 0; memset(curP().s[4][5].lock, NO_LOCK, NPARAMS);
+    uiCase = "Neue Oberfläche: Kopieren per SELECT + X/Y";
+    simReset(); simFrame(); goTrack(4); v2GoTo(V2_SOUND, PG_FLT, 0);
+    curP().p[4][P_FREQ] = 33; combo(BT_SELECT, BT_X);
+    tap(BT_R1); combo(BT_SELECT, BT_Y);
+    UCHECK(curP().p[5][P_FREQ] == 33 && curP().machine[5] == curP().machine[4], "SOUND einfuegen: Spur 6 hat nicht den Sound von Spur 5");
+    tap(BT_L2);   // SEQ: Page kopieren/einfuegen
+    curP().s[5][1].on = 1; combo(BT_SELECT, BT_X); tap(BT_R1); combo(BT_SELECT, BT_Y);
+    UCHECK(curP().s[6][1].on == 1, "SEQ: Page von Spur 6 nicht auf Spur 7 eingefuegt");
+    uiCase = "Neue Oberfläche: MEHR-Menü";
+    simReset(); simFrame();
+    tap(BT_SELECT); UCHECK(mrOpen && !menuOpen, "SELECT oeffnet nicht MEHR");
+    mrSel = 0; for (int i = 0; i < V2_RING_N; i++) if (V2_RING[i] == PG_SONG) mrSel = i;
+    tap(BT_A); UCHECK(!mrOpen && page == PG_SONG, "MEHR: Ansicht SONG nicht geoeffnet (Seite %d)", page);
+    tap(BT_SELECT); mrSel = MR_ENGINE; tap(BT_A); UCHECK(fbOpen && fbMode == FB_MACH, "MEHR: Engine-Liste nicht geoeffnet");
+    tap(BT_B);
+    tap(BT_SELECT); tap(BT_B); UCHECK(!mrOpen, "B schliesst MEHR nicht");
+    tap(BT_SELECT); combo(BT_SELECT, BT_X); UCHECK(!mrOpen && curP().machine[0] == M_KICK, "SELECT+X nach Schliessen von MEHR wirkte weiter");
+    uiCase = "Neue Oberfläche: Touch";
+    simReset(); simFrame(); simDraw = true; simFrame();
+    { int f = v2Foc[V2_SEQ], want = v2Clamp(f + 3, 1);
+      int y = 72 + (int)((want - v2Scroll[V2_SEQ]) * 24) + 10;
+      tapAt(300, y); UCHECK(v2Foc[V2_SEQ] == want, "Zeile antippen waehlt nicht (%d statt %d)", v2Foc[V2_SEQ], want); }
+    tapAt(360, 12); UCHECK(v2View == V2_SOUND || v2View == V2_SEQ, "Reiter in der Kopfzeile antippen");
+    simDraw = false;
+}
+static void v2ListInfo() {
+    int keepTr = track, keepPg = page;
+    bout("\nLISTEN-LAENGEN (neue Oberflaeche)\n  Engine        SEQ   SOUND  Gruppen  ^v von oben nach unten\n");
+    for (int m = 0; m < M_COUNT; m++) {
+        track = 0; lockA(); Engine::setMachine(curP(), 0, m); unlockA();
+        page = PG_TRG; v2View = V2_SEQ; v2Build(V2_SEQ); int nSeq = v2N;
+        page = PG_SRC; v2View = V2_SOUND; v2Build(V2_SOUND); int nSnd = v2N, gr = 0;
+        for (int i = 0; i < v2N; i++) if (v2It[i].hdr) gr++;
+        bout("  %-12s %5d %6d %7d %6d\n", MACHINE_NAMES[m], nSeq, nSnd, gr, nSnd - 1);
+    }
+    track = keepTr; page = keepPg;
+}
+static void uiTasks() {   // Bedienweg-Report: wie viele Tasten kostet eine typische Aufgabe
+    
     Task T[16]; int n = 0;
     auto rec = [&](const char* nm, int steps) { T[n].name = nm; T[n].keys = simKeys; T[n].steps = steps; n++; };
-    simReset(); for (int s = 0; s < 16; s += 4) { if (s) for (int k = 0; k < 4; k++) tap(BT_RIGHT); tap(BT_A); } rec("Kick: 4 Trigs (1/5/9/13)", 4);
-    UCHECK(curP().s[0][12].on == 1, "Aufgabe Kick");
-    simReset(); goTrack(4); goPage(PG_FLT); goSlot(0); stickR(-1.f, 300); rec("Spur 5: Filter-Cutoff aendern", 4);
-    simReset(); goTrack(4); goPage(PG_FLT); goSlot(0); goStep(6); holdDown(BT_A); stickR(-1.f, 300); release(BT_A); rec("Spur 5: Cutoff-Lock auf Step 7", 5);
-    UCHECK(curP().s[4][6].lock[P_FREQ] != NO_LOCK, "Aufgabe Cutoff-Lock");
-    simReset(); goTrack(2); combo(BT_SELECT, BT_X); rec("Spur 3: Engine wechseln", 2);
-    simReset(); combo(BT_SELECT, BT_RIGHT); rec("Naechstes Pattern", 1);
-    simReset(); goTrack(3); combo(BT_SELECT, BT_A); rec("Spur 4 stumm", 2);
+    simReset(); simFrame(); for (int s = 0; s < 16; s += 4) { if (s) combo(BT_SELECT, BT_R1); tap(BT_A); } rec("Kick: 4 Trigs (1/5/9/13)", 4);
+    simReset(); simFrame(); goTrack(4); v2GoTo(V2_SOUND, PG_FLT, 0); stickR(-1.f, 300); rec("Spur 5: Filter-Cutoff aendern", 3);
+    simReset(); simFrame(); goTrack(4); goStep(6); v2GoTo(V2_SOUND, PG_FLT, 0); holdDown(BT_A); stickR(-1.f, 300); release(BT_A); rec("Spur 5: Cutoff-Lock auf Step 7", 4);
+    UCHECK(curP().s[4][6].lock[P_FREQ] != NO_LOCK, "Aufgabe Cutoff-Lock (neu)");
+    simReset(); simFrame(); goTrack(2); goView(PG_SRC); goItem(PG_TRG, 6);
+    tap(BT_X);
+    tap(BT_DOWN); tap(BT_A); rec("Spur 3: Engine wechseln", 3);
+    UCHECK(curP().machine[2] != M_HAT, "Aufgabe Engine (neu)");
+    simReset(); simFrame(); combo(BT_SELECT, BT_RIGHT); rec("Naechstes Pattern", 1);
+    simReset(); simFrame(); goTrack(3); combo(BT_SELECT, BT_A); rec("Spur 4 stumm", 2);
     combo(BT_SELECT, BT_A);
-    simReset(); goPage(PG_MST); goSlot(MS_BPM); stickR(1.f, 300); rec("Tempo aendern", 3);
-    simReset(); goTrack(1); goPage(PG_AMP); goSlot(6); stickR(1.f, 300); rec("Spur 2: Delay-Send", 4);
-    simReset(); goTrack(4); goPage(PG_LFO1); slot = LF_DEST; tap(BT_X);   // Ziel-Liste: Ordner FLT, dann FREQ
+    simReset(); simFrame(); tap(BT_R2); tap(BT_R2);   // EFFEKTE, dann mit <> zur Gruppe MASTER
+    for (int g = 0; g < 8 && page != PG_MST; g++) tap(BT_RIGHT);
+    for (int g = 0; g < 10 && !(page == PG_MST && slot == MS_BPM); g++) tap(BT_DOWN);
+    stickR(1.f, 300); rec("Tempo aendern", 3);
+    UCHECK(eng.proj.bpm != 120, "Aufgabe Tempo (neu)");
+    simReset(); simFrame(); goTrack(1); v2GoTo(V2_SOUND, PG_SEND, 0); stickR(1.f, 300); rec("Spur 2: Delay-Send", 3);
+    simReset(); simFrame(); goTrack(4); v2GoTo(V2_SOUND, PG_LFO1, LF_DEST); tap(BT_X);
     for (int g = 0; g < 400 && fbOpen && !fbDir[0] && !(fbEnt[fbSel].dir && fbEnt[fbSel].idx == 2) && fbSel < fbN - 1; g++) tap(BT_DOWN);
     tap(BT_A); for (int g = 0; g < 400 && fbOpen && fbEnt[fbSel].idx != P_FREQ + 1 && fbSel < fbN - 1; g++) tap(BT_DOWN);
-    tap(BT_A); goSlot(LF_DEPTH); stickR(1.f, 300); rec("Spur 5: LFO1 -> Filter", 5);
-    simReset(); goTrack(4); goPage(PG_AMP); goSlot(0); stickR(1.f, 200); goSlot(3); stickR(1.f, 200); rec("Spur 5: Attack + Release", 5);
-    simReset(); goTrack(4); goPage(PG_ARP); goSlot(0); tap(BT_X); rec("Spur 5: Arpeggiator an", 3);
-    simReset(); goTrack(4); goPage(PG_SEQ); goSlot(1); stickR(1.f, 200); rec("Spur 5: Spurlänge", 3);
-    simReset(); combo(BT_SELECT, BT_START); rec("Projekt speichern", 1);
-    simReset(); tap(BT_SELECT); simWait(50); rec("Seitenmenue oeffnen", 1);
-    tap(BT_B); if (menuOpen) tap(BT_SELECT);
-    bout("\nBEDIENWEG - Signalweg-Oberflaeche (Bedienhandlungen je Aufgabe, Start: Spur 1, TRIG-Seite)\n");
-    bout("  %-32s %6s %9s\n", "Aufgabe", "Tasten", "ca. Zeit");
+    tap(BT_A); tap(BT_DOWN); stickR(1.f, 300); rec("Spur 5: LFO1 -> Filter", 5);
+    simReset(); simFrame(); goTrack(4); v2GoTo(V2_SOUND, PG_ENV1, 0); stickR(1.f, 200); v2GoTo(V2_SOUND, PG_ENV1, 3); stickR(1.f, 200); rec("Spur 5: Attack + Release", 5);
+    simReset(); simFrame(); goTrack(4); v2GoTo(V2_SEQ, PG_ARP, 0); tap(BT_X); rec("Spur 5: Arpeggiator an", 3);
+    simReset(); simFrame(); goTrack(4); v2GoTo(V2_SEQ, PG_SEQ, 1); stickR(1.f, 200); rec("Spur 5: Spurlänge", 3);
+    simReset(); simFrame(); combo(BT_SELECT, BT_START); rec("Projekt speichern", 1);
+    simReset(); simFrame(); tap(BT_SELECT); simWait(50); rec("MEHR-Menue oeffnen", 1);
+    tap(BT_B);
+    bout("\nBEDIENWEG - NEUE OBERFLAECHE (gleiche Aufgaben)\n");
+    bout("  Aufgabe                          Tasten  ca. Zeit\n");
     int sum = 0;
     for (int i = 0; i < n; i++) {
-        double sec = T[i].keys * 0.28 + T[i].steps * 1.2;   // Keystroke-Level-Modell: Taste 0,28 s + Ueberlegen 1,2 s je Teilschritt
+        double sec = T[i].keys * 0.28 + T[i].steps * 1.2;
         bout("  %-32s %6d %7.1f s%s\n", T[i].name, T[i].keys, sec, T[i].keys >= 12 ? "  <- lang" : "");
         sum += T[i].keys;
     }
     bout("  Summe %d Tasten\n", sum);
 }
-
-// UI-Monkey: zufaellige Eingaben + Zeichnen, prueft Grenzen und Absturzfreiheit
 static void uiMonkey(int frames) {
     uint32_t r = 12345;
     auto rnd = [&]() { r ^= r << 13; r ^= r >> 17; r ^= r << 5; return r; };
@@ -981,7 +1103,7 @@ static void uiMonkey(int frames) {
         if (confirmOpen && x % 3 == 0) { confirmOpen = false; }   // keine Abfragen bestaetigen (Laden/Loeschen)
         quitReq = false;
         simFrame();
-        if (page < 0 || page >= NUI_PAGES || track < 0 || track >= NTRACKS || slot < 0 || slot >= (trackPage(page) ? uiSlots(page) : 8) || cursor < 0 || cursor >= NSTEPS) {
+        if (page < 0 || page >= NUI_PAGES || track < 0 || track >= NTRACKS || slot < 0 || slot >= nSlots() || cursor < 0 || cursor >= NSTEPS) {
             if (bad++ < 5) printf("  FEHLER Monkey Bild %d: page %d track %d slot %d cursor %d\n", i, page, track, slot, cursor);
         }
     }
@@ -1108,7 +1230,9 @@ static int runSelftest(double stressSecs) {
     projectPath(cfg.project, projPath, sizeof projPath);
     printf("UI-Szenarien\n");
     uiScenarios();
+    uiScenariosV2();
     uiTasks();
+    v2ListInfo();
     printf("Sprachtest\n");
     uiCase = "Sprache";
     langCheck();
