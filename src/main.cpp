@@ -32,10 +32,13 @@ static const int SW = 640, SH = 480;
 
 struct Col { Uint8 r, g, b; };
 // SYNTH CITY: Neo-Noir-Palette (Nachtblau, Neon-Magenta/Cyan, Amber)
-static const Col C_BG = {8, 6, 18}, C_PANEL = {20, 16, 38}, C_SEL = {46, 24, 62}, C_DIM = {140, 130, 182},
-                 C_TEXT = {214, 238, 255}, C_ACC = {255, 46, 136}, C_TRIG = {255, 64, 96}, C_LOCK = {255, 184, 0},
-                 C_OFF = {26, 22, 46}, C_OFF2 = {42, 36, 70}, C_PLAY = {236, 250, 255}, C_DARK = {12, 10, 24},
-                 C_GREEN = {0, 255, 170}, C_KNOB = {50, 44, 80}, C_CYAN = {0, 224, 255};
+// Palette: die Flaechen sind neutral und klar gestaffelt (BG < PANEL < SEL < KNOB < OFF2), die Farbe
+// bleibt den Signalen vorbehalten. Frueher war der Grund violett und alle Signalfarben voll gesaettigt -
+// dann konkurriert jede Flaeche mit jeder. Kontrast gegen BG: DIM 6,3:1, TEXT 15,6:1, OFF2 2,2:1 (Linien).
+static const Col C_BG = {14, 15, 18}, C_PANEL = {30, 33, 41}, C_SEL = {48, 52, 63}, C_DIM = {140, 148, 162},
+                 C_TEXT = {228, 232, 238}, C_ACC = {255, 60, 140}, C_TRIG = {255, 86, 86}, C_LOCK = {255, 186, 64},
+                 C_OFF = {22, 24, 29}, C_OFF2 = {70, 75, 88}, C_PLAY = {246, 249, 253}, C_DARK = {8, 9, 11},
+                 C_GREEN = {64, 214, 150}, C_KNOB = {60, 65, 78}, C_CYAN = {104, 200, 224};
 
 static SDL_Renderer* ren = nullptr;
 static SDL_Surface* drmSurf = nullptr;   // Groovebox-OS: Software-Zeichenflaeche fuer die DRM-Ausgabe
@@ -391,9 +394,11 @@ static void playIcon(int x, int y, bool playing) {
 
 // ---------------------------------------------------------------- Optik-Helfer
 
-static const Col TCOL[NTRACKS] = {   // Neon
-    {255, 46, 136}, {255, 110, 64}, {255, 196, 40}, {0, 255, 170},
-    {0, 224, 255}, {90, 140, 255}, {176, 92, 255}, {255, 100, 220}};
+// Spurfarben: acht Farbtoene auf GLEICHER Luminanz (~30) gerechnet. Vorher schwankte sie zwischen 24 und 74,
+// dann schreit die gruene Spur und die violette verschwindet, obwohl beide dasselbe bedeuten.
+static const Col TCOL[NTRACKS] = {
+    {253, 91, 131}, {240, 111, 36}, {176, 146, 26}, {26, 170, 98},
+    {28, 163, 189}, {99, 145, 253}, {180, 120, 250}, {252, 68, 221}};
 
 static Col mix(Col a, Col b, float t) {
     t = t < 0 ? 0 : (t > 1 ? 1 : t);
