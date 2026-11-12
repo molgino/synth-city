@@ -245,29 +245,32 @@ static void caseCount(bool ok) {
 #define UCHECK(c, ...) do { if (c) { uiPass++; caseCount(true); } else { uiFail++; caseCount(false); printf("  FEHLER [%s] Zeile %d: ", uiCase, __LINE__); printf(__VA_ARGS__); printf("\n"); } } while (0)
 
 // Weg zur Seite: in derselben Gruppe mit L2/R2, sonst ueber die Seitenkarte (SELECT, Steuerkreuz, A)
+// Die Oberflaeche: Ansicht per L2/R2 (Ring V2_RING), darin die Liste per Steuerkreuz hoch/runter.
+// Seite und Regler sind ein Listeneintrag, goPage/goSlot tippen sich dorthin wie ein Mensch.
 static void goPage(int target) {
-    for (int guard = 0; guard < 24 && page != target; guard++) {
-        const int *r1, *r2; int n1, n2;
-        pageRing(page, r1, n1); pageRing(target, r2, n2);
-        if (r1 == r2) {
-            int ci = 0, ti = 0;
-            for (int i = 0; i < n1; i++) { if (r1[i] == page) ci = i; if (r1[i] == target) ti = i; }
-            int fw = (ti - ci + n1) % n1;
-            tap(fw <= n1 - fw ? BT_R2 : BT_L2);   // kuerzerer Weg im Ring
-        } else {
-            tap(BT_SELECT);
-            int tr, tc, r, c; mapPos(target, tr, tc);
-            for (int k = 0; k < 6; k++) { mapPos(menuSel, r, c); if (r == tr) break; tap(r < tr ? BT_DOWN : BT_UP); }
-            for (int k = 0; k < 8 && menuSel != target; k++) { mapPos(menuSel, r, c); tap(c < tc ? BT_RIGHT : BT_LEFT); }
-            tap(BT_A);
-        }
+    int want = v2RingOfPage(target);
+    for (int g = 0; g < V2_RING_N && v2RingIndex() != want; g++) {
+        int cur = v2RingIndex(), n = V2_RING_N, fw = (want - cur + n) % n;
+        tap(fw <= n - fw ? BT_R2 : BT_L2);   // kuerzerer Weg im Ansichten-Ring
     }
+    if (!v2Active()) return;                 // eigene Ansicht (MIX, PRJ, SET ...): fertig
+    for (int g = 0; g < 240 && page != target; g++) tap(BT_DOWN);   // Liste bis zur Gruppe
+    if (page != target) { for (int g = 0; g < 240 && page != target; g++) tap(BT_UP); }
+    if (page != target) { printf("  goPage(%d) haengt in '%s' (Seite %d)\n", target, uiCase, page); fflush(stdout); }
 }
-static void goSlot(int target) {   // linker Stick: je Antippen ein Feld
-    int guard = 0;
-    while (slot / 4 != target / 4 && guard++ < 40) flickL(0, slot / 4 < target / 4 ? -1 : 1);
-    while (slot % 4 != target % 4 && guard++ < 80) flickL(slot % 4 < target % 4 ? 1 : -1, 0);
-    if (guard >= 40) { printf("  goSlot(%d) haengt in '%s' (Seite %d, Slot %d, Explorer %d)\n", target, uiCase, page, slot, (int)fbOpen); fflush(stdout); }
+static void goSlot(int target) {   // Regler innerhalb der aktuellen Gruppe
+    if (!v2Active()) return;
+    int pg = page;
+    for (int g = 0; g < 40; g++) {           // vorwaerts, solange die Gruppe stimmt
+        if (page == pg && slot == target) return;
+        if (page != pg) break;
+        tap(BT_DOWN);
+    }
+    for (int g = 0; g < 80; g++) {           // sonst zurueck
+        if (page == pg && slot == target) return;
+        tap(BT_UP);
+    }
+    printf("  goSlot(%d) haengt in '%s' (Seite %d, Regler %d)\n", target, uiCase, page, slot); fflush(stdout);
 }
 static void goPrj(int target) {   // PRJ-Seite: Steuerkreuz bis zum Feld
     for (int guard = 0; guard < 60 && prjSel != target; guard++) {
@@ -276,7 +279,7 @@ static void goPrj(int target) {   // PRJ-Seite: Steuerkreuz bis zum Feld
     }
     if (prjSel != target) { printf("  goPrj(%d) haengt in '%s' (bei %d)\n", target, uiCase, prjSel); fflush(stdout); }
 }
-static void goTrack(int t) { bool v2 = cfg.ui2 && trackPage(page); for (int g = 0; track != t && g < 20; g++) tap(track < t ? (v2 ? BT_R1 : BT_DOWN) : (v2 ? BT_L1 : BT_UP)); }   // neue Oberflaeche: Spur mit L1/R1   // Grenzen: ein Test darf nie haengen
+static void goTrack(int t) { bool v2 = trackPage(page); for (int g = 0; track != t && g < 20; g++) tap(track < t ? (v2 ? BT_R1 : BT_DOWN) : (v2 ? BT_L1 : BT_UP)); }   // Spurseiten: Spur mit L1/R1   // Grenzen: ein Test darf nie haengen
 static void goStep(int s) { for (int g = 0; cursor != s && g < 300; g++) tap(cursor < s ? BT_RIGHT : BT_LEFT); }
 
 static void uiScenarios() {
@@ -931,7 +934,7 @@ static void uiScenarios() {
 // Bedienweg: Tastenzahl je typischer Aufgabe (je kleiner, desto schneller). Startpunkt: TRIG-Seite, Spur 1, Step 1.
 struct Task { const char* name; int keys; int steps; };
 
-// ---- Neue Oberflaeche (cfg.ui2): Szenarien + Bedienweg im Vergleich
+// ---- Oberflaeche: Szenarien + Bedienweg
 static int v2FindItem(int pg, int k) { for (int i = 0; i < v2N; i++) if (!v2It[i].hdr && v2It[i].pg == pg && v2It[i].k == k) return i; return -1; }
 static int v2GroupOf(int i) { while (i > 0 && !v2It[i].hdr) i--; return i; }
 static void v2GoTo(int view, int pg, int k) {   // wie ein Mensch: L2/R2 zur Ansicht, Gruppe springen (SOUND <>, SEQ SELECT+^v), dann ^v
@@ -954,7 +957,7 @@ static void v2GoTo(int view, int pg, int k) {   // wie ein Mensch: L2/R2 zur Ans
     for (int g = 0; g < 60 && v2Foc[v2View] != t; g++) tap(v2Foc[v2View] < t ? BT_DOWN : BT_UP);
 }
 static void uiScenariosV2() {
-    int keepUi = cfg.ui2; cfg.ui2 = 1;
+    
     uiCase = "Neue Oberfläche: Ansichten und Liste";
     simReset(); simFrame();
     UCHECK(v2View == V2_SEQ && page == PG_TRG, "Start nicht in SEQ (Ansicht %d, Seite %d)", v2View, page);
@@ -1015,10 +1018,9 @@ static void uiScenariosV2() {
       tapAt(300, y); UCHECK(v2Foc[V2_SEQ] == want, "Zeile antippen waehlt nicht (%d statt %d)", v2Foc[V2_SEQ], want); }
     tapAt(360, 12); UCHECK(v2View == V2_SOUND || v2View == V2_SEQ, "Reiter in der Kopfzeile antippen");
     simDraw = false;
-    cfg.ui2 = keepUi;
 }
 static void v2ListInfo() {
-    int keepUi = cfg.ui2, keepTr = track, keepPg = page; cfg.ui2 = 1;
+    int keepTr = track, keepPg = page;
     bout("\nLISTEN-LAENGEN (neue Oberflaeche)\n  Engine        SEQ   SOUND  Gruppen  ^v von oben nach unten\n");
     for (int m = 0; m < M_COUNT; m++) {
         track = 0; lockA(); Engine::setMachine(curP(), 0, m); unlockA();
@@ -1027,10 +1029,10 @@ static void v2ListInfo() {
         for (int i = 0; i < v2N; i++) if (v2It[i].hdr) gr++;
         bout("  %-12s %5d %6d %7d %6d\n", MACHINE_NAMES[m], nSeq, nSnd, gr, nSnd - 1);
     }
-    cfg.ui2 = keepUi; track = keepTr; page = keepPg;
+    track = keepTr; page = keepPg;
 }
 static void uiTasksV2() {
-    int keepUi = cfg.ui2; cfg.ui2 = 1;
+    
     Task T[16]; int n = 0;
     auto rec = [&](const char* nm, int steps) { T[n].name = nm; T[n].keys = simKeys; T[n].steps = steps; n++; };
     simReset(); simFrame(); for (int s = 0; s < 16; s += 4) { if (s) combo(BT_SELECT, BT_R1); tap(BT_A); } rec("Kick: 4 Trigs (1/5/9/13)", 4);
@@ -1067,7 +1069,6 @@ static void uiTasksV2() {
         sum += T[i].keys;
     }
     bout("  Summe %d Tasten\n", sum);
-    cfg.ui2 = keepUi;
 }
 static void uiTasks() {
     Task T[16]; int n = 0;
@@ -1245,7 +1246,6 @@ static int runSelftest(double stressSecs) {
     snprintf(setPath, sizeof setPath, "%ssettings.cfg", tmp);   // nicht die echten Einstellungen ueberschreiben
     snprintf(cfg.project, sizeof cfg.project, "Selbsttest");
     projectPath(cfg.project, projPath, sizeof projPath);
-    cfg.ui2 = 0;   // die bisherigen Szenarien pruefen die klassische Oberflaeche, die neue hat eigene (uiScenariosV2)
     printf("UI-Szenarien\n");
     uiScenarios();
     uiTasks();

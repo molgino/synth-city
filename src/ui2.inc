@@ -17,15 +17,21 @@ static float v2Scroll[V2_VIEWS] = {0, 0, 0};
 // Ansichten: SEQ, SOUND, FX (Busse + Kompressor + Master in einer Liste), dann die eigenstaendigen Werkzeuge
 static const int V2_RING[] = {-10, -11, -12, PG_MIX, PG_LIVE, PG_PRJ, PG_SONG, PG_SMPR, PG_SYS};   // -10 SEQ, -11 SOUND, -12 FX
 static const int V2_FX_P[] = {PG_FX, PG_FXB, PG_FXC, PG_CMP, PG_MST};
+static const int V2_SEQ_P[] = {PG_TRG, PG_SEQ, PG_ARP};
 enum { V2_RING_N = sizeof V2_RING / sizeof *V2_RING };
-static bool v2On() { return cfg.ui2 != 0; }
 bool v2Active() {   // Listen-Ansicht (auch fuer die globalen Effekt-Seiten)
-    if (!cfg.ui2) return false;
     if (trackPage(page)) return true;
     for (int p : V2_FX_P) if (p == page) return true;
     return false;
 }
 static int v2RingIndex();
+// Ansicht (Index in V2_RING), in der eine Seite liegt: SEQ, SOUND, EFFEKTE oder eine eigene Ansicht
+static int v2RingOfPage(int p) {
+    for (int i = 3; i < V2_RING_N; i++) if (V2_RING[i] == p) return i;
+    for (int q : V2_FX_P) if (q == p) return 2;
+    for (int q : V2_SEQ_P) if (q == p) return 0;
+    return 1;   // alles Uebrige ist eine Klangseite -> SOUND
+}
 int v2TabN() { return V2_RING_N; }
 const char* v2TabName(int i) { int p = V2_RING[(i % V2_RING_N + V2_RING_N) % V2_RING_N]; return p == -10 ? "SEQ" : p == -11 ? "SOUND" : p == -12 ? TR("EFFEKTE", "FX") : PAGE_NAMES[p]; }
 int v2TabPage(int i) { int p = V2_RING[(i % V2_RING_N + V2_RING_N) % V2_RING_N]; return p < 0 ? -1 : p; }
@@ -34,7 +40,6 @@ int v2TabCur() { return v2RingIndex(); }
 // ---- Listen-Modell: Gruppen (= Bedienseiten) mit ihren Reglern; SOUND beginnt mit 8 Makros
 struct V2It { bool hdr; int pg, k; const char* title; bool mac; int grp; };   // mac = Makro (Abkuerzung), grp = Gruppennummer
 static V2It v2It[200]; static int v2N = 0, v2Groups = 0;
-static const int V2_SEQ_P[] = {PG_TRG, PG_SEQ, PG_ARP};
 static const int V2_SND_P[] = {PG_SRC, PG_SRC2, PG_SRC3, PG_SRC4, PG_SRC5, PG_FLT, PG_FLT2, PG_AMP, PG_INS, PG_SEND, PG_ENV1, PG_ENV2, PG_ENV3, PG_LFO1, PG_LFO2, PG_LFO3};
 static bool v2Valid(int p, int k) {
     if (!pageAvail(p)) return false;
@@ -99,7 +104,7 @@ static void v2Apply() {   // Fokus -> page/slot (darauf arbeiten editValue, Lock
 static void v2Sync() {
     bool fxPage = false;
     for (int p : V2_FX_P) if (p == page) fxPage = true;
-    if (!v2On() || (!trackPage(page) && !fxPage)) { v2View = V2_NONE; return; }
+    if (!trackPage(page) && !fxPage) { v2View = V2_NONE; return; }
     if (v2View != V2_NONE) {   // passt der Fokus der aktuellen Ansicht noch zu page/slot? (ENGINE steht in SOUND, liegt aber auf TRIG)
         v2Build(v2View);
         int f = v2Foc[v2View];

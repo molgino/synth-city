@@ -10,7 +10,6 @@ static Project* kmBase = nullptr;   // Stand nach dem Kontext-Aufbau (Vergleichs
 static Project* kmOrig = nullptr;   // unveraenderter Grundzustand
 static Settings kmCfg;
 static Pattern kmPat;   // Pattern unter dem Cursor vor dem Druck
-static bool kmCtxNeu = false;   // Kontext der neuen Oberflaeche (cfg.ui2 = 1 gehoert zum Kontext, keine Wirkung)
 
 static uint64_t kmOrigHash = 0;
 // Projekte/Sounds im Temp-Ordner auf den festen Stand bringen (nur wenn ein Fall etwas geschrieben hat)
@@ -172,7 +171,6 @@ static void kmDiff(const KmSnap& a, const KmSnap& b, int pi0) {
         if (kmCfg.recPages != cfg.recPages) kmAdd("cfg.recPages %d>%d", kmCfg.recPages, cfg.recPages);
         if (kmCfg.newPage != cfg.newPage) kmAdd("cfg.newPage %d>%d", kmCfg.newPage, cfg.newPage);
         if (kmCfg.recThr != cfg.recThr) kmAdd("cfg.recThr %d>%d", kmCfg.recThr, cfg.recThr);
-        if (kmCfg.ui2 != cfg.ui2 && strncmp(kmOut, "", 1) >= 0) { bool ctxNeu = cfg.ui2 && kmCtxNeu; if (!ctxNeu) kmAdd("cfg.ui2 %d>%d", kmCfg.ui2, cfg.ui2); }
         if (strcmp(kmCfg.project, cfg.project)) kmAdd("Projekt '%s'", cfg.project);
     }
     if (msg[0]) kmAdd("Meldung \"%s\"", msg);
@@ -257,18 +255,18 @@ static void kmBuildContexts() {
     kmCtxAdd("TRIG spielt", [](int) { lockA(); eng.start(); unlockA(); simFrame(); }, 0);
     kmCtxAdd("TRIG Spur 32 Steps, Page 2", [](int) { curP().len[track] = 32; cursor = 20; }, 0);
     kmCtxAdd("Seitenkarte offen", [](int) { menuOpen = true; menuSel = PG_TRG; }, 0);
-    // neue Oberflaeche (cfg.ui2): jede Taste in SEQ, SOUND (Makros, Filter, Huellkurve), Lock-Modus, MEHR-Menue
-    kmCtxAdd("NEU SEQ", [](int) { cfg.ui2 = 1; page = PG_TRG; slot = 0; simFrame(); }, 0);
-    kmCtxAdd("NEU SEQ Trig auf Step 1", [](int) { cfg.ui2 = 1; curP().s[track][0].on = 1; page = PG_TRG; slot = 0; simFrame(); }, 0);
-    kmCtxAdd("NEU SOUND Makros", [](int) { cfg.ui2 = 1; v2GoView(1); simFrame(); }, 0);
-    kmCtxAdd("NEU SOUND Filter", [](int) { cfg.ui2 = 1; page = PG_FLT; slot = 0; simFrame(); }, 0);
-    kmCtxAdd("NEU SOUND Huellkurve 1", [](int) { cfg.ui2 = 1; page = PG_ENV1; slot = 4; simFrame(); }, 0);
-    kmCtxAdd("NEU SOUND Lock-Modus", [](int) { cfg.ui2 = 1; page = PG_FLT; slot = 0; simFrame(); simDown[BT_A] = true; for (int i = 0; i < 40; i++) simFrame(); simDown[BT_A] = false; simFrame(); simFrame(); }, 0);
-    kmCtxAdd("NEU EFFEKTE Bus A", [](int) { cfg.ui2 = 1; page = PG_FX; slot = 0; simFrame(); }, 0);
-    kmCtxAdd("NEU EFFEKTE Master", [](int) { cfg.ui2 = 1; page = PG_MST; slot = 0; simFrame(); }, 0);
-    kmCtxAdd("NEU MIX", [](int) { cfg.ui2 = 1; page = PG_MIX; simFrame(); }, 0);
-    kmCtxAdd("NEU MEHR offen", [](int) { cfg.ui2 = 1; mrOpen = true; mrSel = 0; }, 0);
-    for (int i = 0; i < MR_COUNT; i++) { char nn[64]; snprintf(nn, sizeof nn, "NEU MEHR Eintrag %d", i); kmCtxAdd(nn, [](int a) { cfg.ui2 = 1; mrOpen = true; mrSel = a; }, i, true); }
+    // Oberflaeche: jede Taste in SEQ, SOUND (Makros, Filter, Huellkurve), Lock-Modus, MEHR-Menue
+    kmCtxAdd("NEU SEQ", [](int) { page = PG_TRG; slot = 0; simFrame(); }, 0);
+    kmCtxAdd("NEU SEQ Trig auf Step 1", [](int) { curP().s[track][0].on = 1; page = PG_TRG; slot = 0; simFrame(); }, 0);
+    kmCtxAdd("NEU SOUND Makros", [](int) { v2GoView(1); simFrame(); }, 0);
+    kmCtxAdd("NEU SOUND Filter", [](int) { page = PG_FLT; slot = 0; simFrame(); }, 0);
+    kmCtxAdd("NEU SOUND Huellkurve 1", [](int) { page = PG_ENV1; slot = 4; simFrame(); }, 0);
+    kmCtxAdd("NEU SOUND Lock-Modus", [](int) { page = PG_FLT; slot = 0; simFrame(); simDown[BT_A] = true; for (int i = 0; i < 40; i++) simFrame(); simDown[BT_A] = false; simFrame(); simFrame(); }, 0);
+    kmCtxAdd("NEU EFFEKTE Bus A", [](int) { page = PG_FX; slot = 0; simFrame(); }, 0);
+    kmCtxAdd("NEU EFFEKTE Master", [](int) { page = PG_MST; slot = 0; simFrame(); }, 0);
+    kmCtxAdd("NEU MIX", [](int) { page = PG_MIX; simFrame(); }, 0);
+    kmCtxAdd("NEU MEHR offen", [](int) { mrOpen = true; mrSel = 0; }, 0);
+    for (int i = 0; i < MR_COUNT; i++) { char nn[64]; snprintf(nn, sizeof nn, "NEU MEHR Eintrag %d", i); kmCtxAdd(nn, [](int a) { mrOpen = true; mrSel = a; }, i, true); }
     // Ablagen gefuellt: Einfuegen wirklich pruefen
     kmCtxAdd("TRIG mit Trig-Ablage", [](int) { memset(&trigClip, 0, sizeof trigClip); memset(trigClip.lock, NO_LOCK, NPARAMS); trigClip.on = 1; trigClip.lock[P_NOTE] = 48; haveTrigClip = true; cursor = 3; }, 0);
     kmCtxAdd("Seitenkarte mit Seiten-Ablage FILTER1 von T1", [](int) { menuOpen = true; menuSel = PG_FLT; pageClipStore = PG_FLT; pageClipTrack = 0; pageClipMachine = curP().machine[0];
@@ -364,7 +362,6 @@ static void kmChains(int seeds, int steps) {
     Uint32 t0 = SDL_GetTicks(); int total = 0;
     for (int sd = 1; sd <= seeds; sd++) {
         kmReset();
-        if (sd % 2 == 0) cfg.ui2 = 1;   // jede zweite Kette mit der neuen Oberflaeche
         uint32_t r = 0x9E3779B9u * (uint32_t)sd;
         for (int st = 0; st < steps; st++) {
             r ^= r << 13; r ^= r >> 17; r ^= r << 5;
@@ -415,7 +412,7 @@ static int runKeymatrix(const char* golden, bool update) {
     lockA(); eng.defaultProject(false); unlockA();
     kmBase = (Project*)malloc(sizeof(Project)); kmOrig = (Project*)malloc(sizeof(Project));
     memcpy(kmOrig, &eng.proj, sizeof(Project)); kmOrigHash = projectHash(*kmOrig);
-    Settings baseCfg = cfg; baseCfg.ui2 = 0; baseCfg.newPage = 1; baseCfg.recPages = 0; baseCfg.recThr = -40; baseCfg.lang = 0;
+    Settings baseCfg = cfg; baseCfg.newPage = 1; baseCfg.recPages = 0; baseCfg.recThr = -40; baseCfg.lang = 0;
     kmCfg = baseCfg;
     kmBuildContexts();
     const char* ext = getenv("GB_KM_FILTER");   // nur Kontexte mit diesem Text (Fehlersuche)
@@ -439,7 +436,6 @@ static int runKeymatrix(const char* golden, bool update) {
             const KmIn& in = KM_IN[kmCtx[c].shortList ? KM_VALUE_IN[k] : k];
             kmReset();
             kmCtx[c].setup(kmCtx[c].arg);
-            kmCtxNeu = !strncmp(kmCtx[c].name, "NEU ", 4);
             simFrame(); msg[0] = 0;
             int pi0 = curPi();
             memcpy(&kmPat, &eng.proj.pat[pi0], sizeof(Pattern));
