@@ -1,0 +1,467 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#080612"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="SYNTH CITY">
+<link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="icon-180.png"><link rel="icon" href="icon-192.png">
+<title>SYNTH CITY</title>
+<style>
+:root{--bg:#0e0f12;--panel:#1e2129;--panel2:#30333f;--line:#464b58;--text:#e4e8ee;--dim:#8c94a2;--acc:#ff3c8c;--cy:#68c8e0;--gr:#40d696;--b:clamp(44px,7vmin,64px)}
+*{box-sizing:border-box;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:linear-gradient(180deg,#080612,#140a2a 60%,#2a0a3a) fixed;color:var(--text);font:14px ui-monospace,Menlo,Consolas,monospace;overflow:hidden}
+#app{height:100%;display:flex;flex-direction:column;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+header{display:flex;align-items:center;gap:10px;padding:6px 10px;flex-wrap:wrap}
+h1{font-size:16px;margin:0;letter-spacing:.18em;color:#fff;text-shadow:-2px 0 var(--acc),2px 0 var(--cy)}
+#stat{color:var(--dim);font-size:12px}#dot{width:9px;height:9px;border-radius:50%;background:#555;display:inline-block}
+header .sp{flex:1}a{color:var(--cy)}
+.hb.on{background:var(--acc);border-color:var(--acc);color:#fff}
+.hb{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:8px;font:inherit;font-size:12px;padding:5px 10px;cursor:pointer}
+#stage{flex:1;min-height:0;display:grid;grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) auto;gap:8px;padding:0 10px 10px}
+#scr{min-height:0;min-width:0;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px}
+canvas{display:block;flex:none;width:320px;height:240px;image-rendering:pixelated;image-rendering:crisp-edges;background:#000;border-radius:6px;box-shadow:0 0 0 2px #000,0 0 26px #ff2e8840;outline:none}
+#ctl{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;touch-action:none}
+.side{display:flex;flex-direction:column;align-items:center;gap:10px}
+.shd{display:flex;gap:6px}
+.btn{width:calc(var(--b)*1.25);height:calc(var(--b)*.72);display:flex;align-items:center;justify-content:center;background:var(--panel2);border:1px solid var(--line);border-radius:10px;font-weight:700;color:var(--text);touch-action:none;cursor:pointer;transition:background .05s}
+.btn.on{background:var(--acc);border-color:var(--acc);color:#fff;box-shadow:0 0 16px var(--acc)}
+.dpad{position:relative;width:calc(var(--b)*2.9);height:calc(var(--b)*2.9);touch-action:none}
+.dpad i{position:absolute;width:calc(var(--b)*.98);height:calc(var(--b)*.98);background:var(--panel2);border:1px solid var(--line);border-radius:10px;display:flex;align-items:center;justify-content:center;color:var(--dim);font-style:normal;font-size:18px}
+.dpad i.on{background:var(--acc);border-color:var(--acc);color:#fff;box-shadow:0 0 16px var(--acc)}
+.dpad .u{left:calc(50% - var(--b)*.49);top:0}.dpad .d{left:calc(50% - var(--b)*.49);bottom:0}
+.dpad .l{top:calc(50% - var(--b)*.49);left:0}.dpad .r{top:calc(50% - var(--b)*.49);right:0}
+.dpad .c{left:calc(50% - var(--b)*.3);top:calc(50% - var(--b)*.3);width:calc(var(--b)*.6);height:calc(var(--b)*.6);border-radius:50%;background:var(--panel)}
+.face{position:relative;width:calc(var(--b)*2.9);height:calc(var(--b)*2.9);touch-action:none}
+.face .btn{position:absolute;width:var(--b);height:var(--b);border-radius:50%;font-size:18px}
+.face .x{left:calc(50% - var(--b)/2);top:0}.face .b{left:calc(50% - var(--b)/2);bottom:0}
+.face .y{top:calc(50% - var(--b)/2);left:0}.face .a{top:calc(50% - var(--b)/2);right:0}
+.face .x,.face .y{color:var(--cy)}
+.mid{display:flex;flex-direction:column;align-items:center;gap:8px}
+.mid .row{display:flex;gap:8px}
+.mid .btn{width:calc(var(--b)*1.5);height:calc(var(--b)*.6);font-size:12px;border-radius:20px}
+.ms{display:none}
+.stk{display:none;grid-template-columns:repeat(3,calc(var(--b)*.6));grid-template-rows:repeat(3,calc(var(--b)*.6));gap:3px;touch-action:none}
+.stk .btn{width:auto;height:auto;font-size:11px;border-radius:8px}
+body.sticks .stk{display:grid}
+#help{position:fixed;inset:0;background:#080612ee;display:none;align-items:center;justify-content:center;z-index:9;padding:20px}
+#help.show{display:flex}#help div{max-width:560px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 20px;line-height:1.9}
+kbd{background:var(--panel2);border:1px solid var(--line);border-radius:5px;padding:1px 6px;color:var(--cy)}
+/* Querformat (Handy quer, Tablet, PC-Fenster breit): Bild in der Mitte, Bedienung links und rechts */
+@media (orientation:landscape) and (min-aspect-ratio:13/10){
+ #stage{grid-template-columns:auto minmax(0,1fr) auto;grid-template-rows:minmax(0,1fr);align-items:center}
+ #ctl{display:contents}
+ .lside{grid-column:1;grid-row:1}.rside{grid-column:3;grid-row:1}
+ #scr{grid-column:2;grid-row:1;height:100%;width:100%}
+ .mid{flex-direction:row}
+ /* Das Bild nimmt 4:3 der Hoehe, also 133,33vh Breite. Was uebrig bleibt, teilen sich die beiden
+    Balken; daraus die Knopfgroesse (Steuerkreuz = 2,9 x --b), mindestens 40 px fuer den Finger. */
+ :root{--b:clamp(40px,calc((100vw - 133.33vh - 36px)/5.8),72px)}
+}
+@media (max-height:420px){header{padding:2px 8px}h1{font-size:12px}#stat{font-size:10px}.hb{padding:2px 8px}}
+#cvw{position:relative;flex:none;touch-action:none;overflow:hidden;border-radius:6px}
+#cv{transform-origin:0 0}
+#zl{min-width:46px;text-align:center}
+#lost{position:absolute;inset:0;display:none;align-items:center;justify-content:center;text-align:center;background:rgba(8,4,18,.78);color:#fff;font-size:15px;line-height:1.6;z-index:5;backdrop-filter:grayscale(1)}#lost.on{display:flex}#lost b{color:#ff4fa3;font-size:18px}#lostT{color:var(--dim);font-size:12px}#lost button{margin-top:10px;padding:6px 16px;border-radius:6px;border:1px solid var(--cy);background:transparent;color:var(--cy);font:inherit}.spin{width:34px;height:34px;margin:0 auto 8px;border-radius:50%;border:3px solid rgba(255,255,255,.15);border-top-color:var(--cy);animation:spin 1s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}.rip{position:absolute;width:44px;height:44px;margin:-22px 0 0 -22px;border-radius:50%;border:2px solid var(--cy);pointer-events:none;animation:rip .45s ease-out forwards}
+.rip.hold{border-color:var(--acc);animation:none;opacity:.8}
+@keyframes rip{from{transform:scale(.4);opacity:1}to{transform:scale(1.6);opacity:0}}
+/* Bild-Vollbild: nur das Bild, so gross wie moeglich, schwebende Mini-Leiste */
+body.full header,body.full #midL{display:none !important}
+body.full #app{padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+body.full #stage{padding:0;gap:0;grid-template-columns:1fr !important;grid-template-rows:minmax(0,1fr) !important}
+body.full #scr{grid-column:1 !important;grid-row:1 !important;width:100%;height:100%}
+body.full #ctl{display:none !important}
+/* Querformat-Vollbild: das Bild ist 4:3, der Schirm viel breiter - die Balken links und rechts, die dabei
+   ohnehin frei bleiben, tragen die Bedienung. So ist der Schirm voll genutzt und die Finger liegen
+   nicht auf dem Bild. "Tasten" (Knopf in der Leiste) blendet sie weg, dann ist nur das Bild da. */
+@media (orientation:landscape) and (min-aspect-ratio:13/10){
+ body.full:not(.nopad) #ctl{display:contents !important}
+ body.full:not(.nopad) #stage{grid-template-columns:auto minmax(0,1fr) auto !important;grid-template-rows:minmax(0,1fr) !important;align-items:center}
+ body.full:not(.nopad) #scr{grid-column:2 !important}
+ body.full .side{gap:max(8px,2vh)}
+ /* Mit sichtbarer Bedienung gehoert die Leiste nach unten in den Balken - oben wuerde sie die
+    Ansichten-Reiter im Bild verdecken. Knoepfe etwas groesser, sie werden mit dem Daumen getroffen. */
+ /* SELECT und START als volle Knoepfe in die Balken: linker und rechter Daumen, wie am Geraet.
+    Die Leiste behaelt nur noch die Schalter und steht schmal gestapelt am Rand, damit sie
+    nicht ins Bild ragt (der Balken ist nur halb so breit wie die Leiste in einer Zeile). */
+ body.full:not(.nopad) .ms{display:flex;width:calc(var(--b)*2.3);height:calc(var(--b)*.72);font-size:12px;border-radius:20px}
+ body.full:not(.nopad) #fbar{flex-direction:column;opacity:.8}
+ body.full:not(.nopad) #fbar [data-b],body.full:not(.nopad) #fSide{display:none}
+ body.full:not(.nopad) #fbar .btn{height:32px;font-size:11px;padding:0 10px}
+}
+body.full canvas,body.full #cvw{border-radius:0}body.full canvas{box-shadow:none}
+#fbar{display:none;position:fixed;right:max(6px,env(safe-area-inset-right));top:max(6px,env(safe-area-inset-top));z-index:8;gap:6px;opacity:.55;touch-action:none}
+body.full #fbar{display:flex}#fbar:hover,#fbar:active{opacity:1}
+#fbar .btn{width:auto;height:30px;padding:0 10px;font-size:11px;border-radius:15px;background:#20183acc}
+body.full.fleft #fbar{right:auto;left:max(6px,env(safe-area-inset-left))}
+/* Die Leiste darf NIE ueber dem Bild liegen: oben rechts sitzen dort die Ansichten-Reiter, die waeren
+   dann nicht antippbar. fit() legt sie in den freien Balken neben das Bild; ist dort kein Platz
+   (4:3-Schirm), bleibt nur ein kleiner Griff, der sie auf Tap fuer ein paar Sekunden ausfaehrt. */
+#fbar.mini .btn{display:none}
+#fbar.mini{width:30px;height:30px;border-radius:15px;background:#20283acc;border:1px solid var(--line);
+ align-items:center;justify-content:center;opacity:.5}
+#fbar.mini::after{content:'···';color:var(--dim);font-size:15px;line-height:1}
+/* ---- Touch-Oberflaeche: eigenes UI statt des gespiegelten 4:3-Bildes. Fuellt jede Aufloesung,
+   die Flaechen sind so gross, wie der Schirm hergibt, und nichts ist an 640x480 gebunden. */
+#tui{display:none;position:fixed;inset:0;z-index:6;background:var(--bg);
+ padding:max(6px,env(safe-area-inset-top)) max(6px,env(safe-area-inset-right)) max(6px,env(safe-area-inset-bottom)) max(6px,env(safe-area-inset-left));
+ grid-template-rows:auto minmax(0,1fr) auto;gap:6px;touch-action:none;user-select:none}
+body.tui #tui{display:grid}
+body.tui #app{visibility:hidden}
+#tTop,#tBot{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+#tTop .tb,#tBot .tb{min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center;
+ background:var(--panel);border:1px solid var(--line);border-radius:10px;color:var(--text);font:inherit;font-size:13px;padding:0 12px}
+#tTop .tb:active,#tBot .tb:active{background:var(--panel2)}
+#tPlay{font-size:20px;min-width:62px}
+#tPlay.on{background:var(--gr);color:#06240f;border-color:var(--gr)}
+#tPat{font-size:18px;font-weight:bold;color:var(--cy);min-width:62px;text-align:center}
+#tBpm{color:var(--dim);font-size:13px}
+#tMsg{color:var(--acc);font-size:12px;flex:1;text-align:right;overflow:hidden;white-space:nowrap}
+#tMain{display:grid;grid-template-columns:minmax(96px,18%) minmax(0,1fr);gap:6px;min-height:0}
+#tTracks{display:grid;grid-auto-rows:minmax(0,1fr);gap:4px;min-height:0}
+.ttr{display:flex;align-items:center;gap:4px;background:var(--panel);border:1px solid var(--line);
+ border-left-width:5px;border-radius:9px;padding:0 6px;overflow:hidden;min-height:0}
+.ttr.sel{background:var(--panel2);border-color:var(--text)}
+.ttr .tn{flex:1;font-size:12px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.ttr .tm{width:30px;min-height:30px;display:flex;align-items:center;justify-content:center;border-radius:7px;
+ background:var(--panel2);color:var(--dim);font-size:11px}
+.ttr .tm.on{background:var(--acc);color:#fff}
+.ttr.play .tn{color:var(--text)}
+#tGrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-template-rows:repeat(4,minmax(0,1fr));gap:5px;min-height:0}
+/* quer: 8x2 wie die Step-Leiste am Geraet (nutzt die Breite), hoch: 4x4 wie ein Pad-Raster */
+@media (orientation:landscape) and (min-aspect-ratio:13/10){
+ #tGrid{grid-template-columns:repeat(8,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr))}
+ #tTop .tb,#tBot .tb{min-height:38px}}
+.tp{position:relative;border-radius:10px;background:var(--panel);border:1px solid var(--line);min-height:0;
+ display:flex;align-items:flex-end;justify-content:flex-start;padding:4px 6px;font-size:11px;color:var(--dim)}
+.tp.on{background:var(--acc);border-color:transparent;color:#fff}
+.tp.tl{background:var(--panel2);box-shadow:inset 0 0 0 2px var(--acc)}
+.tp.now{outline:3px solid var(--text);outline-offset:-3px}
+.tp.beat::after{content:'';position:absolute;top:5px;right:6px;width:5px;height:5px;border-radius:50%;background:var(--line)}
+@media (orientation:portrait){#tMain{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)}
+ #tTracks{grid-auto-rows:auto;grid-template-columns:repeat(4,1fr)}
+ .ttr{min-height:42px;padding:0 4px}
+ .ttr .tn{font-size:11px}.ttr .tnr{display:none}}   /* hochkant ist kein Platz fuer die Nummer: die Farbe sagt es */
+#tBot:empty,#tBot.hide{display:none}
+body.nopad #ctl{display:none}
+body.nopad #stage{grid-template-columns:1fr !important}
+body.nopad #scr{grid-column:1 !important}
+</style></head><body><div id="app">
+<header><span id="dot"></span><h1>SYNTH CITY</h1><span id="stat">…</span><span class="sp"></span>
+<button class="hb" id="bAud" title="Ton im Browser">🔈 Ton</button><input id="vol" type="range" min="0" max="100" value="80" style="width:70px;display:none"><button class="hb" id="zo" title="Verkleinern (−)">−</button><button class="hb" id="zl" title="Zoom zurücksetzen (0)">100%</button><button class="hb" id="zi" title="Vergrößern (+)">+</button><button class="hb" id="bPad">Tasten</button><button class="hb" id="bSt">Sticks</button><button class="hb" id="bHelp">?</button><button class="hb" id="bTui" title="Touch-Oberfläche (für Finger ausgelegt)">Touch</button><button class="hb" id="bFull" title="Nur das Bild, so groß wie möglich (V)">Vollbild</button><button class="hb" id="bFs" title="Browser-Vollbild">⛶</button><a href="/" class="hb" style="text-decoration:none">Dateien</a></header>
+<div id="fbar"><div class="btn" data-b="SELECT">SEL</div><div class="btn" data-b="START">START</div><div class="btn" id="fPad" title="Bedienung an den Seiten ein-/ausblenden">TASTEN</div><div class="btn" id="fSide" title="Leiste auf die andere Seite">⇆</div><div class="btn" id="fExit" title="Vollbild beenden (V)">✕</div></div>
+<div id="stage">
+ <div id="scr"><div id="cvw"><canvas id="cv" width="640" height="480" tabindex="0"></canvas><div id="lost"><div><div class="spin"></div><b>Verbindung verloren</b><br><span id="lostT">verbinde neu …</span><br><button id="lostR">Neu laden</button></div></div></div>
+  <div class="mid" id="midL"><div class="row"><div class="btn" data-b="SELECT">SELECT</div><div class="btn" data-b="START">START</div></div></div></div>
+ <div id="ctl">
+  <div class="side lside"><div class="shd"><div class="btn" data-b="L2">L2</div><div class="btn" data-b="L1">L1</div></div>
+   <div class="dpad" id="dpad"><i class="u">▲</i><i class="l">◀</i><i class="c"></i><i class="r">▶</i><i class="d">▼</i></div>
+   <div class="stk"><span></span><div class="btn" data-b="LY" data-v="1">↑</div><span></span><div class="btn" data-b="LX" data-v="-1">←</div><span style="align-self:center;text-align:center;color:var(--dim)">L</span><div class="btn" data-b="LX" data-v="1">→</div><span></span><div class="btn" data-b="LY" data-v="-1">↓</div><span></span></div>
+   <div class="btn ms" data-b="SELECT">SELECT</div></div>
+  <div class="side rside"><div class="shd"><div class="btn" data-b="R1">R1</div><div class="btn" data-b="R2">R2</div></div>
+   <div class="face"><div class="btn x" data-b="X">X</div><div class="btn y" data-b="Y">Y</div><div class="btn a" data-b="A">A</div><div class="btn b" data-b="B">B</div></div>
+   <div class="stk"><span></span><div class="btn" data-b="RY" data-v="1">↑</div><span></span><div class="btn" data-b="RX" data-v="-1">←</div><span style="align-self:center;text-align:center;color:var(--dim)">R</span><div class="btn" data-b="RX" data-v="1">→</div><span></span><div class="btn" data-b="RY" data-v="-1">↓</div><span></span></div>
+   <div class="btn ms" data-b="START">START</div></div>
+ </div>
+</div></div>
+<div id="tui">
+ <div id="tTop"><button class="tb" id="tPlay">▶</button><div class="tb" id="tPatD">‹</div><div id="tPat">A01</div><div class="tb" id="tPatU">›</div>
+  <div id="tBpm">120 BPM</div><span id="tMsg"></span><button class="tb" id="tView" title="zum gespiegelten Geraetebild">BILD</button></div>
+ <div id="tMain"><div id="tTracks"></div><div id="tGrid"></div></div>
+ <div id="tBot"><div id="tPages" style="display:flex;gap:6px;flex-wrap:wrap"></div></div>
+</div>
+<div id="help"><div><b style="color:#fff">Tastatur</b><br>
+<kbd>←↑→↓</kbd> Steuerkreuz &nbsp; <kbd>Z</kbd>/<kbd>Leertaste</kbd> A &nbsp; <kbd>X</kbd>/<kbd>⌫</kbd> B &nbsp; <kbd>S</kbd> X &nbsp; <kbd>A</kbd> Y<br>
+<kbd>Q</kbd> L1 &nbsp; <kbd>W</kbd> R1 &nbsp; <kbd>1</kbd> L2 &nbsp; <kbd>2</kbd> R2 &nbsp; <kbd>Shift</kbd>/<kbd>Tab</kbd> SELECT &nbsp; <kbd>Enter</kbd> START (halten = FILL)<br>
+<kbd>T F G H</kbd> linker Stick &nbsp; <kbd>I J K L</kbd> rechter Stick &nbsp; <kbd>V</kbd> Bild-Vollbild (nur das Bild, Leiste oben rechts: SEL, START, ⇆ Seite, ✕ beenden) &nbsp; <kbd>F11</kbd> Browser-Vollbild<br>
+<b style="color:#fff">Zoom</b>: zwei Finger gleichzeitig aufs Bild = vergrößern/verschieben, Knöpfe − 100% + oben, am PC Strg+Mausrad (Mausrad verschiebt), Tasten <kbd>+</kbd> <kbd>−</kbd> <kbd>0</kbd>.<br><b style="color:#fff">Touch aufs Bild</b>: Spur, Seite, Reiter, Kachel oder Step antippen. Auf einer Kachel ziehen (hoch/rechts = mehr) ändert den Wert. Step antippen = Trig an/aus, Step halten + mit zweitem Finger Kachel ziehen = P-Lock. Kachel nochmal antippen = Auswahlliste (Sample, LFO-Ziel, Engine). „Tasten“ blendet das Gamepad aus.<br><b style="color:#fff">Touch-Tasten</b>: mehrere Finger gleichzeitig, Wischen über das Steuerkreuz geht auch.<br>
+<b style="color:#fff">Gamepad</b>: am PC/Handy angeschlossenes Gamepad wird automatisch erkannt.<br>
+<span style="color:var(--dim)">Tippen zum Schließen</span></div></div>
+<canvas id="gbsdl" width="1" height="1" style="display:none"></canvas>
+<script src="local.js"></script>
+<script src="sync.js"></script>
+<script>
+'use strict';
+const $=id=>document.getElementById(id),cv=$('cv'),cx=cv.getContext('2d',{alpha:false});
+let W=640,H=480,img=cx.createImageData(W,H),px=new Uint32Array(img.data.buffer),seq=0,dirty=false,frames=0,bytes=0,lat=0,mode='',last=performance.now();
+const lut=new Uint32Array(65536);
+for(let v=0;v<65536;v++){const r=(v>>11)&31,g=(v>>5)&63,b=v&31;lut[v]=0xff000000|(((b<<3)|(b>>2))<<16)|(((g<<2)|(g>>4))<<8)|((r<<3)|(r>>2));}
+function decode(buf){
+ const dv=new DataView(buf);seq=dv.getUint32(0,true);const w=dv.getUint16(4,true),h=dv.getUint16(6,true);
+ if(w!==W||h!==H){W=w;H=h;cv.width=w;cv.height=h;img=cx.createImageData(w,h);px=new Uint32Array(img.data.buffer);}
+ const t=new Uint16Array(buf,12,(buf.byteLength-12)>>1),n=w*h;let i=0,k=0;
+ while(k<t.length&&i<n){const v=t[k++],c=v&0x3fff,m=v>>14;
+  if(m===0)i+=c;else if(m===1){px.fill(lut[t[k++]],i,i+c);i+=c;}else for(let j=0;j<c;j++)px[i++]=lut[t[k++]];}
+ dirty=true;frames++;bytes+=buf.byteLength;
+}
+function draw(){if(dirty){cx.putImageData(img,0,0);dirty=false;}pollPad();requestAnimationFrame(draw);}
+requestAnimationFrame(draw);
+// Bild immer ganz sichtbar und so gross wie moeglich (4:3), SELECT/START darunter
+function fit(){const sc=$('scr'),r=sc.getBoundingClientRect(),mh=$('midL').offsetHeight+10;let w=r.width,h=r.height-mh;
+ if(w<=0||h<=0)return;if(w/h>4/3)w=h*4/3;else h=w*3/4;w=Math.floor(w);h=Math.floor(h);cv.style.width=w+'px';cv.style.height=h+'px';$('cvw').style.width=w+'px';$('cvw').style.height=h+'px';fw=w;fh=h;applyZoom();placeBar(w);}
+// Die Leiste neben das Bild legen (freier Balken), sonst auf den Griff einklappen
+function placeBar(w){const fb=$('fbar');if(!fb)return;
+ if(!document.body.classList.contains('full')||!document.body.classList.contains('nopad')){
+  fb.classList.remove('mini');fb.style.top='';fb.style.transform='';return;}
+ const gap=Math.floor((innerWidth-w)/2);
+ if(gap>=96){fb.classList.remove('mini');fb.style.top='50%';fb.style.transform='translateY(-50%)';}
+ else{fb.style.top='';fb.style.transform='';if(!fb.dataset.open)fb.classList.add('mini');}}
+$('fbar').addEventListener('pointerdown',e=>{const fb=$('fbar');if(!fb.classList.contains('mini'))return;
+ e.stopPropagation();e.preventDefault();fb.classList.remove('mini');fb.dataset.open='1';
+ clearTimeout(fb._t);fb._t=setTimeout(()=>{delete fb.dataset.open;placeBar(fw);},5000);},true);
+addEventListener('resize',fit);if(window.ResizeObserver)new ResizeObserver(fit).observe($('scr'));setTimeout(fit,0);
+// ---- Touch-Oberflaeche: eigenes UI aus dem Modell der Groovebox (keine 4:3-Bindung, grosse Flaechen)
+let tuiOn=false,tm=null,tPads=[],tTrks=[],tLastKey='';
+function tuiSet(on){tuiOn=on;document.body.classList.toggle('tui',on);try{localStorage.tui=on?1:'';}catch(e){}
+ if(on){tSend('M');tuiPoll();}else setTimeout(fit,30);}
+function tuiPoll(){if(!tuiOn)return;
+ if(window.GB_LOCAL&&GB_LOCAL.model){const j=GB_LOCAL.model();if(j)tuiModel(j);}else tSend('M');
+ setTimeout(tuiPoll,window.GB_LOCAL?90:1500);}
+function tAct(k,a,b){tSend('k '+k+' '+(a|0)+' '+(b|0));}
+function tuiModel(j){let m;try{m=typeof j==='string'?JSON.parse(j):j;}catch(e){return;}tm=m;window.tm=m;/* Tests lesen den Zustand hier */tuiRender(m);}
+function tuiRender(m){
+ const play=$('tPlay');play.textContent=m.play?'■':'▶';play.classList.toggle('on',!!m.play);
+ $('tPat').textContent=m.pat;$('tBpm').textContent=m.bpm+' BPM'+(m.song?' · SONG':'');
+ $('tMsg').textContent=m.msg||'';
+ // Spuren: nur neu aufbauen, wenn sich die Struktur aendert (sonst flackert es und der Finger verliert das Ziel)
+ const key=m.tracks.map(t=>t.n).join(',')+'|'+m.len;
+ const tr=$('tTracks');
+ if(key!==tLastKey){tLastKey=key;tr.innerHTML='';tTrks=[];
+  m.tracks.forEach((t,i)=>{const d=document.createElement('div');d.className='ttr';
+   d.innerHTML='<span class="tnr" style="color:var(--dim);font-size:11px"></span><span class="tn"></span><span class="tm">M</span>';
+   d.addEventListener('pointerdown',e=>{e.preventDefault();
+    if(e.target.classList.contains('tm'))tAct(3,i,0);else tAct(2,i,0);},{passive:false});
+   tr.appendChild(d);tTrks.push(d);});}
+ m.tracks.forEach((t,i)=>{const d=tTrks[i];if(!d)return;
+  d.style.borderLeftColor=t.c;d.classList.toggle('sel',i===m.track);
+  d.querySelector('.tnr').textContent=(i+1);d.querySelector('.tn').textContent=t.n;
+  d.querySelector('.tm').classList.toggle('on',!!t.m);});
+ // Pads: 16 je Seite
+ const base=m.page*16,n=Math.min(16,m.len-base),g=$('tGrid');
+ if(tPads.length!==16){g.innerHTML='';tPads=[];
+  for(let i=0;i<16;i++){const d=document.createElement('div');d.className='tp';
+   d.addEventListener('pointerdown',e=>{e.preventDefault();const s=(tm?tm.page:0)*16+i;
+    if(tm&&s<tm.len){d.classList.toggle('on');tAct(1,s,0);}},{passive:false});
+   g.appendChild(d);tPads.push(d);}}
+ for(let i=0;i<16;i++){const d=tPads[i],s=base+i,st=s<m.len?m.steps[s]:-1;
+  d.style.display=s<m.len?'':'none';
+  d.className='tp'+(st===1?' on':'')+(st===2?' tl':'')+(s===m.now?' now':'')+(i%4===0?' beat':'');
+  d.style.background=st===1?m.tracks[m.track].c:'';
+  d.textContent=s+1;}
+ // Seiten
+ const pb=$('tPages');
+ $('tBot').classList.toggle('hide',m.pages<2);
+ if(pb.childElementCount!==m.pages){pb.innerHTML='';
+  for(let p=0;p<m.pages;p++){const b=document.createElement('div');b.className='tb';b.textContent='P'+(p+1);
+   b.addEventListener('pointerdown',e=>{e.preventDefault();tAct(6,p,0);},{passive:false});pb.appendChild(b);}}
+ [...pb.children].forEach((b,p)=>b.style.borderColor=p===m.page?'var(--text)':'var(--line)');
+}
+$('tPlay').addEventListener('pointerdown',e=>{e.preventDefault();tAct(4,0,0);},{passive:false});
+$('tPatD').addEventListener('pointerdown',e=>{e.preventDefault();tAct(5,-1,1);},{passive:false});
+$('tPatU').addEventListener('pointerdown',e=>{e.preventDefault();tAct(5,1,1);},{passive:false});
+$('tView').addEventListener('pointerdown',e=>{e.preventDefault();tuiSet(false);},{passive:false});
+try{if(localStorage.tui)setTimeout(()=>tuiSet(true),400);}catch(e){}
+// ---- Verbindung: WebSocket (Bildstrom + Tasten), sonst Abfrage
+let ws=null,wsFails=0,everWs=false,pingT=0,lastRx=performance.now(),lostAt=0,tries=0;
+// Verbindungsverlust sichtbar machen: Bild abdunkeln + Hinweis statt eingefrorenem Bild
+function setLost(on){const el=$('lost');if(on){if(!lostAt){lostAt=performance.now();tries=0;}el.classList.add('on');}
+ else{lostAt=0;el.classList.remove('on');}}
+function lostTick(){if(!lostAt)return;const s=Math.round((performance.now()-lostAt)/1000);
+ $('lostT').textContent='seit '+s+' s · Versuch '+tries+(navigator.onLine===false?' · Handy offline':' · WLAN/USB prüfen');}
+function setStat(ok,txt){$('dot').style.background=ok?'var(--gr)':'#c33';if(txt)$('stat').textContent=txt;setLost(!ok);}
+$('lostR').onclick=e=>{e.stopPropagation();location.reload();};
+// Watchdog: der R36S beantwortet den Ping jede Sekunde - kommt 5 s nichts (grosses Bild ueber langsames WLAN braucht etwas), ist die Leitung tot
+// (WLAN weg, Gerät aus, Handy aus dem Ruhezustand): Socket verwerfen und neu verbinden
+function wsKill(){if(!ws)return;const w=ws;ws=null;w.onclose=w.onmessage=w.onopen=null;try{w.close();}catch(e){}
+ if(mode==='ws')mode='';setStat(false,'getrennt – verbinde neu …');releaseAll();setTimeout(connect,300);
+ if(aws){const a=aws;aws=null;a.onclose=a.onmessage=null;try{a.close();}catch(e){}if(aOn)setTimeout(connectAudio,800);}}   // Ton-Socket haengt meist mit
+setInterval(()=>{lostTick();if(ws&&performance.now()-lastRx>5000)wsKill();},500);
+function connect(){
+ if(window.GB_LOCAL){mode='local';setStat(true);GB_LOCAL.start();return;}   // Handy-App: Groovebox laeuft in dieser Seite (web/local.js)
+ if(wsFails>=3&&!everWs){mode='poll';pollLoop();return;}
+ tries++;
+ try{ws=new WebSocket((location.protocol==='https:'?'wss://':'ws://')+location.host+'/ws');}catch(e){wsFails++;setTimeout(connect,500);return;}
+ ws.binaryType='arraybuffer';
+ const me=ws;lastRx=performance.now();
+ const to=setTimeout(()=>{if(ws===me&&me.readyState!==1)wsKill();},4000);   // Aufbau haengt (kein Netz)
+ ws.onopen=()=>{clearTimeout(to);mode='ws';everWs=true;wsFails=0;lastRx=performance.now();setStat(true);ws.send('f');};
+ ws.onmessage=e=>{lastRx=performance.now();if(typeof e.data==='string'){if(e.data[0]==='P')lat=performance.now()-(+e.data.slice(2));else if(e.data[0]==='m'&&e.data[1]===' ')tuiModel(e.data.slice(2));}else decode(e.data);};
+ ws.onclose=()=>{clearTimeout(to);if(ws!==me)return;ws=null;if(mode==='ws')mode='';wsFails++;setStat(false,'getrennt – verbinde neu …');releaseAll();setTimeout(connect,600);};
+}
+async function pollLoop(){
+ for(;;){tries++;try{const ac=window.AbortController?new AbortController():null,tm=setTimeout(()=>{if(ac)ac.abort();},4000);
+   const r=await fetch('/api/screen?since='+seq,{cache:'no-store',signal:ac?ac.signal:undefined});clearTimeout(tm);
+   if(r.status===200){decode(await r.arrayBuffer());}else if(r.status===204){await new Promise(z=>setTimeout(z,20));}else throw 0;
+   setStat(true);}catch(e){setStat(false,'keine Verbindung …');seq=0;await new Promise(z=>setTimeout(z,800));}}
+}
+// ---- Ton: eigener WebSocket /wsa (16 Bit Stereo), Pakete werden luecklos hintereinander eingeplant.
+// Puffer ~120 ms; laeuft er voll (Uhren von R36S und Handy weichen ab), wird minimal schneller abgespielt, bei Luecke neu gepuffert.
+let actx=null,aws=null,again=null,nextT=0,aOn=false,aBuf=0,aDrop=0;const TGT=0.12;
+function audioOn(){
+ if(!actx){const AC=window.AudioContext||window.webkitAudioContext;if(!AC){alert('Dieser Browser kann keinen Ton abspielen');return;}
+  actx=new AC({latencyHint:'interactive'});again=actx.createGain();again.connect(actx.destination);}
+ actx.resume();again.gain.value=($('vol').value/100)**2;aOn=true;$('bAud').classList.add('on');$('bAud').textContent='🔊 Ton';$('vol').style.display='';
+ try{localStorage.audio=1;}catch(e){}
+ connectAudio();
+}
+function audioOff(){aOn=false;if(aws){aws.onclose=null;aws.close();aws=null;}$('bAud').classList.remove('on');$('bAud').textContent='🔈 Ton';$('vol').style.display='none';try{localStorage.audio='';}catch(e){}}
+function connectAudio(){
+ if(!aOn||aws)return;
+ aws=new WebSocket((location.protocol==='https:'?'wss://':'ws://')+location.host+'/wsa');aws.binaryType='arraybuffer';
+ aws.onmessage=e=>{if(typeof e.data==='string'||!actx)return;
+  const dv=new DataView(e.data),rate=dv.getUint32(0,true),n=(e.data.byteLength-8)>>2;if(n<=0)return;
+  const pcm=new Int16Array(e.data,8,n*2),b=actx.createBuffer(2,n,rate),L=b.getChannelData(0),R=b.getChannelData(1);
+  for(let i=0;i<n;i++){L[i]=pcm[i*2]/32768;R[i]=pcm[i*2+1]/32768;}
+  const now=actx.currentTime;
+  if(nextT<now+0.01){nextT=now+TGT;}
+  let lead=nextT-now;if(lead>TGT*3){aDrop++;return;}
+  const pr=lead>TGT*1.4?1.004:(lead<TGT*0.6?0.997:1);
+  const src=actx.createBufferSource();src.buffer=b;src.playbackRate.value=pr;src.connect(again);src.start(nextT);
+  nextT+=n/rate/pr;aBuf=lead;};
+ aws.onclose=()=>{aws=null;if(aOn)setTimeout(connectAudio,800);};
+}
+$('bAud').onclick=()=>{if(aOn)audioOff();else audioOn();};
+$('vol').oninput=()=>{if(again)again.gain.value=($('vol').value/100)**2;try{localStorage.vol=$('vol').value;}catch(e){}};
+try{if(localStorage.vol)$('vol').value=localStorage.vol;}catch(e){}
+try{if(localStorage.audio){const once=ev=>{document.removeEventListener('pointerdown',once,true);if(!aOn&&ev.target.id!=='bAud')audioOn();};document.addEventListener('pointerdown',once,true);$('bAud').textContent='🔈 Ton (antippen)';}}catch(e){}
+if(!window.GB_LOCAL&&'serviceWorker' in navigator&&window.isSecureContext)navigator.serviceWorker.register('/sw.js').catch(()=>{});
+setInterval(()=>{const now=performance.now(),s=(now-last)/1000;
+ if(ws&&ws.readyState===1)ws.send('p '+now.toFixed(0));
+ if(aws&&aws.readyState===1)aws.send('p');   // Lebenszeichen auch fuer den Ton (Geraet schliesst stille Verbindungen)
+ $('stat').textContent=mode==='local'?'Offline · '+Math.round(frames/s)+' fps':(mode==='ws'?'Live':mode==='poll'?'Abfrage':'…')+' · '+Math.round(frames/s)+' fps · '+Math.round(bytes/1024/s)+' kB/s'+(mode==='ws'?' · '+Math.round(lat)+' ms':'')+(aOn&&aws?' · Ton '+Math.round(aBuf*1000)+' ms':'');
+ frames=0;bytes=0;last=now;},1000);
+document.addEventListener('visibilitychange',()=>{if(document.hidden){releaseAll();return;}
+ lastRx=performance.now();if(ws&&ws.readyState===1){ws.send('f');ws.send('p '+lastRx.toFixed(0));}});   // zurueck aus dem Hintergrund: Watchdog prueft sofort
+addEventListener('online',()=>{if(ws&&ws.readyState!==1)wsKill();});
+addEventListener('offline',()=>{if(ws)wsKill();});
+connect();
+// ---- Tasten senden (Zaehler je Taste: Touch + Tastatur + Gamepad duerfen sich ueberlappen)
+const cnt={},AX={LX:1,LY:1,RX:1,RY:1};
+function vib(){if(navigator.vibrate)try{navigator.vibrate(8);}catch(e){}}
+function out(msg,b,v){if(window.GB_LOCAL){GB_LOCAL.send(msg);return;}if(ws&&ws.readyState===1)ws.send(msg);else fetch('/api/input?b='+b+'&v='+v,{method:'POST',keepalive:true}).catch(()=>{});}
+function press(b,v){const key=b+(AX[b]?':'+v:'');cnt[key]=(cnt[key]||0)+1;if(cnt[key]>1)return;
+ if(AX[b])out('a '+b+' '+v,b,v);else out('d '+b,b,1);show(key,true);vib();}
+function release(b,v){const key=b+(AX[b]?':'+v:'');if(!cnt[key])return;if(--cnt[key]>0)return;delete cnt[key];
+ if(AX[b])out('a '+b+' 0',b,0);else out('u '+b,b,0);show(key,false);}
+function releaseAll(){for(const k in cnt){const[b,v]=k.split(':');cnt[k]=1;release(b,v===undefined?1:+v);}touches.clear();}
+const dEl={UP:'.u',DOWN:'.d',LEFT:'.l',RIGHT:'.r'};
+function show(key,on){const[b,v]=key.split(':');
+ if(dEl[b]){$('dpad').querySelector(dEl[b]).classList.toggle('on',on);return;}
+ document.querySelectorAll('[data-b="'+b+'"]'+(v!==undefined?'[data-v="'+v+'"]':'')).forEach(e=>e.classList.toggle('on',on));}
+// ---- Touch/Maus: jeder Finger haelt eine Taste (bzw. eine Steuerkreuz-Richtung), Wischen wechselt die Taste
+const touches=new Map();   // pointerId -> Liste [b,v]
+function targetsAt(x,y){
+ const d=$('dpad').getBoundingClientRect();
+ if(x>=d.left&&x<=d.right&&y>=d.top&&y<=d.bottom){
+  const dx=x-(d.left+d.width/2),dy=y-(d.top+d.height/2),r=Math.hypot(dx,dy);if(r<d.width*0.12)return[];
+  const a=Math.atan2(dy,dx)*180/Math.PI,res=[];   // 8 Richtungen: Diagonale = zwei Tasten
+  if(a>-67.5&&a<67.5)res.push(['RIGHT',1]);if(a>112.5||a<-112.5)res.push(['LEFT',1]);
+  if(a>22.5&&a<157.5)res.push(['DOWN',1]);if(a<-22.5&&a>-157.5)res.push(['UP',1]);return res;}
+ const el=document.elementFromPoint(x,y),bt=el&&el.closest('[data-b]');
+ return bt?[[bt.dataset.b,+(bt.dataset.v||1)]]:[];
+}
+function same(a,b){return a.length===b.length&&a.every((t,i)=>t[0]===b[i][0]&&t[1]===b[i][1]);}
+function setTouch(id,list){const old=touches.get(id)||[];if(same(old,list))return;
+ old.forEach(t=>{if(!list.some(n=>n[0]===t[0]&&n[1]===t[1]))release(t[0],t[1]);});
+ list.forEach(t=>{if(!old.some(o=>o[0]===t[0]&&o[1]===t[1]))press(t[0],t[1]);});
+ if(list.length)touches.set(id,list);else touches.delete(id);}
+const ctlArea=[$('ctl'),$('midL'),$('fbar')];
+ctlArea.forEach(area=>{
+ area.addEventListener('pointerdown',e=>{const l=targetsAt(e.clientX,e.clientY);if(!l.length)return;e.preventDefault();try{area.setPointerCapture(e.pointerId);}catch(_){}setTouch(e.pointerId,l);});
+ area.addEventListener('pointermove',e=>{if(!touches.has(e.pointerId))return;e.preventDefault();setTouch(e.pointerId,targetsAt(e.clientX,e.clientY));});
+ const end=e=>{setTouch(e.pointerId,[]);};
+ area.addEventListener('pointerup',end);area.addEventListener('pointercancel',end);area.addEventListener('lostpointercapture',end);
+});
+document.addEventListener('contextmenu',e=>e.preventDefault());
+document.addEventListener('touchmove',e=>{if(e.touches.length>1||e.target.closest('#ctl,#midL,#fbar'))e.preventDefault();},{passive:false});
+// ---- Zoom: Bild bis 4x vergroessern, Ausschnitt verschieben (Transform auf dem Canvas; tPos rechnet ueber getBoundingClientRect weiter richtig)
+let zm=1,zx=0,zy=0,fw=640,fh=480;
+function applyZoom(){zm=Math.max(1,Math.min(4,zm));zx=Math.max(0,Math.min(fw*(zm-1),zx));zy=Math.max(0,Math.min(fh*(zm-1),zy));
+ cv.style.transform=zm>1?'translate('+(-zx)+'px,'+(-zy)+'px) scale('+zm+')':'';$('zl').textContent=Math.round(zm*100)+'%';$('zl').classList.toggle('on',zm>1);}
+function zoomAt(nz,cx,cy){   // cx/cy: Punkt im sichtbaren Ausschnitt (CSS-Pixel), der an seiner Stelle bleibt
+ nz=Math.max(1,Math.min(4,nz));const bx=(cx+zx)/zm,by=(cy+zy)/zm;zm=nz;zx=bx*zm-cx;zy=by*zm-cy;applyZoom();}
+function zoomStep(f){zoomAt(zm*f,fw/2,fh/2);}
+$('zi').onclick=()=>zoomStep(1.25);$('zo').onclick=()=>zoomStep(0.8);$('zl').onclick=()=>{zm=1;zx=zy=0;applyZoom();};
+$('cvw').addEventListener('wheel',e=>{const r=$('cvw').getBoundingClientRect();
+ if(e.ctrlKey||e.metaKey){e.preventDefault();zoomAt(zm*Math.exp(-e.deltaY*0.0025),e.clientX-r.left,e.clientY-r.top);}
+ else if(zm>1){e.preventDefault();zx+=e.deltaX;zy+=e.deltaY;applyZoom();}},{passive:false});
+addEventListener('keydown',e=>{if(e.ctrlKey||e.metaKey||e.altKey)return;
+ if(e.key==='+'||e.code==='NumpadAdd'||e.code==='Equal'){e.preventDefault();zoomStep(1.25);}
+ else if(e.key==='-'||e.code==='NumpadSubtract'||e.code==='Minus'){e.preventDefault();zoomStep(0.8);}
+ else if(e.code==='Digit0'||e.code==='Numpad0'){e.preventDefault();zm=1;zx=zy=0;applyZoom();}
+ else if(e.code==='KeyV'){e.preventDefault();setFull(!document.body.classList.contains('full'));}});
+// Zwei Finger, die fast gleichzeitig (< 150 ms) aufs Bild kommen = Zoomen/Verschieben; spaeter dazukommender Finger = normale
+// Bedienung (Step halten + Kachel ziehen). Dafuer wird der erste Touch-Finger bis zu 150 ms zurueckgehalten.
+const pend=new Map();let gest=null;
+function cvwXY(e){const r=$('cvw').getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top];}
+function gestStart(){const p=[...pend.values()];pend.forEach(q=>clearTimeout(q.tm));pend.clear();
+ const[a,b]=p;gest={ids:[a.pid,b.pid],pos:{[a.pid]:a.xy,[b.pid]:b.xy}};gest.d0=Math.hypot(a.xy[0]-b.xy[0],a.xy[1]-b.xy[1])||1;gest.z0=zm;
+ gest.m0=[(a.xy[0]+b.xy[0])/2,(a.xy[1]+b.xy[1])/2];gest.zx0=zx;gest.zy0=zy;}
+function gestMove(){const[a,b]=gest.ids.map(i=>gest.pos[i]);const d=Math.hypot(a[0]-b[0],a[1]-b[1]),m=[(a[0]+b[0])/2,(a[1]+b[1])/2];
+ const nz=Math.max(1,Math.min(4,gest.z0*d/gest.d0));const bx=(gest.m0[0]+gest.zx0)/gest.z0,by=(gest.m0[1]+gest.zy0)/gest.z0;   // Bildpunkt unter der Anfangsmitte
+ zm=nz;zx=bx*zm-m[0];zy=by*zm-m[1];applyZoom();}
+// ---- Touch direkt auf dem Bild: Kacheln, Steps, Spuren, Reiter ... (die Groovebox wertet die Stelle aus)
+const tIds=new Map(),tPend=new Map(),rips=new Map();
+function tId(pid){if(tIds.has(pid))return tIds.get(pid);for(let i=0;i<10;i++){if(![...tIds.values()].includes(i)){tIds.set(pid,i);return i;}}return -1;}
+function tPos(e){const r=cv.getBoundingClientRect();return[Math.max(0,Math.min(W-1,Math.round((e.clientX-r.left)/r.width*W))),Math.max(0,Math.min(H-1,Math.round((e.clientY-r.top)/r.height*H)))];}
+function tSend(m){if(window.GB_LOCAL){GB_LOCAL.send(m);return;}if(ws&&ws.readyState===1)ws.send(m);}
+function ripple(e,hold){const r=$('cvw').getBoundingClientRect(),d=document.createElement('div');d.className='rip'+(hold?' hold':'');d.style.left=(e.clientX-r.left)+'px';d.style.top=(e.clientY-r.top)+'px';$('cvw').appendChild(d);if(!hold)setTimeout(()=>d.remove(),460);return d;}
+function tDown(e){const id=tId(e.pointerId);if(id<0)return;
+ const[x,y]=tPos(e);tSend('t '+id+' '+x+' '+y);ripple(e,false);rips.set(e.pointerId,ripple(e,true));vib();}
+function commit(pid){const q=pend.get(pid);if(!q)return;clearTimeout(q.tm);pend.delete(pid);tDown(q.ev);}
+cv.addEventListener('pointerdown',e=>{e.preventDefault();try{cv.setPointerCapture(e.pointerId);}catch(_){}
+ if(gest)return;
+ if(e.pointerType==='touch'&&!tIds.size){   // erster Finger: kurz zurueckhalten (Geste?)
+  if(pend.size===1){pend.set(e.pointerId,{pid:e.pointerId,xy:cvwXY(e),ev:e});gestStart();return;}
+  const q={pid:e.pointerId,xy:cvwXY(e),ev:e,x0:e.clientX,y0:e.clientY};q.tm=setTimeout(()=>commit(e.pointerId),150);pend.set(e.pointerId,q);return;}
+ tDown(e);});
+cv.addEventListener('pointermove',e=>{
+ if(gest&&gest.pos[e.pointerId]){e.preventDefault();gest.pos[e.pointerId]=cvwXY(e);gestMove();return;}
+ const q=pend.get(e.pointerId);if(q){if(Math.hypot(e.clientX-q.x0,e.clientY-q.y0)>10)commit(e.pointerId);else return;}
+ if(!tIds.has(e.pointerId))return;e.preventDefault();tPend.set(e.pointerId,tPos(e));const r=rips.get(e.pointerId);
+ if(r){const b=$('cvw').getBoundingClientRect();r.style.left=(e.clientX-b.left)+'px';r.style.top=(e.clientY-b.top)+'px';}});
+function tEnd(e){
+ if(gest&&gest.pos[e.pointerId]){delete gest.pos[e.pointerId];if(!Object.keys(gest.pos).length)gest=null;return;}
+ if(pend.has(e.pointerId))commit(e.pointerId);
+ if(!tIds.has(e.pointerId))return;const id=tIds.get(e.pointerId),[x,y]=tPos(e);tPend.delete(e.pointerId);tSend('e '+id+' '+x+' '+y);tIds.delete(e.pointerId);
+ const r=rips.get(e.pointerId);if(r){r.remove();rips.delete(e.pointerId);}}
+cv.addEventListener('pointerup',tEnd);cv.addEventListener('pointercancel',tEnd);
+setInterval(()=>{for(const[pid,p]of tPend){const id=tIds.get(pid);if(id!==undefined)tSend('m '+id+' '+p[0]+' '+p[1]);}tPend.clear();},16);   // Bewegung hoechstens ~60x/s
+// ---- Tastatur
+const km={ArrowUp:['UP',1],ArrowDown:['DOWN',1],ArrowLeft:['LEFT',1],ArrowRight:['RIGHT',1],KeyZ:['A',1],KeyY:['A',1],Space:['A',1],KeyX:['B',1],Backspace:['B',1],Escape:['B',1],
+ KeyS:['X',1],KeyA:['Y',1],KeyQ:['L1',1],KeyW:['R1',1],Digit1:['L2',1],Digit2:['R2',1],ShiftLeft:['SELECT',1],ShiftRight:['SELECT',1],Tab:['SELECT',1],
+ Enter:['START',1],NumpadEnter:['START',1],KeyT:['LY',1],KeyG:['LY',-1],KeyF:['LX',-1],KeyH:['LX',1],KeyI:['RY',1],KeyK:['RY',-1],KeyJ:['RX',-1],KeyL:['RX',1]};
+const kh={};
+addEventListener('keydown',e=>{if(e.ctrlKey||e.metaKey||e.altKey)return;const m=km[e.code];if(!m)return;e.preventDefault();if(kh[e.code])return;kh[e.code]=1;press(m[0],m[1]);});
+addEventListener('keyup',e=>{const m=km[e.code];if(!m||!kh[e.code])return;e.preventDefault();delete kh[e.code];release(m[0],m[1]);});
+addEventListener('blur',()=>{for(const c in kh){release(km[c][0],km[c][1]);delete kh[c];}});
+// ---- Gamepad (Standard-Belegung, Tastenlage wie am R36S: rechts A, unten B, oben X, links Y)
+const gpMap={1:'A',0:'B',3:'X',2:'Y',4:'L1',5:'R1',6:'L2',7:'R2',8:'SELECT',9:'START',12:'UP',13:'DOWN',14:'LEFT',15:'RIGHT'};
+const gpState={};
+function pollPad(){const gps=navigator.getGamepads?navigator.getGamepads():[];
+ for(const gp of gps){if(!gp)continue;
+  for(const i in gpMap){const p=gp.buttons[i]&&gp.buttons[i].pressed,k='g'+gp.index+'b'+i;if(p&&!gpState[k]){gpState[k]=1;press(gpMap[i],1);}else if(!p&&gpState[k]){delete gpState[k];release(gpMap[i],1);}}
+  [['LX',0,1],['LY',1,-1],['RX',2,1],['RY',3,-1]].forEach(([n,ai,sg])=>{const a=gp.axes[ai]||0,v=a>0.5?sg:(a<-0.5?-sg:0),k='g'+gp.index+n,o=gpState[k]||0;
+   if(v!==o){if(o)release(n,o);if(v)press(n,v);if(v)gpState[k]=v;else delete gpState[k];}});}}
+// ---- Kopfzeile
+const togglePad=()=>{document.body.classList.toggle('nopad');try{localStorage.nopad=document.body.classList.contains('nopad')?1:'';}catch(e){}setTimeout(fit,30);};
+$('bPad').onclick=togglePad;
+$('bTui').onclick=()=>tuiSet(true);
+$('fPad').addEventListener('pointerdown',e=>{e.stopPropagation();e.preventDefault();togglePad();});
+try{if(localStorage.nopad)document.body.classList.add('nopad');}catch(e){}
+$('bHelp').onclick=()=>$('help').classList.add('show');$('help').onclick=()=>$('help').classList.remove('show');
+$('bSt').onclick=()=>{document.body.classList.toggle('sticks');try{localStorage.sticks=document.body.classList.contains('sticks')?1:'';}catch(e){}};
+try{if(localStorage.sticks)document.body.classList.add('sticks');}catch(e){}
+let wl=null;async function wake(){try{if(navigator.wakeLock&&!wl){wl=await navigator.wakeLock.request('screen');wl.addEventListener('release',()=>wl=null);}}catch(e){}}
+document.addEventListener('pointerdown',wake);document.addEventListener('keydown',wake);
+// Bild-Vollbild: Kopfzeile und Tasten weg, Bild fuellt den Bildschirm (4:3), wo moeglich auch Browser-Vollbild
+function setFull(on){document.body.classList.toggle('full',on);try{localStorage.full=on?1:'';}catch(e){}
+ const d=document.documentElement,fs=document.fullscreenElement||document.webkitFullscreenElement;
+ try{if(on&&!fs&&(d.requestFullscreen||d.webkitRequestFullscreen)){const r=(d.requestFullscreen||d.webkitRequestFullscreen).call(d);if(r&&r.catch)r.catch(()=>{});}
+  else if(!on&&fs)(document.exitFullscreen||document.webkitExitFullscreen).call(document);}catch(e){}
+ setTimeout(fit,60);setTimeout(fit,400);}
+$('bFull').onclick=()=>setFull(true);
+$('fExit').addEventListener('pointerdown',e=>{e.stopPropagation();e.preventDefault();setFull(false);});
+$('fSide').addEventListener('pointerdown',e=>{e.stopPropagation();e.preventDefault();document.body.classList.toggle('fleft');});
+try{if(localStorage.full)document.body.classList.add('full');}catch(e){}
+$('bFs').onclick=()=>{const d=document.documentElement;if(document.fullscreenElement||document.webkitFullscreenElement){(document.exitFullscreen||document.webkitExitFullscreen).call(document);}
+ else{(d.requestFullscreen||d.webkitRequestFullscreen).call(d);try{screen.orientation.lock('landscape').catch(()=>{});}catch(e){}}};
+</script></body></html>
