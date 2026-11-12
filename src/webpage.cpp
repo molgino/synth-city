@@ -427,6 +427,20 @@ body.tui.hold #tLock{display:flex}
 #tLock .tb{background:var(--lk,#2a2317);border-color:#ffba40;color:#ffba40}
 .tp.hold{outline:3px solid #ffba40;outline-offset:-3px}
 body.tui.hold .tr .vl{color:#ffba40}
+/* Klaviatur: haengt ein Step im P-Lock, schreibt die Taste dessen Note - sonst hoert man nur vor */
+#tKeys{display:none;grid-template-rows:auto minmax(0,1fr);gap:6px;min-height:0}
+body.tui.keys #tKeys{display:grid}
+body.tui.keys #tGrid,body.tui.keys #tSnd{display:none}
+#tOct{display:flex;align-items:center;gap:8px}
+#tKb{position:relative;min-height:0;touch-action:none;display:flex;gap:3px}
+#tKb .wk{flex:1;position:relative;border-radius:0 0 8px 8px;background:#e8ecf2;border:1px solid #2a2d35;
+ display:flex;align-items:flex-end;justify-content:center;padding-bottom:6px;color:#2a2d35;font-size:11px}
+#tKb .wk.on{background:var(--cy);color:#06242c}
+#tKb .wk.cur{box-shadow:inset 0 0 0 3px var(--acc)}
+#tKb .bk{position:absolute;top:0;height:62%;border-radius:0 0 6px 6px;background:#1a1d24;border:1px solid #000;
+ z-index:2;display:flex;align-items:flex-end;justify-content:center;padding-bottom:4px;color:#aeb6c2;font-size:10px}
+#tKb .bk.on{background:var(--cy);color:#06242c}
+#tKb .bk.cur{box-shadow:inset 0 0 0 3px var(--acc)}
 /* Auswahl (ENGINE, Filtertyp, Bus-Effekt ...): auf 15 Engines mit dem Finger zu zielen geht nicht
    mit einem Schieber - antippen oeffnet eine Liste mit grossen Zeilen. */
 .tr.sel .vl::after{content:' ›';color:var(--dim)}
@@ -473,7 +487,8 @@ body.nopad #scr{grid-column:1 !important}
   <div id="tBpm">120 BPM</div><span id="tMsg"></span><span id="tLock"><span style="color:#ffba40;font-size:12px" id="tLockT">LOCK</span><button class="tb" id="tLockC">LOCKS WEG</button><button class="tb" id="tLockE">FERTIG</button></span><button class="tb" id="tMode">SOUND</button><button class="tb" id="tView" title="zum gespiegelten Geraetebild">BILD</button></div>
  <div id="tMain"><div id="tTracks"></div>
   <div id="tGrid"></div>
-  <div id="tSnd"><div id="tGrps"></div><div id="tPar"></div></div></div>
+  <div id="tSnd"><div id="tGrps"></div><div id="tPar"></div></div>
+  <div id="tKeys"><div id="tOct"><button class="tb" id="tOctD">− OKT</button><span id="tOctT" style="color:var(--cy);min-width:52px;text-align:center"></span><button class="tb" id="tOctU">+ OKT</button><span id="tNoteT" style="color:var(--dim);font-size:12px"></span></div><div id="tKb"></div></div></div>
  <div id="tWait">warte auf die Groovebox …</div>
  <div id="tPick"><div style="display:flex;align-items:center;gap:10px"><span id="tPickT"></span>
   <span style="flex:1"></span><button class="tb" id="tPickX">ABBRECHEN</button></div><div id="tPickL"></div></div>
@@ -534,6 +549,8 @@ function tuiRender(m){
  $('tPat').textContent=m.pat;$('tBpm').textContent=m.bpm+' BPM'+(m.song?' · SONG':'');
  $('tMsg').textContent=m.msg||'';
  document.body.classList.toggle('hold',m.hold>=0);
+ if(document.body.classList.contains('keys')){tKbMark(m.note);
+  $('tNoteT').textContent=(m.hold>=0?'Step '+(m.hold+1)+': ':'')+tNoteName(m.note)+(m.drum?' · Drum-Engine: Tonhöhe wirkt kaum':'');}
  if(m.hold>=0)$('tLockT').textContent='LOCK STEP '+(m.hold+1);
  // Spuren: nur neu aufbauen, wenn sich die Struktur aendert (sonst flackert es und der Finger verliert das Ziel)
  const key=m.tracks.map(t=>t.n).join(',')+'|'+m.len;
@@ -560,7 +577,8 @@ function tuiRender(m){
     if(!tm||s>=tm.len||document.body.classList.contains('hold'))return;
     d.classList.toggle('on');tAct(1,s,0);
     ht=setTimeout(()=>{ht=null;tAct(1,s,0);tAct(12,s,1);
-     if(!document.body.classList.contains('snd')){document.body.classList.add('snd');$('tMode').textContent='STEPS';if(tm.view===0)tAct(9,1,0);}
+     // nur aus der Pad-Ansicht zu den Reglern springen - wer von der Klaviatur kommt, will dort bleiben
+     if(!document.body.classList.contains('snd')&&!document.body.classList.contains('keys'))tSetMode(1);
      if(navigator.vibrate)navigator.vibrate(12);},350);},{passive:false});
    const up=()=>{if(ht){clearTimeout(ht);ht=null;}};
    d.addEventListener('pointerup',up);d.addEventListener('pointercancel',up);
@@ -623,12 +641,44 @@ function tParDrag(d,i){
 }
 $('tLockE').addEventListener('pointerdown',e=>{e.preventDefault();tAct(12,0,0);},{passive:false});
 $('tLockC').addEventListener('pointerdown',e=>{e.preventDefault();tAct(13,0,0);},{passive:false});
+// Drei Ansichten im Kreis: Pads -> Regler -> Klaviatur. Der Knopf zeigt, was als Naechstes kommt.
+const TMODES=['','snd','keys'],TLBL=['SOUND','NOTEN','STEPS'];
+function tSetMode(m){const b=document.body;TMODES.forEach(c=>c&&b.classList.remove(c));
+ if(TMODES[m])b.classList.add(TMODES[m]);$('tMode').textContent=TLBL[m];
+ if(TMODES[m]==='snd'&&tm&&tm.view===0)tAct(9,1,0);
+ if(TMODES[m]==='keys')tKbBuild();
+ try{localStorage.tmode=m;}catch(e){}}
 $('tMode').addEventListener('pointerdown',e=>{e.preventDefault();
- const snd=!document.body.classList.contains('snd');document.body.classList.toggle('snd',snd);
- $('tMode').textContent=snd?'STEPS':'SOUND';
- if(snd&&tm&&tm.view===0)tAct(9,1,0);   // aus SEQ in die Klang-Ansicht wechseln
- try{localStorage.tsnd=snd?1:'';}catch(err){}},{passive:false});
-try{if(localStorage.tsnd){document.body.classList.add('snd');$('tMode').textContent='STEPS';}}catch(e){}
+ let m=TMODES.findIndex(c=>c===''||document.body.classList.contains(c));
+ m=document.body.classList.contains('keys')?2:(document.body.classList.contains('snd')?1:0);
+ tSetMode((m+1)%3);},{passive:false});
+try{const m=+(localStorage.tmode||0);if(m)setTimeout(()=>tSetMode(m),300);}catch(e){}
+
+// ---- Klaviatur: zwei Oktaven, weisse Tasten als Reihe, schwarze darueber
+let tOct=4;
+const WK=[0,2,4,5,7,9,11],BK=[1,3,-1,6,8,10,-1],NN=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+function tNoteName(n){return NN[((n%12)+12)%12]+(Math.floor(n/12)-1);}
+function tKbBuild(){const kb=$('tKb');if(kb.dataset.oct==tOct&&kb.childElementCount)return;kb.dataset.oct=tOct;
+ kb.innerHTML='';$('tOctT').textContent='C'+(tOct-1);
+ const wn=[];
+ for(let o=0;o<2;o++)for(const k of WK)wn.push(tOct*12+o*12+k);
+ wn.forEach(n=>{const d=document.createElement('div');d.className='wk';d.dataset.n=n;d.textContent=tNoteName(n);
+  d.addEventListener('pointerdown',e=>{e.preventDefault();tAct(14,n,0);d.classList.add('on');
+   setTimeout(()=>d.classList.remove('on'),180);},{passive:false});kb.appendChild(d);});
+ // schwarze Tasten zwischen die weissen legen (Anteil der Gesamtbreite)
+ const per=100/wn.length;
+ let wi=0;
+ for(let o=0;o<2;o++)for(let i=0;i<7;i++,wi++){
+  const semi=BK[i];if(semi<0)continue;
+  const n=tOct*12+o*12+semi;
+  const d=document.createElement('div');d.className='bk';d.dataset.n=n;d.textContent=tNoteName(n);
+  d.style.left='calc('+(per*(wi+1))+'% - '+(per*0.3)+'%)';d.style.width=(per*0.6)+'%';
+  d.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();tAct(14,n,0);d.classList.add('on');
+   setTimeout(()=>d.classList.remove('on'),180);},{passive:false});kb.appendChild(d);}
+}
+function tKbMark(note){const kb=$('tKb');[...kb.children].forEach(d=>d.classList.toggle('cur',+d.dataset.n===note));}
+$('tOctD').addEventListener('pointerdown',e=>{e.preventDefault();tOct=Math.max(0,tOct-1);tKbBuild();},{passive:false});
+$('tOctU').addEventListener('pointerdown',e=>{e.preventDefault();tOct=Math.min(8,tOct+1);tKbBuild();},{passive:false});
 $('tPlay').addEventListener('pointerdown',e=>{e.preventDefault();tAct(4,0,0);},{passive:false});
 $('tPatD').addEventListener('pointerdown',e=>{e.preventDefault();tAct(5,-1,1);},{passive:false});
 $('tPatU').addEventListener('pointerdown',e=>{e.preventDefault();tAct(5,1,1);},{passive:false});

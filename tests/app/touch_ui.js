@@ -137,6 +137,31 @@ function check(ok, what, extra) { if (ok) { pass++; console.log('  OK     ' + wh
     check(engAfter.n === 'SYNTH' && !engAfter.open, 'die gewaehlte Engine landet auf der Spur', `${engBefore} -> ${engAfter.n}`);
   }
 
+  // Klaviatur: Noten vorhoeren, und bei gehaltenem Step wird die Note dessen Lock.
+  // Dafuer erst wieder einen Step halten - der vorige Lock-Modus wurde oben mit FERTIG beendet.
+  await pg.evaluate(() => { const d = [...document.querySelectorAll('.tp')][5], r = d.getBoundingClientRect();
+    d.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, pointerId: 40, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2})); });
+  await pg.waitForTimeout(650);
+  await pg.evaluate(() => [...document.querySelectorAll('.tp')][5].dispatchEvent(new PointerEvent('pointerup', {bubbles: true, pointerId: 40})));
+  await pg.waitForTimeout(700);
+  await pg.evaluate(() => tSetMode(2));
+  await pg.waitForTimeout(800);
+  const kb = await pg.evaluate(() => ({keys: document.body.classList.contains('keys'),
+    w: document.querySelectorAll('#tKb .wk').length, b: document.querySelectorAll('#tKb .bk').length,
+    h: Math.round((document.querySelector('#tKb .wk') || {getBoundingClientRect: () => ({height: 0})}).getBoundingClientRect().height)}));
+  check(kb.keys && kb.w === 14 && kb.b === 10, 'Klaviatur zeigt zwei Oktaven', `${kb.w} weisse, ${kb.b} schwarze`);
+  check(kb.h >= 44, 'die Tasten sind fingergross', kb.h + ' px hoch');
+  const noteBefore = await pg.evaluate(() => tm.note);
+  await pg.evaluate(() => { const d = [...document.querySelectorAll('#tKb .wk')][3], r = d.getBoundingClientRect();
+    d.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, pointerId: 41, clientX: r.left + r.width / 2, clientY: r.top + r.height - 8})); });
+  await pg.waitForTimeout(900);
+  const noteAfter = await pg.evaluate(() => tm.note);
+  check(noteAfter !== noteBefore, 'Taste im Lock-Modus setzt die Note des Steps', `${noteBefore} -> ${noteAfter}`);
+  await tapSel('#tLockE'); await pg.waitForTimeout(800);
+  const lockedStep = await pg.evaluate(() => ({step: tm.steps[5], hold: tm.hold}));
+  check(lockedStep.hold < 0 && lockedStep.step > 0, 'nach FERTIG traegt der Step die Note', 'on=' + lockedStep.step);
+  await pg.evaluate(() => tSetMode(1)); await pg.waitForTimeout(500);   // fuer den Scroll-Test zurueck zu den Reglern
+
   // Gemeldet: scrollen ging nicht - #tui hatte touch-action:none (blockiert jede Geste im Overlay)
   // und die Reglerliste war gar kein Scrollcontainer.
   // fuer den Scroll-Fall eine moeglichst volle Gruppe nehmen (MAKROS hat 9 Regler, FILTER nur 5)
@@ -158,8 +183,9 @@ function check(ok, what, extra) { if (ok) { pass++; console.log('  OK     ' + wh
   if (sc.scrollH > sc.clientH + 2) check(sc.top > 0, 'passt die Liste nicht auf den Schirm, laesst sie sich scrollen', `${sc.scrollH} in ${sc.clientH}, scrollTop ${sc.top}`);
   else check(true, `Liste passt ganz auf den Schirm (${sc.scrollH} in ${sc.clientH})`);
 
-  await tapSel('#tMode'); await pg.waitForTimeout(600);
-  const back = await pg.evaluate(() => !document.body.classList.contains('snd') && [...document.querySelectorAll('.tp')].some(p => p.style.display !== 'none'));
+  await pg.evaluate(() => tSetMode(0)); await pg.waitForTimeout(600);
+  const back = await pg.evaluate(() => !document.body.classList.contains('snd') && !document.body.classList.contains('keys')
+    && [...document.querySelectorAll('.tp')].some(p => p.style.display !== 'none'));
   check(back, 'zurueck zu STEPS');
 
   // Flaeche + keine JS-Fehler

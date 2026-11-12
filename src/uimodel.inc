@@ -5,7 +5,7 @@
 // Gelesen wird im Hauptthread (uiModelPush, ~10/s), geschickt vom Web-Thread; Aktionen laufen
 // ueber remoteActPush zurueck in den Hauptthread (uiActionsRun in handleInput).
 
-enum { UA_STEP = 1, UA_TRACK, UA_MUTE, UA_PLAY, UA_PATTERN, UA_PAGE, UA_SOLO, UA_TRIGLESS, UA_VIEW, UA_GROUP, UA_PARAM, UA_HOLD, UA_LOCKCLR };
+enum { UA_STEP = 1, UA_TRACK, UA_MUTE, UA_PLAY, UA_PATTERN, UA_PAGE, UA_SOLO, UA_TRIGLESS, UA_VIEW, UA_GROUP, UA_PARAM, UA_HOLD, UA_LOCKCLR, UA_NOTE };
 
 // Regler der Gruppe, in der der Cursor steht - aus derselben Liste (v2Build/v2It), die auch die
 // Geraete-Oberflaeche zeichnet. uiGrpRange liefert den Bereich [a,b) der Eintraege dieser Gruppe.
@@ -55,7 +55,13 @@ static int uiModelJson(char* b, int n) {
     w += snprintf(b + w, n - w, "],\"steps\":[");
     for (int s = 0; s < len && w < n - 40; s++)   // Zustand je Step: 0 leer, 1 Trig, 2 trigless
         w += snprintf(b + w, n - w, "%s%d", s ? "," : "", P.s[track][s].on);
-    w += snprintf(b + w, n - w, "],\"now\":%d", eng.playing ? eng.playedStep[track] : -1);
+    // Noten: ist die Spur melodisch, und welche Note zeigt der gehaltene Step (sonst die der Spur)?
+    {
+        bool hold = aHeld && holdTrack == track && holdPat == curPi();
+        int note = hold && holdS().lock[P_NOTE] != NO_LOCK ? holdS().lock[P_NOTE] : P.p[track][P_NOTE];
+        w += snprintf(b + w, n - w, "],\"drum\":%d,\"note\":%d", machineIsDrum(P.machine[track] % M_COUNT) ? 1 : 0, note);
+    }
+    w += snprintf(b + w, n - w, ",\"now\":%d", eng.playing ? eng.playedStep[track] : -1);
     // Klang schrauben: Gruppen der Ansicht und die Regler der aktuellen Gruppe
     if (v2Active()) {
         int from, to, gi, gc;
@@ -175,6 +181,19 @@ static void uiActionsRun() {   // Hauptthread: Aktionen aus der Touch-Oberflaech
             memset(st.lock, NO_LOCK, NPARAMS);
             if (st.on == 2) st.on = 0;
             aEdited = false;
+        } break;
+        case UA_NOTE: {   // Klaviatur: haengt ein Step im P-Lock, bekommt er die Note; sonst nur vorhoeren
+            int note = e.a < 0 ? 0 : (e.a > 127 ? 127 : e.a);
+            if (aHeld) {
+                undoTrack(SDL_GetTicks());
+                holdS().lock[P_NOTE] = (uint8_t)note;
+                aEdited = true;
+            }
+            static Step tmp;
+            memset(tmp.lock, NO_LOCK, NPARAMS);
+            tmp.on = 1;
+            tmp.lock[P_NOTE] = (uint8_t)note;
+            lockA(); eng.preview(track, &tmp); unlockA();
         } break;
         case UA_PAGE: {
             const Pattern& P = curP();

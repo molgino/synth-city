@@ -110,6 +110,8 @@ Was Stufe 1 kann:
 
 **P-Locks am Handy.** Ein Pad **lange gedrückt halten** hält den Step fest – die Oberfläche springt zu den Reglern, und was du jetzt änderst, gilt nur für diesen einen Step (die Werte stehen gelb). Oben steht, welcher Step hängt; **FERTIG** beendet, **LOCKS WEG** räumt sie wieder ab. War der Step leer, wird er dabei zu einem trigless Step – die Werte wirken also, ohne dass neu angeschlagen wird. Kurz antippen bleibt wie gehabt: Trig an und aus.
 
+**Noten eingeben (NOTEN).** Der Modus-Knopf geht im Kreis: STEPS → SOUND → NOTEN. Die Klaviatur zeigt zwei Oktaven, **− OKT** und **+ OKT** verschieben den Bereich. Eine Taste antippen hört die Note vor. Hältst du vorher einen Step gedrückt (P-Lock), schreibt die Taste die **Note dieses Steps** – so baust du eine Melodie Schritt für Schritt: Step halten, Note antippen, nächster Step. Die Note des Steps ist auf der Klaviatur umrandet. Bei Drum-Engines steht ein Hinweis, dass die Tonhöhe dort kaum wirkt.
+
 **Auswahl statt Schieber.** Regler mit wenigen, benannten Werten – ENGINE, Filtertyp, Bus-Effekt, VOICE – öffnen beim Antippen eine Liste mit großen Feldern. Auf fünfzehn Engines mit dem Finger zu zielen wäre sonst Glückssache. Lange Listen (Sample, LFO-Ziel, Trig-Bedingung) laufen vorerst weiter über **BILD**.
 
 Was du am Handy änderst, ist sofort am Gerät zu sehen und umgekehrt – es ist dasselbe Projekt und dieselbe Liste, nur anders gezeichnet.
