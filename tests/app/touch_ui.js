@@ -92,6 +92,27 @@ function check(ok, what, extra) { if (ok) { pass++; console.log('  OK     ' + wh
   check(vUp > 0, `Regler nach rechts ziehen erhoeht den Wert (Gruppe ${picked})`, 'Wert ' + vUp);
   check(vDown < vUp, 'Regler nach links ziehen senkt ihn wieder', `${vUp} -> ${vDown}`);
 
+  // Gemeldet: scrollen ging nicht - #tui hatte touch-action:none (blockiert jede Geste im Overlay)
+  // und die Reglerliste war gar kein Scrollcontainer.
+  // fuer den Scroll-Fall eine moeglichst volle Gruppe nehmen (MAKROS hat 9 Regler, FILTER nur 5)
+  await pg.evaluate(() => {
+    const g = [...document.querySelectorAll('#tGrps .tg')].find(x => /MAKRO/.test(x.textContent));
+    if (g) { const r = g.getBoundingClientRect(); g.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, clientX: r.left + 10, clientY: r.top + r.height / 2})); }
+  });
+  await pg.waitForTimeout(900);
+  const sc = await pg.evaluate(() => {
+    const pr = document.getElementById('tPar');
+    const ta = n => getComputedStyle(n).touchAction;
+    pr.scrollTop = 500;
+    return {ui: ta(document.getElementById('tui')), row: pr.children[0] ? ta(pr.children[0]) : '-',
+            over: getComputedStyle(pr).overflowY, scrollH: pr.scrollHeight, clientH: pr.clientHeight, top: pr.scrollTop};
+  });
+  check(sc.ui !== 'none', 'das Overlay blockiert keine Gesten mehr', 'touch-action ' + sc.ui);
+  check(sc.row === 'pan-y', 'Reglerzeile: senkrecht scrollen erlaubt, waagerecht gehoert dem Wert', sc.row);
+  check(sc.over === 'auto' || sc.over === 'scroll', 'Reglerliste ist ein Scrollcontainer', sc.over);
+  if (sc.scrollH > sc.clientH + 2) check(sc.top > 0, 'passt die Liste nicht auf den Schirm, laesst sie sich scrollen', `${sc.scrollH} in ${sc.clientH}, scrollTop ${sc.top}`);
+  else check(true, `Liste passt ganz auf den Schirm (${sc.scrollH} in ${sc.clientH})`);
+
   await tapSel('#tMode'); await pg.waitForTimeout(600);
   const back = await pg.evaluate(() => !document.body.classList.contains('snd') && [...document.querySelectorAll('.tp')].some(p => p.style.display !== 'none'));
   check(back, 'zurueck zu STEPS');

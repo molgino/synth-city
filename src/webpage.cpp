@@ -364,7 +364,7 @@ body.full.fleft #fbar{right:auto;left:max(6px,env(safe-area-inset-left))}
    die Flaechen sind so gross, wie der Schirm hergibt, und nichts ist an 640x480 gebunden. */
 #tui{display:none;position:fixed;inset:0;z-index:6;background:var(--bg);
  padding:max(6px,env(safe-area-inset-top)) max(6px,env(safe-area-inset-right)) max(6px,env(safe-area-inset-bottom)) max(6px,env(safe-area-inset-left));
- grid-template-rows:auto minmax(0,1fr) auto;gap:6px;touch-action:none;user-select:none}
+ grid-template-rows:auto minmax(0,1fr) auto;gap:6px;touch-action:manipulation;user-select:none}
 body.tui #tui{display:grid}
 body.tui #app{visibility:hidden}
 #tTop,#tBot{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
@@ -377,7 +377,7 @@ body.tui #app{visibility:hidden}
 #tBpm{color:var(--dim);font-size:13px}
 #tMsg{color:var(--acc);font-size:12px;flex:1;text-align:right;overflow:hidden;white-space:nowrap}
 #tMain{display:grid;grid-template-columns:minmax(96px,18%) minmax(0,1fr);gap:6px;min-height:0}
-#tTracks{display:grid;grid-auto-rows:minmax(0,1fr);gap:4px;min-height:0}
+#tTracks{display:grid;grid-auto-rows:minmax(0,1fr);gap:4px;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none}
 .ttr{display:flex;align-items:center;gap:4px;background:var(--panel);border:1px solid var(--line);
  border-left-width:5px;border-radius:9px;padding:0 6px;overflow:hidden;min-height:0}
 .ttr.sel{background:var(--panel2);border-color:var(--text)}
@@ -391,7 +391,7 @@ body.tui #app{visibility:hidden}
 @media (orientation:landscape) and (min-aspect-ratio:13/10){
  #tGrid{grid-template-columns:repeat(8,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr))}
  #tTop .tb,#tBot .tb{min-height:38px}}
-.tp{position:relative;border-radius:10px;background:var(--panel);border:1px solid var(--line);min-height:0;
+.tp{position:relative;touch-action:none;border-radius:10px;background:var(--panel);border:1px solid var(--line);min-height:0;
  display:flex;align-items:flex-end;justify-content:flex-start;padding:4px 6px;font-size:11px;color:var(--dim)}
 .tp.on{background:var(--acc);border-color:transparent;color:#fff}
 .tp.tl{background:var(--panel2);box-shadow:inset 0 0 0 2px var(--acc)}
@@ -411,9 +411,11 @@ body.tui.snd #tGrid{display:none}
 #tGrps .tg{flex:none;min-height:38px;display:flex;align-items:center;padding:0 14px;border-radius:10px;
  background:var(--panel);border:1px solid var(--line);color:var(--dim);font-size:12px;white-space:nowrap}
 #tGrps .tg.on{background:var(--panel2);color:var(--text);border-color:var(--text)}
-#tPar{display:grid;grid-auto-rows:minmax(44px,1fr);gap:5px;min-height:0;overflow:hidden}
+#tPar{display:grid;grid-auto-rows:minmax(52px,1fr);gap:5px;min-height:0;overflow-y:auto;overscroll-behavior:contain;
+ -webkit-overflow-scrolling:touch;scrollbar-width:thin}
+#tPar.many{grid-auto-rows:minmax(52px,auto)}   /* mehr Regler als Platz: feste Hoehe, dafuer scrollbar */
 .tr{position:relative;display:flex;align-items:center;gap:8px;padding:0 12px;border-radius:10px;
- background:var(--panel);border:1px solid var(--line);overflow:hidden;touch-action:none}
+ background:var(--panel);border:1px solid var(--line);overflow:hidden;touch-action:pan-y}
 .tr .bar{position:absolute;left:0;top:0;bottom:0;background:var(--panel2);pointer-events:none}
 .tr .nm{position:relative;flex:1;font-size:13px;color:var(--text)}
 .tr .vl{position:relative;font-size:15px;color:var(--cy);font-weight:bold;min-width:68px;text-align:right}
@@ -545,6 +547,7 @@ function tuiRender(m){
   [...gb.children].forEach((d,i)=>{const on=i===m.grp;d.classList.toggle('on',on);
    if(on&&!gb.dataset.scr){gb.dataset.scr=1;d.scrollIntoView({block:'nearest',inline:'center'});setTimeout(()=>delete gb.dataset.scr,400);}});
   const pr=$('tPar'),ps=m.params||[];
+  pr.classList.toggle('many',ps.length*57>pr.clientHeight);
   if(pr.childElementCount!==ps.length){pr.innerHTML='';
    ps.forEach((p,i)=>{const d=document.createElement('div');d.className='tr';
     d.innerHTML='<div class="bar"></div><span class="nm"></span><span class="vl"></span>';
