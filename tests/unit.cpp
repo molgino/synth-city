@@ -322,6 +322,98 @@ static void testVoiceMode() {
     CHECK(stLeg != 1, "LEGATO: Huellkurve in der Attack-Phase, also neu ausgeloest");
     CHECK(vMono > vLeg * 1.5f, "LEGATO bindet nicht: Huellkurve %.3f, MONO %.3f", vLeg, vMono);
     CHECK(!bad, "Stimmen-Modus: NaN");
+
+    // Gefunden beim Bau der DRONE-Engine: steht die Huellkurve nach einem Note-Off im Ausklang,
+    // darf ein Legato-Trig NICHT anbinden (er wuerde den Ton ersticken), sondern muss neu anschlagen.
+    fresh(120);
+    Pattern& G = E.proj.pat[0];
+    Engine::initTrack(G, 2, M_SYNTH);
+    G.p[2][P_VMOD] = VM_LEGATO;
+    G.p[2][P_ASUS] = 127; G.p[2][P_AREL] = 70;
+    G.s[2][0].on = 1; G.s[2][8].on = 1;      // zwei Trigs, dazwischen laeuft das Gate ab
+    G.p[2][P_LEN] = 20;                      // kurz: die erste Note wird vor dem zweiten Trig losgelassen
+    E.start();
+    run(barFrames(120) / 16 * 8 + 600, &bad);
+    CHECK(E.v[2].active, "Legato nach Note-Off: Stimme ist tot statt neu angeschlagen");
+    CHECK(E.v[2].aenv.st != 0 && E.v[2].aenv.st != 4,
+          "Legato nach Note-Off: Huellkurve haengt im Ausklang (Phase %d)", E.v[2].aenv.st);
+    E.stop(); run(44100 * 3);
+}
+
+// Neue Engines: PERC (Koerper + Transient) und DRONE (stehende Flaeche)
+static void testPercDrone() {
+    curTest = "PERC und DRONE";
+    // --- PERC: Einzelschlag, Pegel und Ausklingen; die Grundwerte sollen eine Bassdrum geben
+    fresh(120);
+    Pattern& P = E.proj.pat[0];
+    Engine::initTrack(P, 0, M_PERC);
+    P.s[0][0].on = 1;
+    bool bad = false;
+    E.start();
+    float pk = run(22050, &bad);
+    printf("  PERC Grundwerte: Spitze %.3f\n", pk);
+    CHECK(pk > 0.05f && pk < 1.0f, "PERC Spitze %.3f (erwartet 0,05-1,0)", pk);
+    CHECK(!bad, "PERC: NaN");
+    E.stop(); run(44100 * 4);
+    CHECK(!E.v[0].active, "PERC klingt nach 4 s noch");
+
+    // RISE dreht den Sweep nach oben: der Klang muss sich messbar aendern
+    float eDown = 0, eUp = 0;
+    for (int pass = 0; pass < 2; pass++) {
+        fresh(120);
+        Pattern& Q = E.proj.pat[0];
+        Engine::initTrack(Q, 0, M_PERC);
+        Q.s[0][0].on = 1;
+        Q.p[0][P_S4] = pass ? 100 : 0;        // RISE
+        E.start();
+        float e = 0; for (int i = 0; i < 20; i++) { float x = run(1024, &bad); e += x * (i + 1); }   // Schwerpunkt
+        (pass ? eUp : eDown) = e;
+        E.stop(); run(44100 * 2);
+    }
+    printf("  PERC RISE: Schwerpunkt ab %.2f, auf %.2f\n", eDown, eUp);
+    CHECK(eDown != eUp, "RISE aendert nichts am Klang");
+
+    // Transient allein (Koerper stumm): deckt Snare/Clap/Shaker ab
+    fresh(120);
+    Pattern& R = E.proj.pat[0];
+    Engine::initTrack(R, 0, M_PERC);
+    R.s[0][0].on = 1;
+    R.p[0][P_S1] = 0;          // DCAY ganz kurz = kaum Koerper
+    R.p[0][P_X0] = 110;        // NLVL hoch
+    R.p[0][P_X5] = 3;          // RPTS: Clap-artige Wiederholungen
+    E.start();
+    pk = run(22050, &bad);
+    printf("  PERC Transient+RPTS: Spitze %.3f\n", pk);
+    CHECK(pk > 0.02f, "PERC Transient zu leise (%.3f)", pk);
+    CHECK(!bad, "PERC Transient: NaN");
+    E.stop(); run(44100 * 4);
+    CHECK(!E.v[0].active, "PERC mit RPTS klingt nach 4 s noch");
+
+    // --- DRONE: steht und bleibt stehen, solange der Trig haelt
+    fresh(120);
+    Pattern& D = E.proj.pat[0];
+    Engine::initTrack(D, 1, M_DRONE);
+    D.s[1][0].on = 1;
+    D.p[1][P_LEN] = 127;       // halten
+    D.p[1][P_ASUS] = 127;      // Haltepegel voll
+    E.start();
+    run(22050, &bad);
+    float a = run(22050, &bad), b2 = run(22050, &bad);
+    printf("  DRONE: Pegel nach 0,5 s %.3f, nach 1,0 s %.3f\n", a, b2);
+    CHECK(a > 0.02f && b2 > 0.02f, "DRONE steht nicht (%.3f / %.3f)", a, b2);
+    CHECK(a < 1.0f && b2 < 1.0f, "DRONE uebersteuert (%.3f / %.3f)", a, b2);
+    CHECK(!bad, "DRONE: NaN");
+    // alle Teiltonzahlen und Wellenformen durchprobieren: nichts darf NaN oder still werden
+    for (int part = 0; part <= 7; part++) for (int wave = 0; wave < 4; wave++) {
+        D.p[1][P_S0] = (uint8_t)part; D.p[1][P_S3] = (uint8_t)wave;
+        E.stop(); run(22050); E.start();
+        float x = run(8192, &bad);
+        CHECK(x > 0.001f, "DRONE still bei PART %d WAVE %d", part + 1, wave);
+        CHECK(!bad, "DRONE NaN bei PART %d WAVE %d", part + 1, wave);
+    }
+    E.stop(); run(44100 * 6);
+    float tail = run(4410);
+    CHECK(tail < 1e-3f, "DRONE klingt nach Stop weiter (%.5f)", tail);
 }
 
 static void testFactory() {
@@ -1034,6 +1126,7 @@ int main(int argc, char** argv) {
     testChord();
     testChordNotes();
     testVoiceMode();
+    testPercDrone();
     testFactory();
     testStability();
     testDecay();

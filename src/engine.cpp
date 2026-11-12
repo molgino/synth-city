@@ -78,6 +78,14 @@ static inline float wtReadUser(const Sample* sm, float pos, float ph) {
     return va + (vb - va) * ff;
 }
 const float* wavetableFrame(int t, int f) { return WT[t & 3][f < 0 ? 0 : (f >= WT_FR ? WT_FR - 1 : f)]; }
+// Phase sicher nach [0,1) wickeln. "if (ph >= 1) ph -= 1" reicht nicht, wenn der Zuwachs groesser
+// als 1 ist (hohe Note x Detune x Oktave x Sweep): die Phase laeuft dann davon, und (int)ph in sin01
+// greift mit INT_MIN ins Leere. NaN/Inf werden auf 0 gesetzt.
+static inline void wrap01(float& ph) {
+    if (!(ph > -1e9f && ph < 1e9f)) { ph = 0.f; return; }
+    ph -= (float)(int)ph;
+    if (ph < 0.f) ph += 1.f;
+}
 static inline float sin01(float ph) {
     ph -= (float)(int)ph;          // schneller als floorf (Phase meist in [0,1))
     if (ph < 0.f) ph += 1.f;
@@ -185,8 +193,10 @@ void ADSR::set(float a, float d, float sus, float r, float sr) {
 
 void Voice::noteOn(int m, const uint8_t* b, const uint8_t* locks, float velScale, int gateSamples, float sr, bool legato) {
     bool wasActive = active && machine == m;
-    // Legato nur, wenn die Stimme noch klingt: Huellkurven, LFOs und Sample-Zeiger bleiben, nur die Tonhoehe wechselt
-    const bool leg = legato && wasActive;
+    // Legato nur, wenn die Stimme noch GEHALTEN wird: Huellkurven, LFOs und Sample-Zeiger bleiben,
+    // nur die Tonhoehe wechselt. Nach einem Note-Off (Huellkurve im Ausklang) wuerde Anbinden den Ton
+    // ersticken, statt ihn zu binden - dann wird normal neu angeschlagen.
+    const bool leg = legato && wasActive && held();
     if (!active) lastS = 0.f;   // verklungen: von Stille aus starten
     dcArm = true;               // erster neuer Sample-Wert wird an den letzten alten angeschlossen
     machine = m;
@@ -252,6 +262,14 @@ void Voice::noteOn(int m, const uint8_t* b, const uint8_t* locks, float velScale
             fmPenv = 1.f;
             break;
         case M_SAMPLE: case M_CHOP: aenv.v = 0; break;
+        case M_PERC:
+            ph1 = ph2 = 0; penv = 1; denv = 1; nenv = 0; aenv.v = 0;
+            pcLeft = pcRpts; pcTimer = 0; burst = 0; pcAtkDone = false;
+            shkGain = 1.f;
+            break;
+        case M_DRONE:
+            if (!wasActive) { for (int k = 0; k < 8; k++) drPh[k] = 0.11f * k; drMov = drSm = drSubPh = drShmPh = 0; }
+            break;
         case M_TOM: ph1 = 0; penv = 1; denv = 1; nenv = 1; aenv.v = 0; break;
         case M_RIM: ph1 = ph2 = 0; denv = 1; cenv = 1; aenv.v = 0; break;
         case M_SHKR: shkStage = 1; shkLvl = 0; denv = 1; break;
@@ -528,6 +546,58 @@ void Voice::update(int n, float sr, float bpm) {
         float norm = 1.f / sqrtf((float)(nc ? nc : 1));
         for (int k = 0; k < 4; k++) fmCar[k] *= norm;
     } break;
+    case M_PERC: {
+        // Koerper: TUNE ist die Grundfrequenz bei NOTE 60, hoehere Noten stimmen hoch (ratio)
+        pitchHz = clampf(30.f * fastExp2(P(P_S0) * (3.2f / 127.f)) * ratio, 0.f, sr * 0.49f);
+        ddco = decayCo(0.02f * fastExp2(P(P_S1) * (6.5f / 127.f)), sr);     // DCAY
+        pcSweep = P(P_S2) / 127.f * 4.f;                                    // SWEP: bis 4 Oktaven
+        pco = decayCo(0.002f * fastExp2(P(P_S3) * (7.f / 127.f)), sr);      // S.TIM
+        pcRise = P(P_S4) / 100.f;                                           // RISE: Anteil, der nach oben laeuft
+        pcHarm = P(P_S5) / 127.f;                                           // HARM: unharmonischer Oberton (metallisch)
+        pcFold = P(P_S6) / 127.f;                                           // FOLD: Wellenfaltung
+        // Transient
+        pcNLvl = P(P_X0) / 127.f * 1.6f;
+        nco = decayCo(0.004f * fastExp2(P(P_X1) * (6.f / 127.f)), sr);      // N.DEC
+        pcNAtk = P(P_X2) > 0 ? 1.f / (0.0005f * fastExp2(P(P_X2) * (6.f / 127.f)) * sr) : 1e9f;   // N.ATK
+        {   // N.FRQ / N.WID: Bandpass von schmal (Klick, Metall) bis weit offen (Teppich, Shaker)
+            float q = 0.5f + (1.f - P(P_X4) / 127.f) * 11.f;
+            aux.set(clampf(200.f * fastExp2(P(P_X3) * (6.2f / 127.f)), 20.f, sr * 0.45f), 1.f / q, sr);
+        }
+        pcRpts = P(P_X5);                                                   // RPTS: Wiederholungen (Clap)
+        pcIval = (int)((0.004f + P(P_X6) / 127.f * 0.030f) * sr);           // SPRD
+        if (pcIval < 8) pcIval = 8;
+        pcGrit = P(P_X7) / 127.f;                                           // GRIT: zufaellige Pegelspruenge
+        bco = decayCo(0.010f, sr);
+    } break;
+    case M_DRONE: {
+        // Flaeche: PART Teiltoene, durch SPRD gespreizt und durch BEAT gegeneinander verstimmt
+        drN = P(P_S0) + 1; if (drN > 8) drN = 8; if (drN < 1) drN = 1;
+        {   // der hoechste Teilton (bis 2*drN-1) muss unter Nyquist bleiben
+            float top = (float)(2 * drN - 1);
+            pitchHz = clampf(440.f * fastExp2((nn - 69.f) / 12.f), 0.f, sr * 0.45f / top);
+        }
+        float spread = P(P_S1) / 127.f, beat = P(P_S2) / 127.f;
+        drWave = (float)(P(P_S3) & 3);
+        float odd = P(P_S4) / 127.f;
+        drNois = P(P_S5) / 127.f * 0.25f;
+        drRand = P(P_S6) / 127.f;
+        drMovInc = (0.02f + P(P_X0) / 127.f * 0.9f) / sr;                   // MRAT: sehr langsam
+        drMovDep = P(P_X1) / 127.f;
+        drShmr = P(P_X2) / 127.f;
+        drSub = P(P_X3) / 127.f;
+        float sum = 0.f;
+        for (int k = 0; k < drN; k++) {
+            float h = odd > 0.5f ? (float)(2 * k + 1) : (float)(k + 1);     // ODD: ungerade Teiltoene = hohl
+            if (odd > 0.5f && odd < 0.99f) h = (k + 1) + (h - (k + 1)) * ((odd - 0.5f) * 2.f);
+            float det = 1.f + spread * (k - (drN - 1) * 0.5f) * 0.004f      // Spreizung: leicht gegeneinander
+                            + beat * 0.0025f * ((k & 1) ? 1.f : -1.f);      // Schwebung
+            drRat[k] = h * det;
+            drLvl[k] = 1.f / (1.f + k * 0.8f);
+            sum += drLvl[k];
+        }
+        if (sum > 0.f) for (int k = 0; k < drN; k++) drLvl[k] *= 0.9f / sum;
+        drSmT = P(P_X4) / 127.f;                                            // RAND: Anteil Zufallsbewegung
+    } break;
     case M_TOM:
         pitchHz = 60.f * fastExp2(P(P_S0) * (2.5f / 127.f)) * ratio;
         ddco = decayCo(0.05f * fastExp2(P(P_S1) * (5.f / 127.f)), sr);
@@ -755,7 +825,6 @@ void Voice::render(float* L, float* R, float (*S)[32], int n, float sr) {
         o1m = fastExp2((float)(P(P_X0) - 3)); lv1 = P(P_X1) / 127.f; subDiv = P(P_X2) ? 0.25f : 0.5f;
     }
     float bmax = 0.f;
-
     for (int i = 0; i < n; i++) {
         float s = 0.f, sR = 0.f;   // sR: rechter Kanal (nur Stereo-Samples)
         switch (machine) {
@@ -764,7 +833,7 @@ void Voice::render(float* L, float* R, float (*S)[32], int n, float sr) {
             float se = sweep * 0.5f * penv;   // Pitch-Sweep nur solange er hoerbar ist
             float f = se > 1e-4f ? pitchHz * fastExp2(se) : pitchHz;
             penv *= pco;
-            ph1 += f * inv; if (ph1 >= 1.f) ph1 -= 1.f;
+            ph1 += f * inv; wrap01(ph1);
             s = sin01(ph1) * denv;
             s = fastTanh(s * (1.15f + body * 5.f)) * (body > 0 ? 1.f : 1.05f);   // etwas Waerme, BODY = Drive (909)
             if (cenv > 1e-5f) {   // Klick klingt nach wenigen ms aus
@@ -777,8 +846,8 @@ void Voice::render(float* L, float* R, float (*S)[32], int n, float sr) {
             // 909: zwei Fell-Oszillatoren (~180/330 Hz) mit kurzem Pitch-Abfall, Rauschen tief- und hochpassgefiltert
             float pd = 1.f + 0.6f * penv;
             penv *= pco;
-            ph1 += dt * pd; if (ph1 >= 1.f) ph1 -= 1.f;
-            ph2 += dt * 1.83f * pd; if (ph2 >= 1.f) ph2 -= 1.f;
+            ph1 += dt * pd; wrap01(ph1);
+            ph2 += dt * 1.83f * pd; wrap01(ph2);
             float tri1 = 1.f - 4.f * fabsf(ph1 - 0.5f);
             float tone = (0.65f * sin01(ph1) + 0.25f * tri1 + 0.5f * sin01(ph2)) * 0.75f * denv;
             float lo, bp, hp;
@@ -791,7 +860,7 @@ void Voice::render(float* L, float* R, float (*S)[32], int n, float sr) {
         case M_HAT: {
             float sum = 0;
             for (int k = 0; k < 6; k++) {
-                hph[k] += dt * HAT_R[k]; if (hph[k] >= 1.f) hph[k] -= 1.f;
+                hph[k] += dt * HAT_R[k]; wrap01(hph[k]);
                 sum += hph[k] < 0.5f ? 1.f : -1.f;
             }
             float src = sum * (1.f / 6.f) * metl + rng.next() * (1.f - metl) * 0.7f;
@@ -823,10 +892,10 @@ void Voice::render(float* L, float* R, float (*S)[32], int n, float sr) {
             float p1 = ph1;
             if (xmod > 0.f) { p1 += o2 * xmod * 0.5f; p1 -= (float)(int)p1; if (p1 < 0.f) p1 += 1.f; }   // OSC2 moduliert OSC1 (FM)
             float o1 = osc(w1, p1, dt1, pw);
-            ph2 += dt2; if (ph2 >= 1.f) ph2 -= 1.f;
+            ph2 += dt2; wrap01(ph2);
             ph1 += dt1;
-            if (ph1 >= 1.f) { ph1 -= 1.f; if (sync) ph2 = ph1 * (dt2 / dt1); }   // Hard-Sync: OSC2 startet mit OSC1 neu
-            phs += dt1 * subDiv; if (phs >= 1.f) phs -= 1.f;
+            if (ph1 >= 1.f) { wrap01(ph1); if (sync) { ph2 = dt1 > 1e-12f ? ph1 * (dt2 / dt1) : 0.f; wrap01(ph2); } }   // Hard-Sync: OSC2 startet mit OSC1 neu
+            phs += dt1 * subDiv; wrap01(phs);
             s = o1 * (1.f - mix) * lv1 + o2 * mix * lv2;
             if (ring > 0.f) s += o1 * o2 * ring * 0.8f;
             s += sub * (phs < 0.5f ? 0.8f : -0.8f);
@@ -841,7 +910,7 @@ void Voice::render(float* L, float* R, float (*S)[32], int n, float sr) {
                 float m = 0.f;
                 for (int j = k + 1; j < 4; j++) if (mods[k] >> j & 1) m += o[j] * fmMod[j] * fmEnv[j];
                 if (k == 3) m += fmFbPrev * fmFbAmt;
-                fmPh[k] += fmInc[k]; if (fmPh[k] >= 1.f) fmPh[k] -= 1.f;
+                fmPh[k] += fmInc[k]; wrap01(fmPh[k]);
                 o[k] = sin01(fmPh[k] + m);
                 if (k == 3) fmFbPrev = o[3];
                 if (car >> k & 1) out += o[k] * fmCar[k] * fmEnv[k];
@@ -853,18 +922,77 @@ void Voice::render(float* L, float* R, float (*S)[32], int n, float sr) {
             }
             s = out * 0.7f + fmNoise * rng.next() * 0.3f;
         } break;
+        case M_PERC: {
+            // Koerper: Pitch-Sweep, der wahlweise faellt (klassisch) oder steigt (RISE) - dazwischen
+            // liegt eine Beule, die keine der alten Drum-Engines kann.
+            float se = clampf(pcSweep * penv * (1.f - 2.f * pcRise), -12.f, 12.f);
+            float f = fabsf(se) > 1e-4f ? pitchHz * fastExp2(se) : pitchHz;
+            if (!(f >= 0.f)) f = 0.f;                       // NaN abfangen
+            if (f > sr * 0.49f) f = sr * 0.49f;             // nie ueber Nyquist
+            penv *= pco;
+            ph1 += f * inv; wrap01(ph1);   // f kann die Abtastrate uebersteigen
+            float bodyS = sin01(ph1);
+            if (pcHarm > 0.001f) {   // unharmonischer Oberton: Fell wird Metall
+                ph2 += f * 2.37f * inv; wrap01(ph2);
+                bodyS = bodyS * (1.f - pcHarm * 0.5f) + sin01(ph2) * pcHarm * 0.7f;
+            }
+            // Wellenfaltung: sin01 wickelt die Phase selbst, starke Werte falten mehrfach = Obertoene
+            if (pcFold > 0.001f) bodyS = sin01(bodyS * (0.25f + pcFold * 0.75f));
+            bodyS *= denv;
+            if (sub > 0.f) bodyS = fastTanh(bodyS * (1.f + sub * 5.f));                          // BODY = Saettigung
+            denv *= ddco;
+            // Transient: Rauschen durch den Bandpass, Attack-Rampe, optional als Folge von Bursts
+            float nz = 0.f;
+            if (pcNLvl > 0.001f) {
+                if (pcLeft > 0 && --pcTimer <= 0) {   // Wiederholungen wie beim Clap: jede startet die Huellkurve neu
+                    pcTimer = pcIval; pcLeft--; nenv = 0.f; pcAtkDone = false;
+                }
+                if (pcAtkDone) nenv *= nco;
+                else { nenv += pcNAtk; if (nenv >= 1.f) { nenv = 1.f; pcAtkDone = true; } }
+                if (pcGrit > 0.f && rng.uni() < 0.002f + pcGrit * 0.02f)
+                    shkGain = 0.25f + rng.uni() * 0.75f * (1.f - pcGrit * 0.5f) + pcGrit * 0.3f;
+                float lo, bp, hp;
+                aux.proc(rng.next(), lo, bp, hp);
+                nz = bp * nenv * pcNLvl * (pcGrit > 0.f ? shkGain : 1.f) * 3.f;
+            }
+            s = fastTanh(bodyS + nz);
+        } break;
+        case M_DRONE: {
+            // stehende Flaeche: Teiltoene laufen frei weiter, eine sehr langsame Bewegung
+            // verschiebt ihre Verstimmung - der Klang steht, bewegt sich aber nie gleich.
+            drMov += drMovInc; if (drMov >= 1.f) { drMov -= 1.f; drSm = rng.next(); }
+            float mv = sin01(drMov) * drMovDep + drSm * drRand * 0.5f;
+            float acc = 0.f;
+            for (int k = 0; k < drN; k++) {
+                float inc = dt * drRat[k] * (1.f + mv * 0.004f * (k + 1));
+                // robust wickeln: bei hohen Noten x hohem Teilton ist inc > 1, ein einzelnes -1 reicht nicht
+                // (die Phase liefe sonst ins Unendliche und sin01 greift mit (int)ph daneben)
+                drPh[k] += inc; wrap01(drPh[k]);
+                float w;
+                int wv = (int)drWave;
+                if (wv == 0) w = 2.f * drPh[k] - 1.f;                        // SAW
+                else if (wv == 1) w = drPh[k] < 0.5f ? 1.f : -1.f;           // SQR
+                else if (wv == 2) w = 1.f - 4.f * fabsf(drPh[k] - 0.5f);     // TRI
+                else w = sin01(drPh[k]);                                     // SIN
+                acc += w * drLvl[k];
+            }
+            if (drSub > 0.001f) { drSubPh += dt * 0.5f; wrap01(drSubPh); acc += sin01(drSubPh) * drSub * 0.5f; }
+            if (drShmr > 0.001f) { drShmPh += dt * 2.f; wrap01(drShmPh); acc += sin01(drShmPh) * drShmr * 0.25f; }
+            if (drNois > 0.f) acc += rng.next() * drNois;
+            s = fastTanh(acc * 1.1f);
+        } break;
         case M_TOM: {
             float f = pitchHz * (1.f + 0.8f * sweep * 0.25f * penv);
             penv *= pco;
-            ph1 += f * inv; if (ph1 >= 1.f) ph1 -= 1.f;
+            ph1 += f * inv; wrap01(ph1);
             s = sin01(ph1) * denv;
             s += rng.next() * nenv * mix * 0.5f;              // mix = P_S3 (NOIS), sub = P_S4 (BODY)
             if (sub > 0.f) s = fastTanh(s * (1.f + sub * 4.f));
             denv *= ddco; nenv *= nco;
         } break;
         case M_RIM: {
-            ph1 += dt; if (ph1 >= 1.f) ph1 -= 1.f;
-            ph2 += dt * 3.66f; if (ph2 >= 1.f) ph2 -= 1.f;   // 808: 455 / 1667 Hz
+            ph1 += dt; wrap01(ph1);
+            ph2 += dt * 3.66f; wrap01(ph2);   // 808: 455 / 1667 Hz
             float src = (ph1 < 0.5f ? 1.f : -1.f) + 0.7f * (ph2 < 0.5f ? 1.f : -1.f);
             float lo, bp, hp;
             aux.proc(src, lo, bp, hp);
@@ -888,9 +1016,9 @@ void Voice::render(float* L, float* R, float (*S)[32], int n, float sr) {
             if (wtDet > 1.0001f) s = (s + (wtUser ? wtReadUser(wtUser, pos, p2) : wtRead(wtTab, pos, p2))) * 0.6f;
             s *= lv1;
             float dtw = dt * o1m;
-            ph1 += dtw; if (ph1 >= 1.f) ph1 -= 1.f;
-            ph2 += dtw * wtDet; if (ph2 >= 1.f) ph2 -= 1.f;
-            phs += dtw * subDiv; if (phs >= 1.f) phs -= 1.f;
+            ph1 += dtw; wrap01(ph1);
+            ph2 += dtw * wtDet; wrap01(ph2);
+            phs += dtw * subDiv; wrap01(phs);
             s += sub * 0.6f * sin01(phs);
             s += noise * 0.4f * rng.next();
             s *= 0.55f;
@@ -1073,6 +1201,8 @@ void Voice::render(float* L, float* R, float (*S)[32], int n, float sr) {
     case M_CLAP: if (clapTail && denv < 1e-4f && burst < 1e-4f) active = false; break;
     case M_SAMPLE: case M_CHOP: if (sDone || vcaDone()) active = false; break;
     case M_TOM: case M_RIM: if (denv < 1e-4f) active = false; break;
+    case M_PERC: if (denv < 1e-4f && nenv * pcNLvl < 1e-4f && pcLeft <= 0) active = false; break;
+    case M_DRONE: if (vcaDone()) active = false; break;
     case M_SHKR: if (shkStage == 2 && shkLvl < 1e-4f) active = false; break;
     default: if (vcaDone()) active = false; break;
     }
@@ -1818,7 +1948,9 @@ void Engine::processBlock(float* out, int n) {
     int key = (int)proj.cmp[CM_SRC] - 1;   // -1 = intern (Summe), sonst Sidechain-Spur
     // klingende Stimmen sammeln; bei spuerbarer Last rechnet ein zweiter Kern mit (beide holen sich Stimmen ab,
     // der Audio-Thread wartet nie auf einen schlafenden Helfer, hoechstens auf dessen laufende Stimme)
-    static const float WEIGHT[M_COUNT] = {1.9f, 2.3f, 2.f, 1.7f, 2.3f, 3.2f, 1.7f, 1.8f, 1.6f, 1.9f, 2.5f, 1.8f, 2.1f};
+    static const float WEIGHT[M_COUNT] = {1.9f, 2.3f, 2.f, 1.7f, 2.3f, 3.2f, 1.7f, 1.8f, 1.6f, 1.9f, 2.5f, 1.8f, 2.1f,
+                                          2.4f, 3.4f};   // PERC, DRONE (DRONE: bis 8 Teiltoene)
+    static_assert(sizeof(WEIGHT) / sizeof(*WEIGHT) == M_COUNT, "WEIGHT unvollstaendig: jede Engine braucht ein Gewicht");
     int nAct = 0; float tot = 0.f;
     WkItem* act = wkList;
     const float stepS = (float)(stepSamples() / sr);

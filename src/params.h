@@ -28,16 +28,27 @@ static const char* const GROUP_NAMES_EN[3] = {"TRACK", "LIVE, MIX & FX", "PROJEC
 enum { NO_LOCK = 255, SMP_NONE = 254 };   // SMP_NONE: Sample-Regler (SMPL/UWAV) ohne Sample (>= Pool-Groesse)
 
 // Reihenfolge = gespeicherter Wert (neue Engines nur hinten anfuegen!)
-enum Machine { M_KICK, M_SNARE, M_HAT, M_CLAP, M_SYNTH, M_FM, M_SAMPLE, M_TOM, M_RIM, M_SHKR, M_WTBL, M_CHOP, M_GRAN, M_COUNT };
-static const char* const MACHINE_NAMES[M_COUNT] = {"KICK", "SNARE", "HAT", "CLAP", "SYNTH", "FM", "SMPL", "TOM", "RIM", "SHKR", "WTBL", "CHOP", "GRAN"};
+enum Machine { M_KICK, M_SNARE, M_HAT, M_CLAP, M_SYNTH, M_FM, M_SAMPLE, M_TOM, M_RIM, M_SHKR, M_WTBL, M_CHOP, M_GRAN,
+               M_PERC, M_DRONE, M_COUNT };
+static const char* const MACHINE_NAMES[M_COUNT] = {"KICK", "SNARE", "HAT", "CLAP", "SYNTH", "FM", "SMPL", "TOM", "RIM", "SHKR", "WTBL", "CHOP", "GRAN",
+                                                   "PERC", "DRON"};
 static const char* const MACHINE_LONG_DE[M_COUNT] = {"Bassdrum", "Snare", "Hi-Hat", "Clap", "Analog-Synth", "FM-Synth (4 OP)", "Sample-Player",
-                                                     "Tom", "Rimshot", "Shaker", "Wavetable-Synth", "Sample-Chopper", "Granulator"};
+                                                     "Tom", "Rimshot", "Shaker", "Wavetable-Synth", "Sample-Chopper", "Granulator",
+                                                     "Perkussion (Körper + Transient)", "Drone (stehende Fläche)"};
 static const char* const MACHINE_LONG_EN[M_COUNT] = {"Bass drum", "Snare", "Hi-hat", "Clap", "Analog synth", "FM synth (4 OP)", "Sample player",
-                                                     "Tom", "Rimshot", "Shaker", "Wavetable synth", "Sample chopper", "Granulator"};
+                                                     "Tom", "Rimshot", "Shaker", "Wavetable synth", "Sample chopper", "Granulator",
+                                                     "Percussion (body + transient)", "Drone (standing texture)"};
 #define MACHINE_LONG (g_lang ? MACHINE_LONG_EN : MACHINE_LONG_DE)
-// Anzeige-Reihenfolge im Engine-Waehler: Drums, Synths, Samples
-static const uint8_t MACHINE_ORDER[M_COUNT] = {M_KICK, M_SNARE, M_HAT, M_CLAP, M_TOM, M_RIM, M_SHKR, M_SYNTH, M_FM, M_WTBL, M_SAMPLE, M_CHOP, M_GRAN};
+// Anzeige-Reihenfolge im Engine-Waehler: Perkussion, klassische Drums, Synths, Samples
+static const uint8_t MACHINE_ORDER[M_COUNT] = {M_PERC, M_KICK, M_SNARE, M_HAT, M_CLAP, M_TOM, M_RIM, M_SHKR,
+                                               M_SYNTH, M_FM, M_WTBL, M_DRONE, M_SAMPLE, M_CHOP, M_GRAN};
+// PERC und DRONE folgen der Note (kein Drum): PERC stimmt mit NOTE, DRONE ist eine Flaeche
 inline bool machineIsDrum(int m) { return m <= M_CLAP || m == M_TOM || m == M_RIM || m == M_SHKR; }
+// Neue Engine? Diese Tabellen muessen mitwachsen (sonst fuellt C++ still mit 0/nullptr auf):
+static_assert(sizeof(MACHINE_NAMES) / sizeof(*MACHINE_NAMES) == M_COUNT, "MACHINE_NAMES unvollstaendig");
+static_assert(sizeof(MACHINE_LONG_DE) / sizeof(*MACHINE_LONG_DE) == M_COUNT, "MACHINE_LONG_DE unvollstaendig");
+static_assert(sizeof(MACHINE_LONG_EN) / sizeof(*MACHINE_LONG_EN) == M_COUNT, "MACHINE_LONG_EN unvollstaendig");
+static_assert(sizeof(MACHINE_ORDER) / sizeof(*MACHINE_ORDER) == M_COUNT, "MACHINE_ORDER unvollstaendig");
 inline bool machineUsesSample(int m) { return m == M_SAMPLE || m == M_CHOP || m == M_GRAN; }
 static const char* const PAGE_NAMES[NUI_PAGES] = {"TRG", "SEQ", "ARP", "SRC", "SR2", "FLT", "FL2", "AMP", "LF1", "LF2", "LF3", "INS", "MIX", "FX A", "CMP", "PRJ", "SNG", "MST", "SET", "LIVE",
                                                   "SR3", "SR4", "SR5", "SND", "FX B", "FX C", "EN1", "EN2", "EN3", "SMPR"};
@@ -318,6 +329,12 @@ static const ParamDef SRC_DEFS[M_COUNT][8] = {
     // GRAN
     {{"SMPL", K_SMPL, SMP_NONE, 249}, {"POS", K_NUM, 30, 127}, {"SPRY", K_NUM, 10, 127}, {"SIZE", K_NUM, 50, 127},
      {"DENS", K_NUM, 60, 127}, {"PTCH", K_SEMI, 24, 48}, {"P.SPR", K_NUM, 0, 127}, {"GAIN", K_NUM, 64, 127}},
+    // PERC: Koerper (Seite SRC) - TUNE ist die Grundfrequenz bei NOTE 60, hoehere Noten stimmen hoch
+    {{"TUNE", K_NUM, 40, 127}, {"DCAY", K_NUM, 55, 127}, {"SWEP", K_NUM, 70, 127}, {"S.TIM", K_NUM, 40, 127},
+     {"RISE", K_PCT, 0, 100}, {"HARM", K_NUM, 0, 127}, {"FOLD", K_NUM, 0, 127}, {"BODY", K_NUM, 70, 127}},
+    // DRONE: stehende Flaeche aus verstimmten Partials
+    {{"PART", K_CNT, 3, 7}, {"SPRD", K_NUM, 30, 127}, {"BEAT", K_NUM, 40, 127}, {"WAVE", K_WAVE, 0, 3},
+     {"ODD", K_NUM, 64, 127}, {"NOIS", K_NUM, 10, 127}, {"DRFT", K_NUM, 40, 127}, {"GLID", K_NUM, 0, 127}},
 };
 
 static const ParamDef MST_DEFS[8] = {
@@ -325,6 +342,7 @@ static const ParamDef MST_DEFS[8] = {
     {"SCALE", K_SCALE, 0, 120}, {"ROOT", K_ROOT, 0, 11}, PDEF_NONE, PDEF_NONE,
 };
 // zweite Klangseite: SYNTH (Oktaven, Pegel je Oszillator, Sync, Kreuzmodulation), WTBL (Oktave, Pegel, eigene Wavetable), FM: Operator 1 (FM_OP_DEFS)
+
 static const ParamDef SRC2_DEFS[M_COUNT][8] = {
     {PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE},
     {PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE},
@@ -345,6 +363,12 @@ static const ParamDef SRC2_DEFS[M_COUNT][8] = {
      {"DRAW", K_WDRAW, 0, 0}, PDEF_NONE, PDEF_NONE, PDEF_NONE},
     {{"TEMPO", K_OFFON, 0, 1}, {"BEATS", K_NUM, 0, 128}, {"GRAIN", K_NUM, 40, 127}, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE},   // Time-Warp
     {PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE},
+    // PERC Seite 2 (TRANSIENT): das Gerauschteil - deckt Klick, Snare-Teppich, Clap und Shaker ab
+    {{"NLVL", K_NUM, 60, 127}, {"N.DEC", K_NUM, 40, 127}, {"N.ATK", K_NUM, 0, 127}, {"N.FRQ", K_NUM, 90, 127},
+     {"N.WID", K_NUM, 70, 127}, {"RPTS", K_CNT, 0, 7}, {"SPRD", K_NUM, 50, 127}, {"GRIT", K_NUM, 0, 127}},
+    // DRONE Seite 2 (BEWEGUNG): langsame innere Bewegung der Flaeche
+    {{"MRAT", K_NUM, 20, 127}, {"MDEP", K_NUM, 40, 127}, {"SHMR", K_NUM, 0, 127}, {"SUB", K_NUM, 40, 127},
+     {"RAND", K_NUM, 30, 127}, PDEF_NONE, PDEF_NONE, PDEF_NONE},
 };
 // FM-Operatoren 1-4: Ratio (Tabelle FM_RATIOS), FINE = +-0,5 Ratio, DETN = +-50 Cent, Pegel, eigene Huellkurve
 static const ParamDef FM_OP_DEFS[4][8] = {
@@ -356,7 +380,8 @@ static const ParamDef FM_OP_DEFS[4][8] = {
      {"O.ATK", K_NUM, 0, 127}, {"O.DEC", K_NUM, 55, 127}, {"O.SUS", K_NUM, 30, 127}, {"O.REL", K_NUM, 50, 127}},
     {{"RAT", K_RATIO, 3, 27}, {"FINE", K_BIP, 64, 127}, {"DETN", K_BIP, 64, 127}, {"O.LVL", K_NUM, 0, 127},
      {"O.ATK", K_NUM, 0, 127}, {"O.DEC", K_NUM, 50, 127}, {"O.SUS", K_NUM, 20, 127}, {"O.REL", K_NUM, 50, 127}}};
-inline bool machineHasSrc2(int m) { return m == M_FM || m == M_SYNTH || m == M_WTBL || m == M_SAMPLE || m == M_CHOP; }   // SMPL/CHOP: WARP
+inline bool machineHasSrc2(int m) { return m == M_FM || m == M_SYNTH || m == M_WTBL || m == M_SAMPLE || m == M_CHOP
+                                           || m == M_PERC || m == M_DRONE; }   // SMPL/CHOP: WARP, PERC: TRANSIENT, DRON: BEWEGUNG
 inline bool machineHasSrc35(int m) { return m == M_FM; }   // Klangseiten 3-5 (FM: Operator 2-4)
 // Parameter, der ein Sample aus dem Pool waehlt (SMPL/CHOP/GRAN: SMPL, WTBL: UWAV = eigene Wavetable), sonst -1
 inline int machineSampleParam(int m) { return (m == M_SAMPLE || m == M_CHOP || m == M_GRAN) ? P_S0 : (m == M_WTBL ? P_X3 : -1); }

@@ -939,6 +939,8 @@ static const char* pageLong(int p) {
     if (p == PG_SRC2 && m == M_WTBL) return TR("OSZILLATOR + EIGENE WAVETABLE", "OSCILLATOR + USER WAVETABLE");
     if (p == PG_SRC2 && m == M_SAMPLE) return TR("TIME-WARP + LOOP-PUNKTE", "TIME WARP + LOOP POINTS");
     if (p == PG_SRC2 && m == M_CHOP) return TR("TIME-WARP: SAMPLE FOLGT DEM TEMPO", "TIME WARP: SAMPLE FOLLOWS THE TEMPO");
+    if (m == M_PERC) { if (p == PG_SRC) return TR("KÖRPER", "BODY"); if (p == PG_SRC2) return TR("TRANSIENT (GERÄUSCH)", "TRANSIENT (NOISE)"); }
+    if (m == M_DRONE) { if (p == PG_SRC) return TR("TEILTÖNE", "PARTIALS"); if (p == PG_SRC2) return TR("BEWEGUNG", "MOVEMENT"); }
     return PAGE_LONG[p];
 }
 static void gotoPage(int dir) {
@@ -1769,6 +1771,25 @@ static void drawIcon(int m, int x, int y, int s, Col c) {
         static const float gx[9] = {0.2f, 0.45f, 0.75f, 0.3f, 0.62f, 0.85f, 0.15f, 0.5f, 0.7f};
         static const float gy[9] = {0.25f, 0.18f, 0.3f, 0.5f, 0.55f, 0.6f, 0.75f, 0.82f, 0.78f};
         for (int i = 0; i < 9; i++) disc(x + (int)(gx[i] * s), y + (int)(gy[i] * s), (i % 3) + s / 20, i % 2 ? c : d);
+    } break;
+    case M_PERC: {   // Koerper (Kreis mit fallender Tonhoehe) + Transient (Strahlen)
+        ring(cx - s / 6, cy + s / 8, s / 4, th, c);
+        for (int i = 0; i < 5; i++) {   // abfallender Sweep ueber dem Koerper
+            int px = x + s / 5 + i * s / 7, py = y + s / 5 + i * i * s / 90;
+            fill(px, py, s / 9, th, d);
+        }
+        for (int i = 0; i < 6; i++) {   // Geraeusch-Strahlen rechts
+            int a = y + s / 5 + i * s / 9, w2 = (i % 2 ? s / 5 : s / 8);
+            fill(x + s - s / 6 - w2, a, w2, th, i % 2 ? c : d);
+        }
+    } break;
+    case M_DRONE: {   // gestapelte Teiltoene, oben dichter = stehende Flaeche
+        for (int i = 0; i < 6; i++) {
+            int yy = y + s / 6 + i * (s * 2 / 3) / 6;
+            int inset = (i * s) / 22;
+            fill(x + s / 7 + inset, yy, s - 2 * s / 7 - 2 * inset, th, i & 1 ? d : c);
+        }
+        ring(cx, cy, s / 3, th, d);   // Schwebung als Hof
     } break;
     }
 }
@@ -3011,6 +3032,8 @@ static const char* sigName(int p) {
     if (p == PG_SRC2 && (m == M_SYNTH || m == M_WTBL)) return "OSC";
     if (p == PG_SRC2 && m == M_SAMPLE) return "WARP/LOOP";
     if (p == PG_SRC2 && m == M_CHOP) return "WARP";
+    if (p == PG_SRC2 && m == M_PERC) return TR("GERÄUSCH", "NOISE");
+    if (p == PG_SRC2 && m == M_DRONE) return TR("BEWEG.", "MOVE");
     switch (p) {
     case PG_SEND: return "SENDS";
     case PG_SRC: return TR("QUELLE", "SOURCE"); case PG_SRC2: return TR("QUELLE 2", "SOURCE 2"); case PG_FLT: return "FILTER 1"; case PG_FLT2: return "FILTER 2";
