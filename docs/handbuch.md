@@ -108,6 +108,10 @@ Was Stufe 1 kann:
 
 **Klang schrauben (Stufe 2).** Der Knopf **SOUND** schaltet von den Pads auf die Regler um. Oben wischst du durch die Gruppen (KLANG, FILTER, VERSTÄRKER, LFO …), darunter steht jeder Regler als breite Zeile mit Name und Wert. **Waagerecht über die Zeile ziehen** ändert den Wert – die ganze Zeilenbreite deckt den ganzen Bereich ab, du musst also nicht zielen. Gelb heißt: Der Wert ist für diesen Step gelockt. **STEPS** führt zurück zu den Pads.
 
+**P-Locks am Handy.** Ein Pad **lange gedrückt halten** hält den Step fest – die Oberfläche springt zu den Reglern, und was du jetzt änderst, gilt nur für diesen einen Step (die Werte stehen gelb). Oben steht, welcher Step hängt; **FERTIG** beendet, **LOCKS WEG** räumt sie wieder ab. War der Step leer, wird er dabei zu einem trigless Step – die Werte wirken also, ohne dass neu angeschlagen wird. Kurz antippen bleibt wie gehabt: Trig an und aus.
+
+**Auswahl statt Schieber.** Regler mit wenigen, benannten Werten – ENGINE, Filtertyp, Bus-Effekt, VOICE – öffnen beim Antippen eine Liste mit großen Feldern. Auf fünfzehn Engines mit dem Finger zu zielen wäre sonst Glückssache. Lange Listen (Sample, LFO-Ziel, Trig-Bedingung) laufen vorerst weiter über **BILD**.
+
 Was du am Handy änderst, ist sofort am Gerät zu sehen und umgekehrt – es ist dasselbe Projekt und dieselbe Liste, nur anders gezeichnet.
 
 Alles Übrige – Sampler, Song, Einstellungen – läuft weiter über **BILD**, also das gespiegelte Gerätebild mit der gewohnten Bedienung. Beide Ansichten zeigen dasselbe Projekt; was du in der einen änderst, steht sofort in der anderen.

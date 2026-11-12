@@ -9,6 +9,7 @@ function check(ok, what, extra) { if (ok) { pass++; console.log('  OK     ' + wh
   const br = await chromium.launch({args: ['--no-sandbox']});
   const ctx = await br.newContext({viewport: {width: 852, height: 393}, deviceScaleFactor: 2, isMobile: true, hasTouch: true});
   const pg = await ctx.newPage();
+  await pg.addInitScript(() => { try { localStorage.clear(); } catch (e) {} });   // jeder Lauf startet gleich
   const errs = [];
   pg.on('console', m => { if (m.type() === 'error') errs.push(m.text()); });
   await pg.goto(`http://127.0.0.1:${PORT}/screen`, {waitUntil: 'domcontentloaded'});
@@ -17,8 +18,10 @@ function check(ok, what, extra) { if (ok) { pass++; console.log('  OK     ' + wh
   await pg.waitForTimeout(2000);
 
   const model = () => pg.evaluate(() => window.tm || null);
+  // kurz tippen heisst: aufsetzen UND abheben - ohne das laeuft der Halte-Timer weiter und es wird ein P-Lock
   const tapPad = i => pg.evaluate(n => { const p = [...document.querySelectorAll('.tp')][n]; const r = p.getBoundingClientRect();
-    p.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2})); }, i);
+    p.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, pointerId: 21, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2}));
+    p.dispatchEvent(new PointerEvent('pointerup', {bubbles: true, pointerId: 21})); }, i);
   const tapSel = sel => pg.evaluate(s => { const e = document.querySelector(s); const r = e.getBoundingClientRect();
     e.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2})); }, sel);
 
@@ -65,7 +68,9 @@ function check(ok, what, extra) { if (ok) { pass++; console.log('  OK     ' + wh
   await tapSel('#tPatD');
 
   // Klang schrauben: Umschalten, Gruppe waehlen, Regler ziehen
-  await tapSel('#tMode'); await pg.waitForTimeout(900);
+  await pg.evaluate(() => { if (!document.body.classList.contains('snd')) { const e = document.getElementById('tMode'), r = e.getBoundingClientRect();
+    e.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, clientX: r.left + 5, clientY: r.top + 5})); } });
+  await pg.waitForTimeout(900);
   let snd = await pg.evaluate(() => ({snd: document.body.classList.contains('snd'),
     grps: document.querySelectorAll('#tGrps .tg').length, rows: document.querySelectorAll('#tPar .tr').length}));
   check(snd.snd && snd.grps > 3 && snd.rows > 0, 'SOUND zeigt Gruppen und Regler', `${snd.grps} Gruppen, ${snd.rows} Regler`);
@@ -91,6 +96,46 @@ function check(ok, what, extra) { if (ok) { pass++; console.log('  OK     ' + wh
   const vDown = await val();
   check(vUp > 0, `Regler nach rechts ziehen erhoeht den Wert (Gruppe ${picked})`, 'Wert ' + vUp);
   check(vDown < vUp, 'Regler nach links ziehen senkt ihn wieder', `${vUp} -> ${vDown}`);
+
+  // P-Lock: Pad lange druecken haelt den Step, Reglerwerte werden dann Locks
+  await pg.evaluate(() => { const d = [...document.querySelectorAll('.tp')][5], r = d.getBoundingClientRect();
+    d.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, pointerId: 11, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2})); });
+  await pg.waitForTimeout(650);
+  await pg.evaluate(() => [...document.querySelectorAll('.tp')][5].dispatchEvent(new PointerEvent('pointerup', {bubbles: true, pointerId: 11})));
+  await pg.waitForTimeout(900);
+  const held = await pg.evaluate(() => ({hold: tm.hold, cls: document.body.classList.contains('hold')}));
+  check(held.hold === 5 && held.cls, 'Pad lange druecken haelt den Step fest (P-Lock)', 'hold=' + held.hold);
+  await pg.evaluate(() => { const g = [...document.querySelectorAll('#tGrps .tg')].find(x => x.textContent === 'FILTER');
+    if (g) { const r = g.getBoundingClientRect(); g.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, clientX: r.left + 10, clientY: r.top + r.height / 2})); } });
+  await pg.waitForTimeout(800);
+  const patBase = await pg.evaluate(() => tm.params[0].v);
+  await drag(0.1, 0.7); await pg.waitForTimeout(900);
+  const locked = await pg.evaluate(() => ({v: tm.params[0].v, lk: tm.params[0].lk, step: tm.steps[5]}));
+  check(locked.lk === 1 && locked.v !== patBase, 'im Lock-Modus wird der Wert als Lock geschrieben', `${patBase} -> ${locked.v}, lk=${locked.lk}`);
+  check(locked.step > 0, 'der Step traegt den Lock (Trig oder trigless)', 'on=' + locked.step);
+  await tapSel('#tLockE'); await pg.waitForTimeout(900);
+  const after = await pg.evaluate(() => ({hold: tm.hold, v: tm.params[0].v, lk: tm.params[0].lk}));
+  check(after.hold < 0 && after.v === patBase && !after.lk, 'FERTIG beendet den Lock-Modus, der Pattern-Wert bleibt', `hold=${after.hold}, Wert ${after.v}`);
+
+  // Auswahl-Regler (ENGINE): antippen oeffnet eine Liste statt eines Schiebers
+  await pg.evaluate(() => { const g = [...document.querySelectorAll('#tGrps .tg')].find(x => /MAKRO/.test(x.textContent));
+    if (g) { const r = g.getBoundingClientRect(); g.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, clientX: r.left + 10, clientY: r.top + r.height / 2})); } });
+  await pg.waitForTimeout(800);
+  const ei = await pg.evaluate(() => tm.params.findIndex(p => p.n === 'ENGINE'));
+  check(ei >= 0, 'ENGINE ist in den Makros');
+  if (ei >= 0) {
+    await pg.evaluate(i => { const d = document.querySelectorAll('#tPar .tr')[i], r = d.getBoundingClientRect();
+      d.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, pointerId: 12, clientX: r.left + 40, clientY: r.top + r.height / 2})); }, ei);
+    await pg.waitForTimeout(600);
+    const li = await pg.evaluate(() => ({open: document.body.classList.contains('pick'), n: document.querySelectorAll('#tPickL .pk').length}));
+    check(li.open && li.n === 15, 'ENGINE antippen oeffnet die Auswahl mit allen Engines', li.n + ' Eintraege');
+    const engBefore = await pg.evaluate(() => tm.tracks[tm.track].n);
+    await pg.evaluate(() => { const b = [...document.querySelectorAll('#tPickL .pk')][4], r = b.getBoundingClientRect();
+      b.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, clientX: r.left + 10, clientY: r.top + 10})); });
+    await pg.waitForTimeout(1000);
+    const engAfter = await pg.evaluate(() => ({n: tm.tracks[tm.track].n, open: document.body.classList.contains('pick')}));
+    check(engAfter.n === 'SYNTH' && !engAfter.open, 'die gewaehlte Engine landet auf der Spur', `${engBefore} -> ${engAfter.n}`);
+  }
 
   // Gemeldet: scrollen ging nicht - #tui hatte touch-action:none (blockiert jede Geste im Overlay)
   // und die Reglerliste war gar kein Scrollcontainer.
