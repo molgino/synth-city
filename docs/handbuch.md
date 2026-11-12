@@ -28,22 +28,23 @@ Sie startet als App aus dem Ports-Menü oder auf Wunsch direkt beim Booten statt
 
 Über der Liste steht fest, in welcher **Gruppe** du bist (auch wenn ihr Kopf weggescrollt ist), rechts daneben die Position: **PAGE 3/4   GRUPPE 4/17**. In SOUND stehen oben **Makros**, also Abkürzungen zu den wichtigsten Reglern; hinter dem Namen steht klein, aus welcher Gruppe der Regler stammt (dort steht derselbe Regler noch einmal). Bei Sample- und Ziel-Reglern zeigt die Zeile rechts den **Namen** statt einer Nummer.
 
-**Ansichten** (L2/R2 im Kreis, 9 statt vorher 24 Seiten):
+**Ansichten** (L2/R2 im Kreis, 10 statt vorher 24 Seiten):
 
 | Ansicht | Inhalt |
 |---|---|
 | **SEQ** | Trig-Werte, Sequencer, Arpeggiator |
 | **SOUND** | oben Engine + 8 Makros, dann Quelle, Filter, Amp, Insert, Sends, Hüllkurven, LFOs |
-| **EFFEKTE** | Effekt-Bus A, B, C, Kompressor und Master in **einer** Liste (vorher fünf getrennte Seiten) |
+| **EFFEKTE** | Effekt-Bus A, B, C in **einer** Liste (vorher drei getrennte Seiten) |
+| **MASTER** | Tempo, Swing, Summen-Lautstärke, Drive, Skala und Grundton – darunter der Kompressor |
 | **MIX** | 8 Kanalzüge mit Pegeln, Mutes und Sends |
 | **LIVE · PROJEKT · SONG · SAMPLER · SET** | eigenständige Werkzeuge im Vollbild |
 
-In SEQ, SOUND und EFFEKTE bleiben Spuren links und Steps unten sichtbar; die anderen fünf brauchen die ganze Fläche. **A setzt auch in SOUND und EFFEKTE einen Trig** der gewählten Spur, du musst also zum Beat-Bauen nicht zurückwechseln.
+In SEQ, SOUND, EFFEKTE und MASTER bleiben Spuren links und Steps unten sichtbar; die anderen fünf brauchen die ganze Fläche. **A setzt auch in SOUND, EFFEKTE und MASTER einen Trig** der gewählten Spur, du musst also zum Beat-Bauen nicht zurückwechseln.
 
 | Taste | SEQ | SOUND |
 |---|---|---|
 | ▲▼ | Wert wählen | Wert wählen |
-| ◀▶ | Step | Gruppe (Quelle → Filter → Hüllkurve …); in EFFEKTE: Bus A → B → C → Kompressor → Master |
+| ◀▶ | Step | Gruppe (Quelle → Filter → Hüllkurve …); in EFFEKTE: Bus A → B → C; in MASTER: Master → Kompressor |
 | L1 / R1 | Spur | Spur |
 | X / Y, rechter Stick | Wert ändern | Wert ändern (ENGINE: X/Y öffnet die Liste) |
 | A | Trig an/aus · halten + X/Y = Lock · lang = Lock-Modus | gleich (Step vorher in SEQ wählen oder im Lock-Modus mit ◀▶) |

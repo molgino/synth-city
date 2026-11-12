@@ -10,30 +10,37 @@
 // Tasten: ^v Wert waehlen, <> Step, L1/R1 Spur, A Trig (halten = Lock), B Vorhoeren (halten = Hilfe), X/Y Wert,
 //         SELECT tippen = MEHR-Menue, SELECT + ... = Kurzbefehle (siehe Hilfeleiste).
 
-enum { V2_NONE = -1, V2_SEQ = 0, V2_SOUND = 1, V2_FX = 2, V2_VIEWS = 3 };
+enum { V2_NONE = -1, V2_SEQ = 0, V2_SOUND = 1, V2_FX = 2, V2_MST = 3, V2_VIEWS = 4 };
 static int v2View = V2_NONE;
-static int v2Foc[V2_VIEWS] = {1, 2, 1};   // SOUND: erstes Klang-Makro (nicht ENGINE)
-static float v2Scroll[V2_VIEWS] = {0, 0, 0};
+static int v2Foc[V2_VIEWS] = {1, 2, 1, 1};   // SOUND: erstes Klang-Makro (nicht ENGINE)
+static float v2Scroll[V2_VIEWS] = {0, 0, 0, 0};
 // Ansichten: SEQ, SOUND, FX (Busse + Kompressor + Master in einer Liste), dann die eigenstaendigen Werkzeuge
-static const int V2_RING[] = {-10, -11, -12, PG_MIX, PG_LIVE, PG_PRJ, PG_SONG, PG_SMPR, PG_SYS};   // -10 SEQ, -11 SOUND, -12 FX
-static const int V2_FX_P[] = {PG_FX, PG_FXB, PG_FXC, PG_CMP, PG_MST};
+static const int V2_RING[] = {-10, -11, -12, -13, PG_MIX, PG_LIVE, PG_PRJ, PG_SONG, PG_SMPR, PG_SYS};   // -10 SEQ, -11 SOUND, -12 FX, -13 MASTER
+static const int V2_FX_P[] = {PG_FX, PG_FXB, PG_FXC};        // EFFEKTE: nur die drei Send-Busse
+static const int V2_MST_P[] = {PG_MST, PG_CMP};              // MASTER: Tempo/Skala/Summe + Kompressor
 static const int V2_SEQ_P[] = {PG_TRG, PG_SEQ, PG_ARP};
+enum { V2_MST_N = sizeof V2_MST_P / sizeof *V2_MST_P, V2_FX_N = sizeof V2_FX_P / sizeof *V2_FX_P };
 enum { V2_RING_N = sizeof V2_RING / sizeof *V2_RING };
-bool v2Active() {   // Listen-Ansicht (auch fuer die globalen Effekt-Seiten)
+bool v2Active() {   // Listen-Ansicht (auch fuer die globalen Effekt- und Master-Seiten)
     if (trackPage(page)) return true;
     for (int p : V2_FX_P) if (p == page) return true;
+    for (int p : V2_MST_P) if (p == page) return true;
     return false;
 }
 static int v2RingIndex();
 // Ansicht (Index in V2_RING), in der eine Seite liegt: SEQ, SOUND, EFFEKTE oder eine eigene Ansicht
 static int v2RingOfPage(int p) {
-    for (int i = 3; i < V2_RING_N; i++) if (V2_RING[i] == p) return i;
+    for (int i = 4; i < V2_RING_N; i++) if (V2_RING[i] == p) return i;
     for (int q : V2_FX_P) if (q == p) return 2;
+    for (int q : V2_MST_P) if (q == p) return 3;
     for (int q : V2_SEQ_P) if (q == p) return 0;
     return 1;   // alles Uebrige ist eine Klangseite -> SOUND
 }
 int v2TabN() { return V2_RING_N; }
-const char* v2TabName(int i) { int p = V2_RING[(i % V2_RING_N + V2_RING_N) % V2_RING_N]; return p == -10 ? "SEQ" : p == -11 ? "SOUND" : p == -12 ? TR("EFFEKTE", "FX") : PAGE_NAMES[p]; }
+const char* v2TabName(int i) {
+    int p = V2_RING[(i % V2_RING_N + V2_RING_N) % V2_RING_N];
+    return p == -10 ? "SEQ" : p == -11 ? "SOUND" : p == -12 ? TR("EFFEKTE", "FX") : p == -13 ? "MASTER" : PAGE_NAMES[p];
+}
 int v2TabPage(int i) { int p = V2_RING[(i % V2_RING_N + V2_RING_N) % V2_RING_N]; return p < 0 ? -1 : p; }
 int v2TabCur() { return v2RingIndex(); }
 
@@ -77,8 +84,8 @@ static void v2BuildNow(int view) {
         int mp[8] = {uiParam(PG_SRC, 0), uiParam(PG_SRC, 1), P_FREQ, P_RESO, ENV_ATK[0], ENV_DEC[0], P_DLY, P_REV};
         for (int i = 0; i < 8; i++) { int pg, k; if (mp[i] >= 0 && v2Find(mp[i], pg, k) && v2Valid(pg, k)) add(false, pg, k, nullptr); }
     }
-    const int* pl = view == V2_SEQ ? V2_SEQ_P : (view == V2_FX ? V2_FX_P : V2_SND_P);
-    int pn = view == V2_SEQ ? 3 : (view == V2_FX ? (int)(sizeof V2_FX_P / sizeof *V2_FX_P) : (int)(sizeof V2_SND_P / sizeof *V2_SND_P));
+    const int* pl = view == V2_SEQ ? V2_SEQ_P : (view == V2_FX ? V2_FX_P : (view == V2_MST ? V2_MST_P : V2_SND_P));
+    int pn = view == V2_SEQ ? 3 : (view == V2_FX ? V2_FX_N : (view == V2_MST ? V2_MST_N : (int)(sizeof V2_SND_P / sizeof *V2_SND_P)));
     for (int i = 0; i < pn; i++) {
         int p = pl[i];
         if (!pageAvail(p)) continue;
@@ -109,16 +116,17 @@ static void v2Apply() {   // Fokus -> page/slot (darauf arbeiten editValue, Lock
 }
 // Ansicht einstellen; aus page/slot uebernehmen, wenn die alte Oberflaeche/Touch/Listen die Seite gesetzt haben
 static void v2Sync() {
-    bool fxPage = false;
+    bool fxPage = false, mstPage = false;
     for (int p : V2_FX_P) if (p == page) fxPage = true;
-    if (!trackPage(page) && !fxPage) { v2View = V2_NONE; return; }
+    for (int p : V2_MST_P) if (p == page) mstPage = true;
+    if (!trackPage(page) && !fxPage && !mstPage) { v2View = V2_NONE; return; }
     if (v2View != V2_NONE) {   // passt der Fokus der aktuellen Ansicht noch zu page/slot? (ENGINE steht in SOUND, liegt aber auf TRIG)
         v2Build(v2View);
         int f = v2Foc[v2View];
         if (f >= 0 && f < v2N && !v2It[f].hdr && v2It[f].pg == page && v2It[f].k == slot) return;
     }
     bool seqPage = page == PG_TRG || page == PG_SEQ || page == PG_ARP;
-    int want = fxPage ? V2_FX : (seqPage ? V2_SEQ : V2_SOUND);
+    int want = fxPage ? V2_FX : (mstPage ? V2_MST : (seqPage ? V2_SEQ : V2_SOUND));
     if (v2View != want) v2View = want;
     v2Build(v2View);
     int f = v2Foc[v2View];
@@ -133,7 +141,7 @@ static void v2Sync() {
 static void v2GoView(int i) {   // Index in V2_RING
     int v = V2_RING[(i % V2_RING_N + V2_RING_N) % V2_RING_N];
     if (v <= -10) {
-        v2View = v == -10 ? V2_SEQ : (v == -11 ? V2_SOUND : V2_FX);
+        v2View = v == -10 ? V2_SEQ : (v == -11 ? V2_SOUND : (v == -12 ? V2_FX : V2_MST));
         v2Build(v2View);
         v2Foc[v2View] = v2Clamp(v2Foc[v2View], 1);
         v2Apply();
@@ -143,8 +151,8 @@ static void v2GoView(int i) {   // Index in V2_RING
     }
 }
 static int v2RingIndex() {
-    if (v2View >= 0 && v2View < 3) return v2View;
-    for (int i = 3; i < V2_RING_N; i++) if (V2_RING[i] == page) return i;
+    if (v2View >= 0 && v2View < 4) return v2View;
+    for (int i = 4; i < V2_RING_N; i++) if (V2_RING[i] == page) return i;
     return trackPage(page) ? 1 : 0;
 }
 static void v2Step(int dir) { v2GoView(v2RingIndex() + dir); }
@@ -153,7 +161,7 @@ static void v2Step(int dir) { v2GoView(v2RingIndex() + dir); }
 // Gruppe statt die Steps zu bewegen, und die Liste zeigte auf Regler, die es nicht mehr gab.
 static void uiResetToStart() {
     page = PG_TRG; slot = 0; track = 0; cursor = 0;
-    static const int FOC0[V2_VIEWS] = {1, 2, 1};
+    static const int FOC0[V2_VIEWS] = {1, 2, 1, 1};
     for (int i = 0; i < V2_VIEWS; i++) { v2Foc[i] = FOC0[i]; v2Scroll[i] = 0; }
     v2View = V2_SEQ;
     v2Dirty(); v2Build(v2View);
@@ -396,7 +404,7 @@ static void v2List(int x, int y0, int w, int h) {
     float& sc = v2Scroll[v2View];
     if (fabsf(target - sc) > vis) sc = target;   // weiter Sprung: sofort
     else sc += (target - sc) * (1.f - expf(-animDt * 16.f));
-    Col tc = v2View == V2_FX ? C_CYAN : TCOL[track];
+    Col tc = v2View == V2_FX || v2View == V2_MST ? C_CYAN : TCOL[track];
     const Pattern& P = curP();
     int savePage = page, saveSlot = slot;
     const int hy = y0, ly = y0 + 18;   // feste Kopfzeile der Gruppe, darunter die Liste
@@ -519,7 +527,7 @@ static void v2Help() {   // was die Tasten JETZT tun
 // Huellkurve, LFO-Welle, Oszillatoren, FM-Algorithmus, Piano-Roll ...), darunter das animierte
 // Symbol des Reglers, unten das echte Audiosignal - eine Liste allein ist zu nuechtern.
 static void v2Art(int x, int y, int w, int h) {
-    Col tc = v2View == V2_FX ? C_CYAN : TCOL[track];
+    Col tc = v2View == V2_FX || v2View == V2_MST ? C_CYAN : TCOL[track];
     rrect(x - 4, y - 2, w + 8, h + 4, 8, C_PANEL);
     int gy = y + 2, gh = 0;
     int gk = trackPage(page) ? graphKind(0) : 0;

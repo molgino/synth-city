@@ -1010,8 +1010,9 @@ static void uiScenariosV2() {
     tap(BT_L1); UCHECK(track == 0, "L1 wechselt die Spur nicht zurueck");
     tap(BT_R2); UCHECK(v2View == V2_SOUND && trackPage(page), "R2: SOUND erwartet (Ansicht %d)", v2View);
     tap(BT_R2); UCHECK(v2View == V2_FX && v2HasPage(page), "R2: EFFEKTE erwartet (Ansicht %d, Seite %d)", v2View, page);
+    tap(BT_R2); UCHECK(v2View == V2_MST && v2HasPage(page), "R2: MASTER erwartet (Ansicht %d, Seite %d)", v2View, page);
     tap(BT_R2); UCHECK(v2View == V2_NONE && page == PG_MIX, "R2: MIX erwartet (Seite %d)", page);
-    tap(BT_L2); tap(BT_L2); tap(BT_L2); UCHECK(v2View == V2_SEQ, "3x L2: zurueck zu SEQ");
+    tap(BT_L2); tap(BT_L2); tap(BT_L2); tap(BT_L2); UCHECK(v2View == V2_SEQ, "4x L2: zurueck zu SEQ");
     for (int i = 0; i < V2_RING_N; i++) tap(BT_R2);
     UCHECK(v2View == V2_SEQ, "R2 im Kreis kommt nicht zu SEQ zurueck (Seite %d)", page);
     {   // SELECT + RUNTER: naechste Gruppe
@@ -1172,7 +1173,7 @@ static void uiTasks() {   // Bedienweg-Report: wie viele Tasten kostet eine typi
     simReset(); simFrame(); combo(BT_SELECT, BT_RIGHT); rec("Naechstes Pattern", 1);
     simReset(); simFrame(); goTrack(3); combo(BT_SELECT, BT_A); rec("Spur 4 stumm", 2);
     combo(BT_SELECT, BT_A);
-    simReset(); simFrame(); tap(BT_R2); tap(BT_R2);   // EFFEKTE, dann mit <> zur Gruppe MASTER
+    simReset(); simFrame(); tap(BT_R2); tap(BT_R2); tap(BT_R2);   // SOUND, EFFEKTE, MASTER
     for (int g = 0; g < 8 && page != PG_MST; g++) tap(BT_RIGHT);
     for (int g = 0; g < 10 && !(page == PG_MST && slot == MS_BPM); g++) tap(BT_DOWN);
     stickR(1.f, 300); rec("Tempo aendern", 3);

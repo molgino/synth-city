@@ -84,7 +84,7 @@ static const char* kmPgName(int p) { return p >= 0 && p < NUI_PAGES ? PAGE_NAMES
 
 static void kmDiff(const KmSnap& a, const KmSnap& b, int pi0) {
     kmN = 0; kmOut[0] = 0; kmItems = 0;
-    if (a.v2View != b.v2View) { static const char* const VN[4] = {"-", "SEQ", "SOUND", "EFFEKTE"}; kmAdd("Ansicht %s>%s", VN[a.v2View + 1], VN[b.v2View + 1]); }
+    if (a.v2View != b.v2View) { static const char* const VN[5] = {"-", "SEQ", "SOUND", "EFFEKTE", "MASTER"}; kmAdd("Ansicht %s>%s", VN[a.v2View + 1], VN[b.v2View + 1]); }
     if (a.mrOpen != b.mrOpen) kmAdd(b.mrOpen ? "MEHR auf" : "MEHR zu");
     if (b.mrOpen && a.mrSel != b.mrSel) kmAdd("MEHR-Eintrag %d>%d", a.mrSel, b.mrSel);
     if (a.sndClip != b.sndClip) kmAdd("Sound-Ablage voll");
