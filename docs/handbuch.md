@@ -94,6 +94,20 @@ Die 8 Spuren liegen auf dem Bildschirm genau so wie die Tasten: **Steuerkreuz �
 | linker Stick ↑/↓ | Tempo ±1 BPM |
 | START | Play / Stop |
 
+## Touch-Oberfläche am Handy (neu, Stufe 1)
+
+Auf dem Handy – in der App wie auch bei der Fernbedienung über `/screen` – gibt es neben dem gespiegelten Gerätebild eine **eigene, für Finger gebaute Oberfläche**. Knopf **Touch** in der Kopfzeile, zurück mit **BILD**.
+
+Warum zwei Oberflächen: Das Gerätebild ist 640×480 und damit 4:3. Ein Handy quer ist rund 2,2:1, also bleiben links und rechts Balken, und jede Fläche ist so groß, wie 480 Zeilen es hergeben. Die Touch-Oberfläche ist an keine Auflösung gebunden – sie füllt den Schirm und macht die Flächen so groß, wie Platz da ist (gemessen: 79 % des Schirms im Querformat, 86 % hochkant).
+
+Was Stufe 1 kann:
+
+* **Steps setzen**: 16 große Pads, quer in zwei Reihen zu acht (wie die Step-Leiste am Gerät), hochkant als 4×4-Raster. Antippen setzt und löscht den Trig, der laufende Step ist umrandet.
+* **Spur wählen und stummschalten**: die Spurspalte zeigt Nummer, Engine und Farbe; das **M** rechts schaltet stumm.
+* **Transport**: Play/Stop, Pattern vor und zurück, Seiten (P1, P2 …) bei längeren Spuren.
+
+Alles Übrige – Klang schrauben, Sampler, Song, Einstellungen – läuft weiter über **BILD**, also das gespiegelte Gerätebild mit der gewohnten Bedienung. Beide Ansichten zeigen dasselbe Projekt; was du in der einen änderst, steht sofort in der anderen.
+
 ## Akkorde und Stimmen (TRIG-Seite: NT2–NT4, VOICE)
 
 Jede Spur spielt bis zu **4 Töne gleichzeitig**. Es gibt zwei Wege dorthin.

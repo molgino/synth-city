@@ -4940,6 +4940,7 @@ static void liveInput(Input& I, Uint32 now, float dt) {
 static bool touchBlocked() { return wteOpen || sedOpen || expState == 1 || fbOpen || kbOpen; }
 #include "ui2.inc"     // die Oberflaeche: Spuren links, Liste in der Mitte, Steps unten
 #include "touch.inc"
+#include "uimodel.inc"   // Modell + Aktionen fuer die Touch-Oberflaeche im Browser
 
 static bool selBlock = false;   // SELECT hat ein Fenster geschlossen: bis zum Loslassen keine SELECT-Kombis (sonst z. B. SEL+X in der Tastatur = Engine-Wechsel)
 static void handleInput(Uint32 now, float dt) {
@@ -4947,6 +4948,7 @@ static void handleInput(Uint32 now, float dt) {
     I.mask = 0;   // in diesem Bild verbrauchte Tasten (neue Oberflaeche)
     if (slot >= nSlots()) slot = nSlots() - 1;
     touchProcess(now);
+    uiActionsRun();   // Aktionen aus der Touch-Oberflaeche im Browser
     if (I.pressed(BT_SELECT) && (confirmOpen || kbOpen || fbOpen || wteOpen || sedOpen || pgmOpen || menuOpen || mrOpen)) selBlock = true;
     if (confirmOpen) {
         if (I.pressed(BT_A)) { confirmOpen = false; runAction(confirmAct, confirmArg); }
@@ -5964,6 +5966,7 @@ int main(int argc, char** argv) {
         {   // Bildschirm-Spiegelung fuers Webinterface (nur wenn jemand zuschaut, max. 30 Bilder/s)
             static Uint32 snapAt = 0;
             if (fbPix && remoteWanted() && now - snapAt >= 33) { snapAt = now; remoteSnapshot(fbPix, fbPitch, SW, SH); }
+            uiModelPush();   // Modell fuer die Touch-Oberflaeche (nur wenn sie jemand nutzt)
         }
         {   // Bildrate messen, alle 10 s ins Log
             static double sDraw = 0, sPres = 0, sMax = 0; static int nFr = 0; static Uint32 statAt = 0;

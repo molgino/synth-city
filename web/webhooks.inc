@@ -26,6 +26,13 @@ extern "C" EMSCRIPTEN_KEEPALIVE void gbToast(const char* msg) { toast("%s", msg)
 // Zustand fuer Tests/Anzeige: Bit 0 spielt, Bit 1 Song-Modus
 extern "C" EMSCRIPTEN_KEEPALIVE int gbState() { return (eng.playing ? 1 : 0) | (eng.songOn ? 2 : 0); }
 
+// Touch-Oberflaeche: Modell als JSON (dieselbe Quelle wie ueber /ws beim Geraet)
+extern "C" EMSCRIPTEN_KEEPALIVE const char* gbModel() {
+    static char b[8192];
+    uiModelJson(b, sizeof b);
+    return b;
+}
+
 // Test-Schnittstelle (tests/app/app_scenarios.js): innerer Zustand als JSON
 extern "C" EMSCRIPTEN_KEEPALIVE const char* gbInfo() {
     static char b[600];

@@ -21,6 +21,15 @@ bool remoteWsAccept(int fd, const char* headers, bool audio = false);   // audio
 void remoteAudioPush(const float* st, int frames, int rate);
 bool remoteAudioWanted();
 // Touch auf dem Bild (Koordinaten 640x480): 't' Finger auf, 'm' bewegt, 'e' Finger weg, 'c' alle weg (Verbindung zu)
+// Touch-Oberflaeche (eigenes UI im Browser statt des gespiegelten Bildes): die Hauptschleife legt das
+// Modell als JSON ab, der Web-Thread schickt es; Aktionen laufen umgekehrt in den Hauptthread zurueck.
+void remoteModelSet(const char* json);          // Hauptthread
+int remoteModelGet(char* out, int n);           // Web-Thread: 0 = nichts Neues seit dem letzten Abruf
+bool remoteModelWanted();                       // schaut jemand mit der Touch-Oberflaeche zu?
+struct RemoteAct { int kind, a, b; };
+void remoteActPush(int kind, int a, int b);     // Web-Thread (und Selbsttest)
+bool remoteActPop(RemoteAct& e);                // Hauptthread
+
 enum { REMOTE_TOUCH_IDS = 10 };
 struct RemoteTouch { char type; int id, x, y; };
 bool remoteTouchPop(RemoteTouch& e);   // Hauptthread

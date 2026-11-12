@@ -139,6 +139,47 @@ void remoteAudioPush(const float* st, int frames, int rate) {
 }
 bool remoteAudioWanted() { return g_audClients > 0; }
 
+// ---------------------------------------------------------------- Touch-Oberflaeche: Modell + Aktionen
+static char g_model[8192];
+static unsigned g_modelSeq = 0;
+static SDL_mutex* g_mdMx = nullptr;
+static volatile unsigned g_mdWant = 0;   // Zeitpunkt der letzten Anfrage
+void remoteModelSet(const char* json) {
+    if (!g_mdMx) g_mdMx = SDL_CreateMutex();
+    SDL_LockMutex(g_mdMx);
+    snprintf(g_model, sizeof g_model, "%s", json);
+    g_modelSeq++;
+    SDL_UnlockMutex(g_mdMx);
+}
+bool remoteModelWanted() { return g_mdWant && SDL_GetTicks() - g_mdWant < 4000; }
+int remoteModelGet(char* out, int n) {
+    g_mdWant = SDL_GetTicks() | 1;
+    if (!g_mdMx) return 0;
+    static __thread unsigned seen = 0;
+    SDL_LockMutex(g_mdMx);
+    int len = 0;
+    if (seen != g_modelSeq) { seen = g_modelSeq; len = snprintf(out, n, "%s", g_model); if (len >= n) len = n - 1; }
+    SDL_UnlockMutex(g_mdMx);
+    return len;
+}
+static RemoteAct g_aq[128];
+static unsigned g_aqHead = 0, g_aqTail = 0;
+static SDL_mutex* g_aqMx = nullptr;
+void remoteActPush(int kind, int a, int b) {
+    if (!g_aqMx) g_aqMx = SDL_CreateMutex();
+    SDL_LockMutex(g_aqMx);
+    if (g_aqHead - g_aqTail < 128) g_aq[g_aqHead++ & 127] = RemoteAct{kind, a, b};
+    SDL_UnlockMutex(g_aqMx);
+}
+bool remoteActPop(RemoteAct& e) {
+    if (!g_aqMx || g_aqHead == g_aqTail) return false;
+    SDL_LockMutex(g_aqMx);
+    bool ok = g_aqHead != g_aqTail;
+    if (ok) e = g_aq[g_aqTail++ & 127];
+    SDL_UnlockMutex(g_aqMx);
+    return ok;
+}
+
 // ---------------------------------------------------------------- Touch-Warteschlange (Web-Thread -> Hauptthread)
 static RemoteTouch g_tq[256];
 static unsigned g_tqHead = 0, g_tqTail = 0;
@@ -265,7 +306,7 @@ static int wsThread(void* arg) {
     RemoteClient* cl = (RemoteClient*)calloc(1, sizeof(RemoteClient));
     uint8_t* buf = nullptr; size_t cap = 0;
     uint8_t in[4096]; size_t inN = 0;
-    bool alive = cl != nullptr, needFull = true;
+    bool alive = cl != nullptr, needFull = true, wantModel = false;
     Uint32 lastSend = 0, lastRx = SDL_GetTicks();
     while (alive) {
         struct pollfd pf = {fd, POLLIN, 0};
@@ -298,6 +339,11 @@ static int wsThread(void* arg) {
                     else if (msg[0] == 'a' && sscanf(msg + 2, "%15s %d", b, &v) == 2) remoteInput(b, v);
                     else if (msg[0] == 'p') { msg[0] = 'P'; wsSend(fd, 1, msg, len); }
                     else if (msg[0] == 'f') needFull = true;
+                    else if (msg[0] == 'M') wantModel = true;   // Touch-Oberflaeche angemeldet
+                    else if (msg[0] == 'k' && msg[1] == ' ') {   // Aktion: "k kind a b"
+                        int kk = 0, aa = 0, bb = 0;
+                        if (sscanf(msg + 2, "%d %d %d", &kk, &aa, &bb) >= 1) remoteActPush(kk, aa, bb);
+                    }
                     else if ((msg[0] == 't' || msg[0] == 'm' || msg[0] == 'e') && msg[1] == ' ') {   // Touch: "t id x y"
                         int id, x, y;
                         if (sscanf(msg + 2, "%d %d %d", &id, &x, &y) == 3) touchPush(msg[0], id, x, y);
@@ -308,6 +354,11 @@ static int wsThread(void* arg) {
         }
         if (!alive) break;
         g_wantAt = SDL_GetTicks();   // Hauptschleife soll Bilder liefern
+        if (wantModel) {   // Touch-Oberflaeche: neues Modell schicken, sobald eines vorliegt
+            static __thread char mb[8192];
+            int ml = remoteModelGet(mb + 2, (int)sizeof mb - 2);
+            if (ml > 0) { mb[0] = 'm'; mb[1] = ' '; lastSend = SDL_GetTicks(); if (!wsSend(fd, 1, mb, ml + 2)) break; }
+        }
         size_t n = encodeFor(*cl, needFull, &buf, &cap);
         if (n) { needFull = false; lastSend = SDL_GetTicks(); if (!wsSend(fd, 2, buf, n)) break; }
         else if (SDL_GetTicks() - lastSend > 5000) { lastSend = SDL_GetTicks(); if (!wsSend(fd, 9, "k", 1)) break; }   // Lebenszeichen

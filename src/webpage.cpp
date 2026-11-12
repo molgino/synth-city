@@ -360,12 +360,54 @@ body.full.fleft #fbar{right:auto;left:max(6px,env(safe-area-inset-left))}
 #fbar.mini{width:30px;height:30px;border-radius:15px;background:#20283acc;border:1px solid var(--line);
  align-items:center;justify-content:center;opacity:.5}
 #fbar.mini::after{content:'···';color:var(--dim);font-size:15px;line-height:1}
+/* ---- Touch-Oberflaeche: eigenes UI statt des gespiegelten 4:3-Bildes. Fuellt jede Aufloesung,
+   die Flaechen sind so gross, wie der Schirm hergibt, und nichts ist an 640x480 gebunden. */
+#tui{display:none;position:fixed;inset:0;z-index:6;background:var(--bg);
+ padding:max(6px,env(safe-area-inset-top)) max(6px,env(safe-area-inset-right)) max(6px,env(safe-area-inset-bottom)) max(6px,env(safe-area-inset-left));
+ grid-template-rows:auto minmax(0,1fr) auto;gap:6px;touch-action:none;user-select:none}
+body.tui #tui{display:grid}
+body.tui #app{visibility:hidden}
+#tTop,#tBot{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+#tTop .tb,#tBot .tb{min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center;
+ background:var(--panel);border:1px solid var(--line);border-radius:10px;color:var(--text);font:inherit;font-size:13px;padding:0 12px}
+#tTop .tb:active,#tBot .tb:active{background:var(--panel2)}
+#tPlay{font-size:20px;min-width:62px}
+#tPlay.on{background:var(--gr);color:#06240f;border-color:var(--gr)}
+#tPat{font-size:18px;font-weight:bold;color:var(--cy);min-width:62px;text-align:center}
+#tBpm{color:var(--dim);font-size:13px}
+#tMsg{color:var(--acc);font-size:12px;flex:1;text-align:right;overflow:hidden;white-space:nowrap}
+#tMain{display:grid;grid-template-columns:minmax(96px,18%) minmax(0,1fr);gap:6px;min-height:0}
+#tTracks{display:grid;grid-auto-rows:minmax(0,1fr);gap:4px;min-height:0}
+.ttr{display:flex;align-items:center;gap:4px;background:var(--panel);border:1px solid var(--line);
+ border-left-width:5px;border-radius:9px;padding:0 6px;overflow:hidden;min-height:0}
+.ttr.sel{background:var(--panel2);border-color:var(--text)}
+.ttr .tn{flex:1;font-size:12px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.ttr .tm{width:30px;min-height:30px;display:flex;align-items:center;justify-content:center;border-radius:7px;
+ background:var(--panel2);color:var(--dim);font-size:11px}
+.ttr .tm.on{background:var(--acc);color:#fff}
+.ttr.play .tn{color:var(--text)}
+#tGrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-template-rows:repeat(4,minmax(0,1fr));gap:5px;min-height:0}
+/* quer: 8x2 wie die Step-Leiste am Geraet (nutzt die Breite), hoch: 4x4 wie ein Pad-Raster */
+@media (orientation:landscape) and (min-aspect-ratio:13/10){
+ #tGrid{grid-template-columns:repeat(8,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr))}
+ #tTop .tb,#tBot .tb{min-height:38px}}
+.tp{position:relative;border-radius:10px;background:var(--panel);border:1px solid var(--line);min-height:0;
+ display:flex;align-items:flex-end;justify-content:flex-start;padding:4px 6px;font-size:11px;color:var(--dim)}
+.tp.on{background:var(--acc);border-color:transparent;color:#fff}
+.tp.tl{background:var(--panel2);box-shadow:inset 0 0 0 2px var(--acc)}
+.tp.now{outline:3px solid var(--text);outline-offset:-3px}
+.tp.beat::after{content:'';position:absolute;top:5px;right:6px;width:5px;height:5px;border-radius:50%;background:var(--line)}
+@media (orientation:portrait){#tMain{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)}
+ #tTracks{grid-auto-rows:auto;grid-template-columns:repeat(4,1fr)}
+ .ttr{min-height:42px;padding:0 4px}
+ .ttr .tn{font-size:11px}.ttr .tnr{display:none}}   /* hochkant ist kein Platz fuer die Nummer: die Farbe sagt es */
+#tBot:empty,#tBot.hide{display:none}
 body.nopad #ctl{display:none}
 body.nopad #stage{grid-template-columns:1fr !important}
 body.nopad #scr{grid-column:1 !important}
 </style></head><body><div id="app">
 <header><span id="dot"></span><h1>SYNTH CITY</h1><span id="stat">…</span><span class="sp"></span>
-<button class="hb" id="bAud" title="Ton im Browser">🔈 Ton</button><input id="vol" type="range" min="0" max="100" value="80" style="width:70px;display:none"><button class="hb" id="zo" title="Verkleinern (−)">−</button><button class="hb" id="zl" title="Zoom zurücksetzen (0)">100%</button><button class="hb" id="zi" title="Vergrößern (+)">+</button><button class="hb" id="bPad">Tasten</button><button class="hb" id="bSt">Sticks</button><button class="hb" id="bHelp">?</button><button class="hb" id="bFull" title="Nur das Bild, so groß wie möglich (V)">Vollbild</button><button class="hb" id="bFs" title="Browser-Vollbild">⛶</button><a href="/" class="hb" style="text-decoration:none">Dateien</a></header>
+<button class="hb" id="bAud" title="Ton im Browser">🔈 Ton</button><input id="vol" type="range" min="0" max="100" value="80" style="width:70px;display:none"><button class="hb" id="zo" title="Verkleinern (−)">−</button><button class="hb" id="zl" title="Zoom zurücksetzen (0)">100%</button><button class="hb" id="zi" title="Vergrößern (+)">+</button><button class="hb" id="bPad">Tasten</button><button class="hb" id="bSt">Sticks</button><button class="hb" id="bHelp">?</button><button class="hb" id="bTui" title="Touch-Oberfläche (für Finger ausgelegt)">Touch</button><button class="hb" id="bFull" title="Nur das Bild, so groß wie möglich (V)">Vollbild</button><button class="hb" id="bFs" title="Browser-Vollbild">⛶</button><a href="/" class="hb" style="text-decoration:none">Dateien</a></header>
 <div id="fbar"><div class="btn" data-b="SELECT">SEL</div><div class="btn" data-b="START">START</div><div class="btn" id="fPad" title="Bedienung an den Seiten ein-/ausblenden">TASTEN</div><div class="btn" id="fSide" title="Leiste auf die andere Seite">⇆</div><div class="btn" id="fExit" title="Vollbild beenden (V)">✕</div></div>
 <div id="stage">
  <div id="scr"><div id="cvw"><canvas id="cv" width="640" height="480" tabindex="0"></canvas><div id="lost"><div><div class="spin"></div><b>Verbindung verloren</b><br><span id="lostT">verbinde neu …</span><br><button id="lostR">Neu laden</button></div></div></div>
@@ -381,6 +423,12 @@ body.nopad #scr{grid-column:1 !important}
    <div class="btn ms" data-b="START">START</div></div>
  </div>
 </div></div>
+<div id="tui">
+ <div id="tTop"><button class="tb" id="tPlay">▶</button><div class="tb" id="tPatD">‹</div><div id="tPat">A01</div><div class="tb" id="tPatU">›</div>
+  <div id="tBpm">120 BPM</div><span id="tMsg"></span><button class="tb" id="tView" title="zum gespiegelten Geraetebild">BILD</button></div>
+ <div id="tMain"><div id="tTracks"></div><div id="tGrid"></div></div>
+ <div id="tBot"><div id="tPages" style="display:flex;gap:6px;flex-wrap:wrap"></div></div>
+</div>
 <div id="help"><div><b style="color:#fff">Tastatur</b><br>
 <kbd>←↑→↓</kbd> Steuerkreuz &nbsp; <kbd>Z</kbd>/<kbd>Leertaste</kbd> A &nbsp; <kbd>X</kbd>/<kbd>⌫</kbd> B &nbsp; <kbd>S</kbd> X &nbsp; <kbd>A</kbd> Y<br>
 <kbd>Q</kbd> L1 &nbsp; <kbd>W</kbd> R1 &nbsp; <kbd>1</kbd> L2 &nbsp; <kbd>2</kbd> R2 &nbsp; <kbd>Shift</kbd>/<kbd>Tab</kbd> SELECT &nbsp; <kbd>Enter</kbd> START (halten = FILL)<br>
@@ -418,6 +466,57 @@ $('fbar').addEventListener('pointerdown',e=>{const fb=$('fbar');if(!fb.classList
  e.stopPropagation();e.preventDefault();fb.classList.remove('mini');fb.dataset.open='1';
  clearTimeout(fb._t);fb._t=setTimeout(()=>{delete fb.dataset.open;placeBar(fw);},5000);},true);
 addEventListener('resize',fit);if(window.ResizeObserver)new ResizeObserver(fit).observe($('scr'));setTimeout(fit,0);
+// ---- Touch-Oberflaeche: eigenes UI aus dem Modell der Groovebox (keine 4:3-Bindung, grosse Flaechen)
+let tuiOn=false,tm=null,tPads=[],tTrks=[],tLastKey='';
+function tuiSet(on){tuiOn=on;document.body.classList.toggle('tui',on);try{localStorage.tui=on?1:'';}catch(e){}
+ if(on){tSend('M');tuiPoll();}else setTimeout(fit,30);}
+function tuiPoll(){if(!tuiOn)return;
+ if(window.GB_LOCAL&&GB_LOCAL.model){const j=GB_LOCAL.model();if(j)tuiModel(j);}else tSend('M');
+ setTimeout(tuiPoll,window.GB_LOCAL?90:1500);}
+function tAct(k,a,b){tSend('k '+k+' '+(a|0)+' '+(b|0));}
+function tuiModel(j){let m;try{m=typeof j==='string'?JSON.parse(j):j;}catch(e){return;}tm=m;window.tm=m;/* Tests lesen den Zustand hier */tuiRender(m);}
+function tuiRender(m){
+ const play=$('tPlay');play.textContent=m.play?'■':'▶';play.classList.toggle('on',!!m.play);
+ $('tPat').textContent=m.pat;$('tBpm').textContent=m.bpm+' BPM'+(m.song?' · SONG':'');
+ $('tMsg').textContent=m.msg||'';
+ // Spuren: nur neu aufbauen, wenn sich die Struktur aendert (sonst flackert es und der Finger verliert das Ziel)
+ const key=m.tracks.map(t=>t.n).join(',')+'|'+m.len;
+ const tr=$('tTracks');
+ if(key!==tLastKey){tLastKey=key;tr.innerHTML='';tTrks=[];
+  m.tracks.forEach((t,i)=>{const d=document.createElement('div');d.className='ttr';
+   d.innerHTML='<span class="tnr" style="color:var(--dim);font-size:11px"></span><span class="tn"></span><span class="tm">M</span>';
+   d.addEventListener('pointerdown',e=>{e.preventDefault();
+    if(e.target.classList.contains('tm'))tAct(3,i,0);else tAct(2,i,0);},{passive:false});
+   tr.appendChild(d);tTrks.push(d);});}
+ m.tracks.forEach((t,i)=>{const d=tTrks[i];if(!d)return;
+  d.style.borderLeftColor=t.c;d.classList.toggle('sel',i===m.track);
+  d.querySelector('.tnr').textContent=(i+1);d.querySelector('.tn').textContent=t.n;
+  d.querySelector('.tm').classList.toggle('on',!!t.m);});
+ // Pads: 16 je Seite
+ const base=m.page*16,n=Math.min(16,m.len-base),g=$('tGrid');
+ if(tPads.length!==16){g.innerHTML='';tPads=[];
+  for(let i=0;i<16;i++){const d=document.createElement('div');d.className='tp';
+   d.addEventListener('pointerdown',e=>{e.preventDefault();const s=(tm?tm.page:0)*16+i;
+    if(tm&&s<tm.len){d.classList.toggle('on');tAct(1,s,0);}},{passive:false});
+   g.appendChild(d);tPads.push(d);}}
+ for(let i=0;i<16;i++){const d=tPads[i],s=base+i,st=s<m.len?m.steps[s]:-1;
+  d.style.display=s<m.len?'':'none';
+  d.className='tp'+(st===1?' on':'')+(st===2?' tl':'')+(s===m.now?' now':'')+(i%4===0?' beat':'');
+  d.style.background=st===1?m.tracks[m.track].c:'';
+  d.textContent=s+1;}
+ // Seiten
+ const pb=$('tPages');
+ $('tBot').classList.toggle('hide',m.pages<2);
+ if(pb.childElementCount!==m.pages){pb.innerHTML='';
+  for(let p=0;p<m.pages;p++){const b=document.createElement('div');b.className='tb';b.textContent='P'+(p+1);
+   b.addEventListener('pointerdown',e=>{e.preventDefault();tAct(6,p,0);},{passive:false});pb.appendChild(b);}}
+ [...pb.children].forEach((b,p)=>b.style.borderColor=p===m.page?'var(--text)':'var(--line)');
+}
+$('tPlay').addEventListener('pointerdown',e=>{e.preventDefault();tAct(4,0,0);},{passive:false});
+$('tPatD').addEventListener('pointerdown',e=>{e.preventDefault();tAct(5,-1,1);},{passive:false});
+$('tPatU').addEventListener('pointerdown',e=>{e.preventDefault();tAct(5,1,1);},{passive:false});
+$('tView').addEventListener('pointerdown',e=>{e.preventDefault();tuiSet(false);},{passive:false});
+try{if(localStorage.tui)setTimeout(()=>tuiSet(true),400);}catch(e){}
 // ---- Verbindung: WebSocket (Bildstrom + Tasten), sonst Abfrage
 let ws=null,wsFails=0,everWs=false,pingT=0,lastRx=performance.now(),lostAt=0,tries=0;
 // Verbindungsverlust sichtbar machen: Bild abdunkeln + Hinweis statt eingefrorenem Bild
@@ -442,7 +541,7 @@ function connect(){
  const me=ws;lastRx=performance.now();
  const to=setTimeout(()=>{if(ws===me&&me.readyState!==1)wsKill();},4000);   // Aufbau haengt (kein Netz)
  ws.onopen=()=>{clearTimeout(to);mode='ws';everWs=true;wsFails=0;lastRx=performance.now();setStat(true);ws.send('f');};
- ws.onmessage=e=>{lastRx=performance.now();if(typeof e.data==='string'){if(e.data[0]==='P')lat=performance.now()-(+e.data.slice(2));}else decode(e.data);};
+ ws.onmessage=e=>{lastRx=performance.now();if(typeof e.data==='string'){if(e.data[0]==='P')lat=performance.now()-(+e.data.slice(2));else if(e.data[0]==='m'&&e.data[1]===' ')tuiModel(e.data.slice(2));}else decode(e.data);};
  ws.onclose=()=>{clearTimeout(to);if(ws!==me)return;ws=null;if(mode==='ws')mode='';wsFails++;setStat(false,'getrennt – verbinde neu …');releaseAll();setTimeout(connect,600);};
 }
 async function pollLoop(){
@@ -603,6 +702,7 @@ function pollPad(){const gps=navigator.getGamepads?navigator.getGamepads():[];
 // ---- Kopfzeile
 const togglePad=()=>{document.body.classList.toggle('nopad');try{localStorage.nopad=document.body.classList.contains('nopad')?1:'';}catch(e){}setTimeout(fit,30);};
 $('bPad').onclick=togglePad;
+$('bTui').onclick=()=>tuiSet(true);
 $('fPad').addEventListener('pointerdown',e=>{e.stopPropagation();e.preventDefault();togglePad();});
 try{if(localStorage.nopad)document.body.classList.add('nopad');}catch(e){}
 $('bHelp').onclick=()=>$('help').classList.add('show');$('help').onclick=()=>$('help').classList.remove('show');
