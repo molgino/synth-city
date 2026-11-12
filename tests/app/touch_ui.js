@@ -162,6 +162,26 @@ function check(ok, what, extra) { if (ok) { pass++; console.log('  OK     ' + wh
   check(lockedStep.hold < 0 && lockedStep.step > 0, 'nach FERTIG traegt der Step die Note', 'on=' + lockedStep.step);
   await pg.evaluate(() => tSetMode(1)); await pg.waitForTimeout(500);   // fuer den Scroll-Test zurueck zu den Reglern
 
+  // Samples: die Plaetze, die das Projekt geladen hat, als Liste mit Namen
+  await pg.evaluate(() => { const e = [...document.querySelectorAll('.ttr')][7], r = e.getBoundingClientRect();
+    e.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, clientX: r.left + 20, clientY: r.top + r.height / 2})); });
+  await pg.waitForTimeout(700);
+  await pg.evaluate(() => tSetMode(1)); await pg.waitForTimeout(1100);
+  const smp = await pg.evaluate(() => { const p = tm.params.find(x => x.n === 'SMPL'); return p ? {slots: p.slots ? p.slots.length : 0, v: p.v, i: tm.params.indexOf(p)} : null; });
+  check(smp && smp.slots >= 1, 'SMPL bietet die geladenen Sample-Plaetze an', smp ? smp.slots + ' Plaetze' : 'kein SMPL-Regler');
+  if (smp && smp.slots >= 1) {
+    await pg.evaluate(i => { const d = document.querySelectorAll('#tPar .tr')[i], r = d.getBoundingClientRect();
+      d.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, pointerId: 50, clientX: r.left + 40, clientY: r.top + r.height / 2})); }, smp.i);
+    await pg.waitForTimeout(600);
+    const wide = await pg.evaluate(() => ({open: document.body.classList.contains('pick'), wide: document.getElementById('tPickL').classList.contains('wide')}));
+    check(wide.open && wide.wide, 'die Sample-Liste ist breit (Namen statt Zahlen)');
+    await pg.evaluate(() => { const l = [...document.querySelectorAll('#tPickL .pk')], b = l[l.length - 1], r = b.getBoundingClientRect();
+      b.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, clientX: r.left + 10, clientY: r.top + 10})); });
+    await pg.waitForTimeout(900);
+    const picked = await pg.evaluate(() => tm.params.find(x => x.n === 'SMPL').v);
+    check(picked !== smp.v, 'der gewaehlte Platz landet auf der Spur', `${smp.v} -> ${picked}`);
+  }
+
   // Gemeldet: scrollen ging nicht - #tui hatte touch-action:none (blockiert jede Geste im Overlay)
   // und die Reglerliste war gar kein Scrollcontainer.
   // fuer den Scroll-Fall eine moeglichst volle Gruppe nehmen (MAKROS hat 9 Regler, FILTER nur 5)

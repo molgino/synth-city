@@ -112,6 +112,8 @@ Was Stufe 1 kann:
 
 **Noten eingeben (NOTEN).** Der Modus-Knopf geht im Kreis: STEPS → SOUND → NOTEN. Die Klaviatur zeigt zwei Oktaven, **− OKT** und **+ OKT** verschieben den Bereich. Eine Taste antippen hört die Note vor. Hältst du vorher einen Step gedrückt (P-Lock), schreibt die Taste die **Note dieses Steps** – so baust du eine Melodie Schritt für Schritt: Step halten, Note antippen, nächster Step. Die Note des Steps ist auf der Klaviatur umrandet. Bei Drum-Engines steht ein Hinweis, dass die Tonhöhe dort kaum wirkt.
 
+**Sample wählen (SOUND).** Die Zeile **SMPL** zeigt den Namen des Samples, nicht eine Nummer. Antippen öffnet die Liste der Plätze, die dein Projekt geladen hat – plus **---** für „kein Sample". Ein neues Sample aus der Bibliothek holst du nach wie vor über **BILD** (Gerätebild) im Explorer; hier wählst du aus dem, was schon im Projekt liegt. Hältst du vorher einen Step gedrückt, gilt die Wahl nur für diesen Step.
+
 **Auswahl statt Schieber.** Regler mit wenigen, benannten Werten – ENGINE, Filtertyp, Bus-Effekt, VOICE – öffnen beim Antippen eine Liste mit großen Feldern. Auf fünfzehn Engines mit dem Finger zu zielen wäre sonst Glückssache. Lange Listen (Sample, LFO-Ziel, Trig-Bedingung) laufen vorerst weiter über **BILD**.
 
 Was du am Handy änderst, ist sofort am Gerät zu sehen und umgekehrt – es ist dasselbe Projekt und dieselbe Liste, nur anders gezeichnet.

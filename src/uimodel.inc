@@ -76,10 +76,20 @@ static int uiModelJson(char* b, int n) {
             ParamDef d; int val, bv; bool lk; char lab[24], vb[40];
             if (!knobInfo(v2It[i].k, d, val, lk, bv, lab, sizeof lab)) continue;
             knobText(d, val, vb, sizeof vb, v2It[i].k);
+            if (lab[0]) snprintf(vb, sizeof vb, "%.36s", lab);   // Sample- bzw. Zielname statt der Nummer (wie in der Liste am Geraet)
             for (char* c = vb; *c; c++) if (*c == '"' || *c == '\\') *c = '\'';
             w += snprintf(b + w, n - w, "%s{\"n\":\"%s\",\"v\":%d,\"t\":\"%s\",\"mx\":%d,\"bip\":%d,\"lk\":%d",
                           i > from ? "," : "", d.name, val, vb, d.max > 0 ? d.max : 1, d.kind == K_BIP ? 1 : 0, lk ? 1 : 0);
-            if (uiHasOpts(d.kind, d.max)) {   // Auswahlliste statt Schieber
+            if (d.kind == K_SMPL) {   // Samples: die Plaetze, die das Projekt geladen hat (die Bibliothek
+                w += snprintf(b + w, n - w, ",\"slots\":[{\"v\":%d,\"n\":\"---\"}", SMP_NONE);   // waere zu lang fuers Modell)
+                for (int k = 0; k < PREVIEW_SLOT && w < n - 140; k++) {
+                    if (!sampleGet(k)) continue;
+                    char sn[40]; snprintf(sn, sizeof sn, "%.36s", sampleName(k));
+                    for (char* c = sn; *c; c++) if (*c == '"' || *c == '\\') *c = '\'';
+                    w += snprintf(b + w, n - w, ",{\"v\":%d,\"n\":\"%s\"}", k, sn);
+                }
+                w += snprintf(b + w, n - w, "]");
+            } else if (uiHasOpts(d.kind, d.max)) {   // Auswahlliste statt Schieber
                 w += snprintf(b + w, n - w, ",\"opts\":[");
                 for (int v = 0; v <= d.max && w < n - 80; v++) {
                     char ob[40];
@@ -154,6 +164,13 @@ static void uiActionsRun() {   // Hauptthread: Aktionen aus der Touch-Oberflaech
                     if (!aHeld && m != P.machine[track]) {
                         lockA(); Engine::setMachine(P, track, m); unlockA();
                         lockA(); eng.preview(track, nullptr); unlockA();
+                    }
+                } else if (d.kind == K_SMPL) {   // Sample-Platz direkt setzen (editValue zaehlt nur schrittweise)
+                    int idx = slotParam(slot);
+                    if (idx >= 0) {
+                        undoTrack(SDL_GetTicks());
+                        if (aHeld) { holdS().lock[idx] = (uint8_t)e.b; aEdited = true; }
+                        else curP().p[track][idx] = (uint8_t)e.b;
                     }
                 } else editValue(e.b - val);
             }
