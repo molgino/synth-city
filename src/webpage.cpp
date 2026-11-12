@@ -402,6 +402,11 @@ body.tui #app{visibility:hidden}
  .ttr{min-height:42px;padding:0 4px}
  .ttr .tn{font-size:11px}.ttr .tnr{display:none}}   /* hochkant ist kein Platz fuer die Nummer: die Farbe sagt es */
 #tBot:empty,#tBot.hide{display:none}
+/* Solange kein Modell da ist, bleibt die Flaeche sonst einfach leer - dann weiss niemand, was los ist */
+#tWait{display:none;position:absolute;inset:54px 6px 6px 6px;align-items:center;justify-content:center;
+ text-align:center;color:var(--dim);font-size:14px;line-height:1.7;padding:16px}
+body.tui.twait #tWait{display:flex}
+body.tui.twait #tMain{visibility:hidden}
 body.nopad #ctl{display:none}
 body.nopad #stage{grid-template-columns:1fr !important}
 body.nopad #scr{grid-column:1 !important}
@@ -427,6 +432,7 @@ body.nopad #scr{grid-column:1 !important}
  <div id="tTop"><button class="tb" id="tPlay">▶</button><div class="tb" id="tPatD">‹</div><div id="tPat">A01</div><div class="tb" id="tPatU">›</div>
   <div id="tBpm">120 BPM</div><span id="tMsg"></span><button class="tb" id="tView" title="zum gespiegelten Geraetebild">BILD</button></div>
  <div id="tMain"><div id="tTracks"></div><div id="tGrid"></div></div>
+ <div id="tWait">warte auf die Groovebox …</div>
  <div id="tBot"><div id="tPages" style="display:flex;gap:6px;flex-wrap:wrap"></div></div>
 </div>
 <div id="help"><div><b style="color:#fff">Tastatur</b><br>
@@ -469,12 +475,16 @@ addEventListener('resize',fit);if(window.ResizeObserver)new ResizeObserver(fit).
 // ---- Touch-Oberflaeche: eigenes UI aus dem Modell der Groovebox (keine 4:3-Bindung, grosse Flaechen)
 let tuiOn=false,tm=null,tPads=[],tTrks=[],tLastKey='';
 function tuiSet(on){tuiOn=on;document.body.classList.toggle('tui',on);try{localStorage.tui=on?1:'';}catch(e){}
- if(on){tSend('M');tuiPoll();}else setTimeout(fit,30);}
+ if(on){document.body.classList.toggle('twait',!tm);tSend('M');tuiPoll();
+  clearTimeout(tuiSet._t);tuiSet._t=setTimeout(()=>{if(tuiOn&&!tm)
+   $('tWait').innerHTML='Die Groovebox meldet kein Modell.<br>Beim Gerät: es braucht die neue Version (nightly).<br>In der App: Seite neu laden.<br><br>Mit <b>BILD</b> geht es zur gewohnten Ansicht.';},3000);}
+ else setTimeout(fit,30);}
 function tuiPoll(){if(!tuiOn)return;
  if(window.GB_LOCAL&&GB_LOCAL.model){const j=GB_LOCAL.model();if(j)tuiModel(j);}else tSend('M');
  setTimeout(tuiPoll,window.GB_LOCAL?90:1500);}
 function tAct(k,a,b){tSend('k '+k+' '+(a|0)+' '+(b|0));}
-function tuiModel(j){let m;try{m=typeof j==='string'?JSON.parse(j):j;}catch(e){return;}tm=m;window.tm=m;/* Tests lesen den Zustand hier */tuiRender(m);}
+function tuiModel(j){let m;try{m=typeof j==='string'?JSON.parse(j):j;}catch(e){return;}tm=m;window.tm=m;/* Tests lesen den Zustand hier */
+ document.body.classList.remove('twait');tuiRender(m);}
 function tuiRender(m){
  const play=$('tPlay');play.textContent=m.play?'■':'▶';play.classList.toggle('on',!!m.play);
  $('tPat').textContent=m.pat;$('tBpm').textContent=m.bpm+' BPM'+(m.song?' · SONG':'');

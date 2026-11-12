@@ -70,6 +70,36 @@ function check(ok, what, extra) { if (ok) { pass++; console.log('  OK     ' + wh
   check(area >= 60, `Bedienflaeche nutzt den Schirm (${area} %)`);
   check(errs.length === 0, 'keine JS-Fehler', errs.join(' | '));
 
+  await ctx.close();
+
+  // Gemeldet: in der App blieb alles unter der Kopfzeile leer - die Seite holt das Modell dort ueber
+  // GB_LOCAL.model(), und genau diese Funktion fehlte. Beide Faelle werden hier festgehalten.
+  for (const withModel of [false, true]) {
+    const c2 = await br.newContext({viewport: {width: 852, height: 393}, deviceScaleFactor: 2, isMobile: true, hasTouch: true});
+    const p2 = await c2.newPage();
+    await p2.addInitScript(({wm}) => {
+      const steps = Array.from({length: 16}, (_, i) => i % 4 === 0 ? 1 : 0);
+      const tracks = ['KICK', 'SNARE', 'HAT', 'CLAP', 'SYNTH', 'SYNTH', 'FM', 'SMPL'].map(n => ({n, m: 0, s: 0, c: '#888888', len: 16, on: 0}));
+      const mdl = JSON.stringify({play: 0, song: 0, bpm: 120, pat: 'A01', patIdx: 0, track: 0, len: 16, page: 0, pages: 1, rec: 0, msg: '', tracks, steps, now: -1});
+      window.GB_LOCAL = Object.assign({start() {}, send() {}, saveNow() {}, persist() {}, isReady: () => true}, wm ? {model: () => mdl} : {});
+    }, {wm: withModel});
+    await p2.goto(`http://127.0.0.1:${PORT}/screen`, {waitUntil: 'domcontentloaded'});
+    await p2.waitForTimeout(700);
+    await p2.evaluate(() => document.getElementById('bTui').click());
+    await p2.waitForTimeout(3600);
+    const r = await p2.evaluate(() => ({
+      pads: [...document.querySelectorAll('.tp')].filter(p => p.style.display !== 'none').length,
+      trks: document.querySelectorAll('.ttr').length,
+      wait: getComputedStyle(document.getElementById('tWait')).display !== 'none'}));
+    if (withModel) {
+      check(r.pads === 16 && r.trks === 8, 'App (GB_LOCAL.model): Pads und Spuren erscheinen', `${r.pads} Pads, ${r.trks} Spuren`);
+      check(!r.wait, 'App: kein Hinweis, wenn das Modell da ist');
+    } else {
+      check(r.wait, 'App ohne Modell: Hinweis statt leerer Flaeche');
+    }
+    await c2.close();
+  }
+
   await br.close();
   console.log(`Touch-Oberflaeche: ${pass} ok, ${fail} Fehler`);
   process.exit(fail ? 1 : 0);
