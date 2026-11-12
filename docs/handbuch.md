@@ -39,6 +39,8 @@ Sie startet als App aus dem Ports-Menü oder auf Wunsch direkt beim Booten statt
 | **MIX** | 8 Kanalzüge mit Pegeln, Mutes, Sends und dem Kompressor-Schalter (CMP) |
 | **LIVE · PROJEKT · SONG · SAMPLER · SET** | eigenständige Werkzeuge im Vollbild |
 
+**Gruppen klappen sich selbst ein.** In der Liste ist immer nur **die Gruppe offen, in der der Cursor steht** – alle anderen zeigen nur ihre Kopfzeile mit der Anzahl ihrer Regler. Damit siehst du in SOUND statt 132 Zeilen am Stück alle 14 Gruppen auf einen Blick und weißt sofort, was als Nächstes kommt. Du musst dafür nichts drücken: ▲▼ läuft wie gewohnt durch die Regler, am Ende einer Gruppe klappt die nächste auf; ◀▶ springt direkt zur nächsten Gruppe. Die Kopfzeile nennt den **Namen** der Gruppe und ihre Position, also zum Beispiel „INSERT-FX 7/14“. Wer lieber alles offen sieht: SET → SYSTEM → **Gruppen einklappen** auf ALLE OFFEN stellen.
+
 In SEQ, SOUND, EFFEKTE und MASTER bleiben Spuren links und Steps unten sichtbar; die anderen fünf brauchen die ganze Fläche. **A setzt auch in SOUND, EFFEKTE und MASTER einen Trig** der gewählten Spur, du musst also zum Beat-Bauen nicht zurückwechseln.
 
 | Taste | SEQ | SOUND |

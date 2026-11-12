@@ -1077,6 +1077,32 @@ static void uiScenariosV2() {
       UCHECK(true, "knobInfo mit zu grossem Index"); }   // darf nicht abstuerzen (Sanitizer)
     simReset(); simFrame();
 
+    uiCase = "Liste: Gruppen einklappen";
+    {
+        simReset(); simFrame();
+        int fold0 = cfg.listFold;
+        cfg.listFold = 1;
+        v2GoTo(V2_SOUND, PG_FLT, 0); simFrame();
+        v2Build(v2View);
+        int all = v2N, rowsFold = v2Rows(v2Foc[v2View]);
+        UCHECK(all > 40, "SOUND hat nur %d Zeilen - Test taugt nicht", all);
+        UCHECK(rowsFold < all / 2, "eingeklappt sind es %d von %d Zeilen (zu wenig gespart)", rowsFold, all);
+        UCHECK(v2RowOf[v2Foc[v2View]] >= 0, "der Fokus liegt in einer eingeklappten Gruppe");
+        int grpHdr = 0; for (int i = 0; i < v2N; i++) if (v2It[i].hdr && v2RowOf[i] >= 0) grpHdr++;
+        UCHECK(grpHdr == v2Groups, "nicht alle Gruppenkoepfe sichtbar (%d von %d)", grpHdr, v2Groups);
+        // runter durch die Gruppe: der Fokus bleibt immer in einer offenen Zeile
+        for (int i = 0; i < 20; i++) {
+            tap(BT_DOWN);
+            v2Rows(v2Foc[v2View]);
+            if (v2RowOf[v2Foc[v2View]] < 0) { UCHECK(false, "Schritt %d: Fokus in einer zugeklappten Gruppe", i); break; }
+        }
+        cfg.listFold = 0;
+        int rowsOpen = v2Rows(v2Foc[v2View]);
+        UCHECK(rowsOpen == all, "ausgeschaltet muessen alle %d Zeilen sichtbar sein (%d)", all, rowsOpen);
+        cfg.listFold = fold0;
+        simReset(); simFrame();
+    }
+
     uiCase = "Kompressor-Routing (MIX-Zeile CMP)";
     {
         simReset(); simFrame();

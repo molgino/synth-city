@@ -397,10 +397,27 @@ static const char* v2GrpName(int i) {   // Name der Gruppe, in der Eintrag i lie
     for (int j = i; j >= 0; j--) if (v2It[j].hdr) return v2It[j].title ? v2It[j].title : pageLong(v2It[j].pg);
     return "";
 }
+// Akkordeon: offen ist immer nur die Gruppe, in der der Cursor steht - alle anderen zeigen nur ihre Kopfzeile.
+// Das braucht keine eigene Taste und keinen gemerkten Zustand: zugeklappt werden kann nur, was nicht den Fokus hat.
+// v2Rows fuellt je Eintrag die Anzeigezeile (-1 = eingeklappt, wird nicht gezeichnet) und gibt die Zeilenzahl zurueck.
+static int v2RowOf[200], v2RowIdx[200], v2RowN = 0;
+static int v2Rows(int f) {
+    v2RowN = 0;
+    const bool fold = cfg.listFold != 0;
+    const int fg = (f >= 0 && f < v2N) ? v2It[f].grp : 0;
+    for (int i = 0; i < v2N; i++) {
+        bool show = !fold || v2It[i].hdr || v2It[i].grp == fg;
+        if (show) { v2RowOf[i] = v2RowN; v2RowIdx[v2RowN++] = i; }
+        else v2RowOf[i] = -1;
+    }
+    return v2RowN;
+}
 static void v2List(int x, int y0, int w, int h) {
     const int rh = 24; int vis = (h - 18) / rh;
     int f = v2Foc[v2View];
-    float target = f - vis / 2.f; if (target > v2N - vis) target = (float)(v2N - vis); if (target < 0) target = 0;
+    int nRows = v2Rows(f);
+    int fr = (f >= 0 && f < v2N && v2RowOf[f] >= 0) ? v2RowOf[f] : 0;
+    float target = fr - vis / 2.f; if (target > nRows - vis) target = (float)(nRows - vis); if (target < 0) target = 0;
     float& sc = v2Scroll[v2View];
     if (fabsf(target - sc) > vis) sc = target;   // weiter Sprung: sofort
     else sc += (target - sc) * (1.f - expf(-animDt * 16.f));
@@ -410,13 +427,24 @@ static void v2List(int x, int y0, int w, int h) {
     const int hy = y0, ly = y0 + 18;   // feste Kopfzeile der Gruppe, darunter die Liste
     h -= 18;
     for (int i = 0; i < v2N; i++) {
-        int y = ly + (int)((i - sc) * rh);
+        if (v2RowOf[i] < 0) continue;                       // eingeklappte Gruppe
+        int y = ly + (int)((v2RowOf[i] - sc) * rh);
         if (y < ly - 2 || y > ly + h - rh + 2) continue;
         const V2It& it = v2It[i];
         if (it.hdr) {
             const char* t = it.title ? it.title : pageLong(it.pg);
-            text(x + 4, y + 6, t, C_CYAN);
-            fill(x + 8 + textW(t), y + 13, w - 12 - textW(t), 1, C_OFF2);
+            bool open = !cfg.listFold || (f >= 0 && f < v2N && v2It[f].grp == it.grp);
+            text(x + 4, y + 6, t, open ? C_CYAN : dimC(C_CYAN, 0.6f));
+            int lx = x + 8 + textW(t), lw = w - 12 - textW(t);
+            if (!open) {   // eingeklappt: Anzahl der Regler rechts, damit man sieht was drin steckt
+                int cnt = 0; for (int j = i + 1; j < v2N && !v2It[j].hdr; j++) cnt++;
+                char cb[8]; snprintf(cb, sizeof cb, "%d", cnt);
+                int cw = textW(cb);
+                text(x + w - 10 - cw, y + 6, cb, dimC(C_DIM, 0.8f));
+                lw -= cw + 8;
+            }
+            if (lw > 4) fill(lx, y + 13, lw, 1, open ? C_OFF2 : dimC(C_OFF2, 0.6f));
+            if (open && cfg.listFold) fill(x, y + 2, 2, rh - 6, C_CYAN);   // Marke an der offenen Gruppe
             continue;
         }
         bool sel = i == f;
@@ -456,14 +484,19 @@ static void v2List(int x, int y0, int w, int h) {
     page = savePage; slot = saveSlot;
     {   // feste Kopfzeile: Gruppe der obersten sichtbaren Zeile (nur wenn ihr eigener Kopf weggescrollt ist) + Position des Fokus
         fill(x, hy, w, 18, C_BG);
-        int top = (int)(sc + 0.999f); if (top >= v2N) top = v2N - 1; if (top < 0) top = 0;
+        int topRow = (int)(sc + 0.999f); if (topRow >= v2RowN) topRow = v2RowN - 1; if (topRow < 0) topRow = 0;
+        int top = v2RowN ? v2RowIdx[topRow] : 0;
         bool headVisible = false;
-        for (int j = top; j < v2N && j <= top + 1; j++) if (v2It[j].hdr) headVisible = true;
+        for (int j = topRow; j < v2RowN && j <= topRow + 1; j++) if (v2It[v2RowIdx[j]].hdr) headVisible = true;
         if (!headVisible) text(x + 4, hy + 2, v2GrpName(top), C_CYAN);
         int gi = 0; for (int j = 0; j <= f && j < v2N; j++) if (v2It[j].hdr) gi++;
-        char pb[48]; int npg = (curP().len[track] + 15) / 16; if (npg < 1) npg = 1;
-        if (npg > 1) snprintf(pb, sizeof pb, TR("PAGE %d/%d   GRUPPE %d/%d", "PAGE %d/%d   GROUP %d/%d"), cursor / 16 + 1, npg, gi, v2Groups);
-        else snprintf(pb, sizeof pb, TR("GRUPPE %d/%d", "GROUP %d/%d"), gi, v2Groups);
+        char pb[64]; int npg = (curP().len[track] + 15) / 16; if (npg < 1) npg = 1;
+        const char* gname = v2GrpName(f);   // Name statt blosser Nummer: man sieht sofort, wo man ist
+        snprintf(pb, sizeof pb, "%s %d/%d", gname, gi, v2Groups);
+        if (npg > 1) {   // Page-Anzeige nur davorsetzen, wenn sie neben den Namen passt
+            char pb2[80]; snprintf(pb2, sizeof pb2, TR("PAGE %d/%d  %s", "PAGE %d/%d  %s"), cursor / 16 + 1, npg, pb);
+            if (textW(pb2) < w - 120) snprintf(pb, sizeof pb, "%s", pb2);
+        }
         {   // Gruppe per Finger wechseln: Pfeile links und rechts neben der Anzeige (17 Gruppen sonst muehsam)
             int pw = textW(pb), px = x + w - 8 - pw;
             text(px - 16, hy + 2, "<", C_ACC);
