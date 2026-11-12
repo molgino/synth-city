@@ -119,7 +119,13 @@ window.GB_LOCAL = (function () {
     }
   }
 
-  return { start, send, saveNow, persist, isReady: () => ready };
+  // Modell fuer die Touch-Oberflaeche: hier wird direkt gelesen (beim Geraet kommt es ueber den WebSocket)
+  function model() {
+    if (!ready || !M._gbModel) return '';
+    try { return M.UTF8ToString(M._gbModel()); } catch (e) { return ''; }
+  }
+
+  return { start, send, saveNow, persist, model, isReady: () => ready };
 })();
 
 // Bild aus dem WebAssembly-Speicher (ARGB8888) ins Canvas der Bedienseite (px/dirty/frames gehoeren zur Seite)
