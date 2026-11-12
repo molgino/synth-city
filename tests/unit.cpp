@@ -242,6 +242,180 @@ static void testChord() {
     CHECK(act == 0, "Akkordstimmen klingen nach Stop weiter (%d)", act);
 }
 
+// Freie Zusatznoten je Step: NT2-NT4 statt Akkordtyp-Tabelle
+static void testChordNotes() {
+    curTest = "Freie Akkordnoten";
+    fresh(120);
+    Pattern& P = E.proj.pat[0];
+    Engine::initTrack(P, 4, M_SYNTH);
+    P.s[4][0].on = 1; P.p[4][P_LEN] = 100;
+    P.p[4][P_NOTE] = 60;                                  // C3
+    P.p[4][P_NT2] = 64; P.p[4][P_NT3] = 67;               // + E3 + G3, NT4 bleibt aus
+    E.start();
+    bool bad = false;
+    run(4410, &bad);
+    int act = E.v[4].active ? 1 : 0;
+    for (int k = 0; k < NCHORDV; k++) act += E.cv[4][k].active ? 1 : 0;
+    CHECK(act == 3, "C-E-G aus freien Noten: %d statt 3 Stimmen", act);
+    CHECK(!bad, "Freie Akkordnoten: NaN");
+    // die Tonhoehen muessen stimmen, nicht nur die Anzahl
+    bool has64 = false, has67 = false;
+    for (int k = 0; k < NCHORDV; k++) if (E.cv[4][k].active) {
+        int n = (int)(E.cv[4][k].note + 0.5f);
+        if (n == 64) has64 = true; if (n == 67) has67 = true;
+    }
+    CHECK((int)(E.v[4].note + 0.5f) == 60, "Hauptnote ist %d statt 60", (int)(E.v[4].note + 0.5f));
+    CHECK(has64 && has67, "Zusatznoten 64/67 fehlen (%d/%d)", has64, has67);
+    // freie Noten gehen dem Akkordtyp vor
+    P.p[4][P_AMOD] = ARP_CHORD; P.p[4][P_ACHD] = 5;       // MAJ7 waere 4 Toene
+    E.stop(); run(44100 * 2); E.start(); run(4410, &bad);
+    act = E.v[4].active ? 1 : 0;
+    for (int k = 0; k < NCHORDV; k++) act += E.cv[4][k].active ? 1 : 0;
+    CHECK(act == 3, "freie Noten muessen MAJ7 verdraengen: %d statt 3", act);
+    E.stop(); run(44100 * 3);
+    act = 0; for (int k = 0; k < NCHORDV; k++) act += E.cv[4][k].active ? 1 : 0;
+    CHECK(act == 0, "Zusatznoten klingen nach Stop weiter (%d)", act);
+}
+
+// Stimmen-Modus: MONO laesst nur eine Stimme, LEGATO bindet (Huellkurve laeuft weiter)
+static void testVoiceMode() {
+    curTest = "Stimmen-Modus";
+    fresh(120);
+    Pattern& P = E.proj.pat[0];
+    Engine::initTrack(P, 4, M_SYNTH);
+    P.s[4][0].on = 1; P.p[4][P_LEN] = 100;
+    P.p[4][P_NOTE] = 60; P.p[4][P_NT2] = 64; P.p[4][P_NT3] = 67;
+    P.p[4][P_VMOD] = VM_MONO;
+    bool bad = false;
+    E.start(); run(4410, &bad);
+    int act = 0; for (int k = 0; k < NCHORDV; k++) act += E.cv[4][k].active ? 1 : 0;
+    CHECK(act == 0, "MONO spielt %d Zusatzstimmen", act);
+    CHECK(E.v[4].active, "MONO: Hauptstimme klingt nicht");
+    E.stop(); run(44100 * 3);
+
+    // LEGATO: ein Trig auf die klingende Stimme darf die Huellkurve nicht neu ausloesen.
+    // Attack 0 + langes Decay + Sustain 0: die Kurve faellt. Ein neuer Anschlag wirft sie
+    // zurueck in die Attack-Phase (st 1, Pegel hoch), Legato laesst sie weiter fallen.
+    fresh(120);
+    Pattern& Q = E.proj.pat[0];
+    Engine::initTrack(Q, 4, M_SYNTH);
+    Q.p[4][P_AATK] = 0; Q.p[4][P_ADEC] = 115; Q.p[4][P_ASUS] = 0; Q.p[4][P_AREL] = 100;
+    Q.p[4][P_LEN] = 127;                     // bis zum naechsten Trig halten
+    Q.s[4][0].on = 1; Q.s[4][4].on = 1;      // zwei Trigs im Abstand von 4 Steps
+    Q.s[4][4].lock[P_NOTE] = 67;             // zweiter Trig: andere Tonhoehe
+    Q.p[4][P_NOTE] = 60;
+    const int upTo = barFrames(120) / 16 * 4 + 400;    // kurz nach dem zweiten Trig
+
+    Q.p[4][P_VMOD] = VM_LEGATO;
+    E.start(); run(upTo, &bad);
+    float vLeg = E.v[4].aenv.v; int stLeg = E.v[4].aenv.st;
+    int nLeg = (int)(E.v[4].note + 0.5f);
+    E.stop(); run(44100 * 3);
+
+    Q.p[4][P_VMOD] = VM_MONO;                          // gleicher Ablauf ohne Bindung
+    E.start(); run(upTo, &bad);
+    float vMono = E.v[4].aenv.v; int stMono = E.v[4].aenv.st;
+    E.stop(); run(44100 * 3);
+
+    printf("  Legato: Huellkurve %.3f (Phase %d) | Mono: %.3f (Phase %d)\n", vLeg, stLeg, vMono, stMono);
+    CHECK(nLeg == 67, "LEGATO: Tonhoehe wechselt nicht (%d statt 67)", nLeg);
+    CHECK(stLeg != 1, "LEGATO: Huellkurve in der Attack-Phase, also neu ausgeloest");
+    CHECK(vMono > vLeg * 1.5f, "LEGATO bindet nicht: Huellkurve %.3f, MONO %.3f", vLeg, vMono);
+    CHECK(!bad, "Stimmen-Modus: NaN");
+
+    // Gefunden beim Bau der DRONE-Engine: steht die Huellkurve nach einem Note-Off im Ausklang,
+    // darf ein Legato-Trig NICHT anbinden (er wuerde den Ton ersticken), sondern muss neu anschlagen.
+    fresh(120);
+    Pattern& G = E.proj.pat[0];
+    Engine::initTrack(G, 2, M_SYNTH);
+    G.p[2][P_VMOD] = VM_LEGATO;
+    G.p[2][P_ASUS] = 127; G.p[2][P_AREL] = 70;
+    G.s[2][0].on = 1; G.s[2][8].on = 1;      // zwei Trigs, dazwischen laeuft das Gate ab
+    G.p[2][P_LEN] = 20;                      // kurz: die erste Note wird vor dem zweiten Trig losgelassen
+    E.start();
+    run(barFrames(120) / 16 * 8 + 600, &bad);
+    CHECK(E.v[2].active, "Legato nach Note-Off: Stimme ist tot statt neu angeschlagen");
+    CHECK(E.v[2].aenv.st != 0 && E.v[2].aenv.st != 4,
+          "Legato nach Note-Off: Huellkurve haengt im Ausklang (Phase %d)", E.v[2].aenv.st);
+    E.stop(); run(44100 * 3);
+}
+
+// Neue Engines: PERC (Koerper + Transient) und DRONE (stehende Flaeche)
+static void testPercDrone() {
+    curTest = "PERC und DRONE";
+    // --- PERC: Einzelschlag, Pegel und Ausklingen; die Grundwerte sollen eine Bassdrum geben
+    fresh(120);
+    Pattern& P = E.proj.pat[0];
+    Engine::initTrack(P, 0, M_PERC);
+    P.s[0][0].on = 1;
+    bool bad = false;
+    E.start();
+    float pk = run(22050, &bad);
+    printf("  PERC Grundwerte: Spitze %.3f\n", pk);
+    CHECK(pk > 0.05f && pk < 1.0f, "PERC Spitze %.3f (erwartet 0,05-1,0)", pk);
+    CHECK(!bad, "PERC: NaN");
+    E.stop(); run(44100 * 4);
+    CHECK(!E.v[0].active, "PERC klingt nach 4 s noch");
+
+    // RISE dreht den Sweep nach oben: der Klang muss sich messbar aendern
+    float eDown = 0, eUp = 0;
+    for (int pass = 0; pass < 2; pass++) {
+        fresh(120);
+        Pattern& Q = E.proj.pat[0];
+        Engine::initTrack(Q, 0, M_PERC);
+        Q.s[0][0].on = 1;
+        Q.p[0][P_S4] = pass ? 100 : 0;        // RISE
+        E.start();
+        float e = 0; for (int i = 0; i < 20; i++) { float x = run(1024, &bad); e += x * (i + 1); }   // Schwerpunkt
+        (pass ? eUp : eDown) = e;
+        E.stop(); run(44100 * 2);
+    }
+    printf("  PERC RISE: Schwerpunkt ab %.2f, auf %.2f\n", eDown, eUp);
+    CHECK(eDown != eUp, "RISE aendert nichts am Klang");
+
+    // Transient allein (Koerper stumm): deckt Snare/Clap/Shaker ab
+    fresh(120);
+    Pattern& R = E.proj.pat[0];
+    Engine::initTrack(R, 0, M_PERC);
+    R.s[0][0].on = 1;
+    R.p[0][P_S1] = 0;          // DCAY ganz kurz = kaum Koerper
+    R.p[0][P_X0] = 110;        // NLVL hoch
+    R.p[0][P_X5] = 3;          // RPTS: Clap-artige Wiederholungen
+    E.start();
+    pk = run(22050, &bad);
+    printf("  PERC Transient+RPTS: Spitze %.3f\n", pk);
+    CHECK(pk > 0.02f, "PERC Transient zu leise (%.3f)", pk);
+    CHECK(!bad, "PERC Transient: NaN");
+    E.stop(); run(44100 * 4);
+    CHECK(!E.v[0].active, "PERC mit RPTS klingt nach 4 s noch");
+
+    // --- DRONE: steht und bleibt stehen, solange der Trig haelt
+    fresh(120);
+    Pattern& D = E.proj.pat[0];
+    Engine::initTrack(D, 1, M_DRONE);
+    D.s[1][0].on = 1;
+    D.p[1][P_LEN] = 127;       // halten
+    D.p[1][P_ASUS] = 127;      // Haltepegel voll
+    E.start();
+    run(22050, &bad);
+    float a = run(22050, &bad), b2 = run(22050, &bad);
+    printf("  DRONE: Pegel nach 0,5 s %.3f, nach 1,0 s %.3f\n", a, b2);
+    CHECK(a > 0.02f && b2 > 0.02f, "DRONE steht nicht (%.3f / %.3f)", a, b2);
+    CHECK(a < 1.0f && b2 < 1.0f, "DRONE uebersteuert (%.3f / %.3f)", a, b2);
+    CHECK(!bad, "DRONE: NaN");
+    // alle Teiltonzahlen und Wellenformen durchprobieren: nichts darf NaN oder still werden
+    for (int part = 0; part <= 7; part++) for (int wave = 0; wave < 4; wave++) {
+        D.p[1][P_S0] = (uint8_t)part; D.p[1][P_S3] = (uint8_t)wave;
+        E.stop(); run(22050); E.start();
+        float x = run(8192, &bad);
+        CHECK(x > 0.001f, "DRONE still bei PART %d WAVE %d", part + 1, wave);
+        CHECK(!bad, "DRONE NaN bei PART %d WAVE %d", part + 1, wave);
+    }
+    E.stop(); run(44100 * 6);
+    float tail = run(4410);
+    CHECK(tail < 1e-3f, "DRONE klingt nach Stop weiter (%.5f)", tail);
+}
+
 static void testFactory() {
     curTest = "Werksklaenge";
     for (int i = 0; i < NFACTORY; i++) {
@@ -950,6 +1124,9 @@ int main(int argc, char** argv) {
     testClipMatrix();
     testArp();
     testChord();
+    testChordNotes();
+    testVoiceMode();
+    testPercDrone();
     testFactory();
     testStability();
     testDecay();

@@ -7,7 +7,7 @@ Seite TRG | A | T5 Step 1 0>1
 Seite TRG | B | -
 Seite TRG | X | T5.NOTE 36>37
 Seite TRG | Y | T5.NOTE 36>35
-Seite TRG | L1 | Regler 1>8
+Seite TRG | L1 | Regler 1>12
 Seite TRG | R1 | Regler 1>2
 Seite TRG | L2 | Seite TRG>LF3
 Seite TRG | R2 | Seite TRG>SEQ
@@ -36,7 +36,7 @@ Seite TRG | A+X | T5 Step 1 0>1; T5 Step 1 Lock NOTE 255>37
 Seite TRG | A+Y | T5 Step 1 0>1; T5 Step 1 Lock NOTE 255>35
 Seite TRG | A+HOCH | T5 Step 1 0>1
 Seite TRG | A+RUNTER | T5 Step 1 0>1
-Seite TRG | A+L1 | Regler 1>8; T5 Step 1 0>1
+Seite TRG | A+L1 | Regler 1>12; T5 Step 1 0>1
 Seite TRG | A+R1 | Regler 1>2; T5 Step 1 0>1
 Seite TRG | A+SEL+L1 | Trig-Ablage voll; Meldung "LEEREN STEP KOPIERT"
 Seite TRG | A+SEL+R1 | T5 Step 1 0>1; Meldung "TRIG-ABLAGE LEER (LOCK-MODUS: SELECT + L1)"
@@ -824,7 +824,7 @@ Seite SR3 | A | T5 Step 1 0>1
 Seite SR3 | B | -
 Seite SR3 | X | T5.NOTE 36>37
 Seite SR3 | Y | T5.NOTE 36>35
-Seite SR3 | L1 | Regler 1>8
+Seite SR3 | L1 | Regler 1>12
 Seite SR3 | R1 | Regler 1>2
 Seite SR3 | L2 | Seite TRG>LF3
 Seite SR3 | R2 | Seite TRG>SEQ
@@ -853,7 +853,7 @@ Seite SR3 | A+X | T5 Step 1 0>1; T5 Step 1 Lock NOTE 255>37
 Seite SR3 | A+Y | T5 Step 1 0>1; T5 Step 1 Lock NOTE 255>35
 Seite SR3 | A+HOCH | T5 Step 1 0>1
 Seite SR3 | A+RUNTER | T5 Step 1 0>1
-Seite SR3 | A+L1 | Regler 1>8; T5 Step 1 0>1
+Seite SR3 | A+L1 | Regler 1>12; T5 Step 1 0>1
 Seite SR3 | A+R1 | Regler 1>2; T5 Step 1 0>1
 Seite SR3 | A+SEL+L1 | Trig-Ablage voll; Meldung "LEEREN STEP KOPIERT"
 Seite SR3 | A+SEL+R1 | T5 Step 1 0>1; Meldung "TRIG-ABLAGE LEER (LOCK-MODUS: SELECT + L1)"
@@ -867,7 +867,7 @@ Seite SR4 | A | T5 Step 1 0>1
 Seite SR4 | B | -
 Seite SR4 | X | T5.NOTE 36>37
 Seite SR4 | Y | T5.NOTE 36>35
-Seite SR4 | L1 | Regler 1>8
+Seite SR4 | L1 | Regler 1>12
 Seite SR4 | R1 | Regler 1>2
 Seite SR4 | L2 | Seite TRG>LF3
 Seite SR4 | R2 | Seite TRG>SEQ
@@ -896,7 +896,7 @@ Seite SR4 | A+X | T5 Step 1 0>1; T5 Step 1 Lock NOTE 255>37
 Seite SR4 | A+Y | T5 Step 1 0>1; T5 Step 1 Lock NOTE 255>35
 Seite SR4 | A+HOCH | T5 Step 1 0>1
 Seite SR4 | A+RUNTER | T5 Step 1 0>1
-Seite SR4 | A+L1 | Regler 1>8; T5 Step 1 0>1
+Seite SR4 | A+L1 | Regler 1>12; T5 Step 1 0>1
 Seite SR4 | A+R1 | Regler 1>2; T5 Step 1 0>1
 Seite SR4 | A+SEL+L1 | Trig-Ablage voll; Meldung "LEEREN STEP KOPIERT"
 Seite SR4 | A+SEL+R1 | T5 Step 1 0>1; Meldung "TRIG-ABLAGE LEER (LOCK-MODUS: SELECT + L1)"
@@ -910,7 +910,7 @@ Seite SR5 | A | T5 Step 1 0>1
 Seite SR5 | B | -
 Seite SR5 | X | T5.NOTE 36>37
 Seite SR5 | Y | T5.NOTE 36>35
-Seite SR5 | L1 | Regler 1>8
+Seite SR5 | L1 | Regler 1>12
 Seite SR5 | R1 | Regler 1>2
 Seite SR5 | L2 | Seite TRG>LF3
 Seite SR5 | R2 | Seite TRG>SEQ
@@ -939,7 +939,7 @@ Seite SR5 | A+X | T5 Step 1 0>1; T5 Step 1 Lock NOTE 255>37
 Seite SR5 | A+Y | T5 Step 1 0>1; T5 Step 1 Lock NOTE 255>35
 Seite SR5 | A+HOCH | T5 Step 1 0>1
 Seite SR5 | A+RUNTER | T5 Step 1 0>1
-Seite SR5 | A+L1 | Regler 1>8; T5 Step 1 0>1
+Seite SR5 | A+L1 | Regler 1>12; T5 Step 1 0>1
 Seite SR5 | A+R1 | Regler 1>2; T5 Step 1 0>1
 Seite SR5 | A+SEL+L1 | Trig-Ablage voll; Meldung "LEEREN STEP KOPIERT"
 Seite SR5 | A+SEL+R1 | T5 Step 1 0>1; Meldung "TRIG-ABLAGE LEER (LOCK-MODUS: SELECT + L1)"
@@ -1272,7 +1272,7 @@ SRC auf KICK | SEL+RECHTS | Pattern A01>A02; Meldung "PATTERN A02"
 SRC auf KICK | SEL+A | Mutes A01 00>01; Meldung "SPUR 1 STUMM"
 SRC auf KICK | SEL+B | Meldung "NICHTS RÜCKGÄNGIG ZU MACHEN"
 SRC auf KICK | SEL+X | T1 Engine KICK>SNARE; Meldung "ENGINE: SNARE"
-SRC auf KICK | SEL+Y | T1 Engine KICK>GRAN; Meldung "ENGINE: GRAN"
+SRC auf KICK | SEL+Y | T1 Engine KICK>DRON; Meldung "ENGINE: DRON"
 SRC auf KICK | SEL+L1 | Step 1>13
 SRC auf KICK | SEL+R1 | Step 1>5
 SRC auf KICK | SEL+L2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
@@ -2131,7 +2131,7 @@ SRC auf GRAN | SEL+LINKS | Pattern A01>H16; Pattern H16 geaendert; Meldung "PATT
 SRC auf GRAN | SEL+RECHTS | Pattern A01>A02; Pattern A02 geaendert; Meldung "PATTERN A02"
 SRC auf GRAN | SEL+A | Mutes A01 00>01; Meldung "SPUR 1 STUMM"
 SRC auf GRAN | SEL+B | T1 Engine GRAN>KICK; Meldung "RÜCKGÄNGIG: PATTERN A01 (0 WEITERE)"
-SRC auf GRAN | SEL+X | T1 Engine GRAN>KICK; Meldung "ENGINE: KICK"
+SRC auf GRAN | SEL+X | T1 Engine GRAN>PERC; Meldung "ENGINE: PERC"
 SRC auf GRAN | SEL+Y | T1 Engine GRAN>CHOP; Meldung "ENGINE: CHOP"
 SRC auf GRAN | SEL+L1 | Step 1>13
 SRC auf GRAN | SEL+R1 | Step 1>5
@@ -2149,6 +2149,178 @@ SRC auf GRAN | A+SEL+L1 | Trig-Ablage voll; Meldung "LEEREN STEP KOPIERT"
 SRC auf GRAN | A+SEL+R1 | T1 Step 1 0>1; Meldung "TRIG-ABLAGE LEER (LOCK-MODUS: SELECT + L1)"
 SRC auf GRAN | Stick R hoch | -
 SRC auf GRAN | Stick L rechts | Regler 1>2
+SRC auf PERC | HOCH | Spur 1>8
+SRC auf PERC | RUNTER | Spur 1>2
+SRC auf PERC | LINKS | Step 1>16
+SRC auf PERC | RECHTS | Step 1>2
+SRC auf PERC | A | T1 Step 1 0>1
+SRC auf PERC | B | -
+SRC auf PERC | X | T1.TUNE 40>41
+SRC auf PERC | Y | T1.TUNE 40>39
+SRC auf PERC | L1 | Regler 1>8
+SRC auf PERC | R1 | Regler 1>2
+SRC auf PERC | L2 | Seite SRC>ARP
+SRC auf PERC | R2 | Seite SRC>SR2
+SRC auf PERC | START | PLAY
+SRC auf PERC | SELECT | Seitenkarte auf; Karte TRG>SRC
+SRC auf PERC | A lang | Lock-Modus an; Step gehalten; T1 Step 1 0>1; Meldung "LOCK-MODUS STEP 1  (A ODER FERTIG = ENDE)"
+SRC auf PERC | X lang | T1.TUNE 40>90
+SRC auf PERC | Y lang | T1.TUNE 40>0
+SRC auf PERC | START lang | PLAY
+SRC auf PERC | SELECT lang | -
+SRC auf PERC | SEL+HOCH | REC an; Meldung "AUFNAHME AN"
+SRC auf PERC | SEL+RUNTER | Meldung "TAP ..."
+SRC auf PERC | SEL+LINKS | Pattern A01>H16; Pattern H16 geaendert; Meldung "PATTERN H16"
+SRC auf PERC | SEL+RECHTS | Pattern A01>A02; Pattern A02 geaendert; Meldung "PATTERN A02"
+SRC auf PERC | SEL+A | Mutes A01 00>01; Meldung "SPUR 1 STUMM"
+SRC auf PERC | SEL+B | T1 Engine PERC>KICK; Meldung "RÜCKGÄNGIG: PATTERN A01 (0 WEITERE)"
+SRC auf PERC | SEL+X | T1 Engine PERC>DRON; Meldung "ENGINE: DRON"
+SRC auf PERC | SEL+Y | T1 Engine PERC>GRAN; Meldung "ENGINE: GRAN"
+SRC auf PERC | SEL+L1 | Step 1>13
+SRC auf PERC | SEL+R1 | Step 1>5
+SRC auf PERC | SEL+L2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
+SRC auf PERC | SEL+R2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
+SRC auf PERC | SEL+START | Meldung "GESPEICHERT"
+SRC auf PERC | A+B | T1 Step 1 0>1; Meldung "LOCKS GELÖSCHT"
+SRC auf PERC | A+X | T1 Step 1 0>1; T1 Step 1 Lock TUNE 255>41
+SRC auf PERC | A+Y | T1 Step 1 0>1; T1 Step 1 Lock TUNE 255>39
+SRC auf PERC | A+HOCH | T1 Step 1 0>1
+SRC auf PERC | A+RUNTER | T1 Step 1 0>1
+SRC auf PERC | A+L1 | Regler 1>8; T1 Step 1 0>1
+SRC auf PERC | A+R1 | Regler 1>2; T1 Step 1 0>1
+SRC auf PERC | A+SEL+L1 | Trig-Ablage voll; Meldung "LEEREN STEP KOPIERT"
+SRC auf PERC | A+SEL+R1 | T1 Step 1 0>1; Meldung "TRIG-ABLAGE LEER (LOCK-MODUS: SELECT + L1)"
+SRC auf PERC | Stick R hoch | T1.TUNE 40>11
+SRC auf PERC | Stick L rechts | Regler 1>2
+SR2 auf PERC | HOCH | Spur 1>8
+SR2 auf PERC | RUNTER | Seite SR2>SRC; Spur 1>2
+SR2 auf PERC | LINKS | Step 1>16
+SR2 auf PERC | RECHTS | Step 1>2
+SR2 auf PERC | A | T1 Step 1 0>1
+SR2 auf PERC | B | -
+SR2 auf PERC | X | T1.NLVL 60>61
+SR2 auf PERC | Y | T1.NLVL 60>59
+SR2 auf PERC | L1 | Regler 1>8
+SR2 auf PERC | R1 | Regler 1>2
+SR2 auf PERC | L2 | Seite SR2>SRC
+SR2 auf PERC | R2 | Seite SR2>FLT
+SR2 auf PERC | START | PLAY
+SR2 auf PERC | SELECT | Seitenkarte auf; Karte TRG>SR2
+SR2 auf PERC | A lang | Lock-Modus an; Step gehalten; T1 Step 1 0>1; Meldung "LOCK-MODUS STEP 1  (A ODER FERTIG = ENDE)"
+SR2 auf PERC | X lang | T1.NLVL 60>110
+SR2 auf PERC | Y lang | T1.NLVL 60>10
+SR2 auf PERC | START lang | PLAY
+SR2 auf PERC | SELECT lang | -
+SR2 auf PERC | SEL+HOCH | REC an; Meldung "AUFNAHME AN"
+SR2 auf PERC | SEL+RUNTER | Meldung "TAP ..."
+SR2 auf PERC | SEL+LINKS | Pattern A01>H16; Pattern H16 geaendert; Meldung "PATTERN H16"
+SR2 auf PERC | SEL+RECHTS | Pattern A01>A02; Pattern A02 geaendert; Meldung "PATTERN A02"
+SR2 auf PERC | SEL+A | Mutes A01 00>01; Meldung "SPUR 1 STUMM"
+SR2 auf PERC | SEL+B | Seite SR2>SRC; T1 Engine PERC>KICK; Meldung "RÜCKGÄNGIG: PATTERN A01 (0 WEITERE)"
+SR2 auf PERC | SEL+X | T1 Engine PERC>DRON; Meldung "ENGINE: DRON"
+SR2 auf PERC | SEL+Y | Seite SR2>SRC; T1 Engine PERC>GRAN; Meldung "ENGINE: GRAN"
+SR2 auf PERC | SEL+L1 | Step 1>13
+SR2 auf PERC | SEL+R1 | Step 1>5
+SR2 auf PERC | SEL+L2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
+SR2 auf PERC | SEL+R2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
+SR2 auf PERC | SEL+START | Meldung "GESPEICHERT"
+SR2 auf PERC | A+B | T1 Step 1 0>1; Meldung "LOCKS GELÖSCHT"
+SR2 auf PERC | A+X | T1 Step 1 0>1; T1 Step 1 Lock NLVL 255>61
+SR2 auf PERC | A+Y | T1 Step 1 0>1; T1 Step 1 Lock NLVL 255>59
+SR2 auf PERC | A+HOCH | T1 Step 1 0>1
+SR2 auf PERC | A+RUNTER | T1 Step 1 0>1
+SR2 auf PERC | A+L1 | Regler 1>8; T1 Step 1 0>1
+SR2 auf PERC | A+R1 | Regler 1>2; T1 Step 1 0>1
+SR2 auf PERC | A+SEL+L1 | Trig-Ablage voll; Meldung "LEEREN STEP KOPIERT"
+SR2 auf PERC | A+SEL+R1 | T1 Step 1 0>1; Meldung "TRIG-ABLAGE LEER (LOCK-MODUS: SELECT + L1)"
+SR2 auf PERC | Stick R hoch | T1.NLVL 60>31
+SR2 auf PERC | Stick L rechts | Regler 1>2
+SRC auf DRON | HOCH | Spur 1>8
+SRC auf DRON | RUNTER | Spur 1>2
+SRC auf DRON | LINKS | Step 1>16
+SRC auf DRON | RECHTS | Step 1>2
+SRC auf DRON | A | T1 Step 1 0>1
+SRC auf DRON | B | -
+SRC auf DRON | X | T1.PART 3>4
+SRC auf DRON | Y | T1.PART 3>2
+SRC auf DRON | L1 | Regler 1>8
+SRC auf DRON | R1 | Regler 1>2
+SRC auf DRON | L2 | Seite SRC>ARP
+SRC auf DRON | R2 | Seite SRC>SR2
+SRC auf DRON | START | PLAY
+SRC auf DRON | SELECT | Seitenkarte auf; Karte TRG>SRC
+SRC auf DRON | A lang | Lock-Modus an; Step gehalten; T1 Step 1 0>1; Meldung "LOCK-MODUS STEP 1  (A ODER FERTIG = ENDE)"
+SRC auf DRON | X lang | T1.PART 3>7
+SRC auf DRON | Y lang | T1.PART 3>0
+SRC auf DRON | START lang | PLAY
+SRC auf DRON | SELECT lang | -
+SRC auf DRON | SEL+HOCH | REC an; Meldung "AUFNAHME AN"
+SRC auf DRON | SEL+RUNTER | Meldung "TAP ..."
+SRC auf DRON | SEL+LINKS | Pattern A01>H16; Pattern H16 geaendert; Meldung "PATTERN H16"
+SRC auf DRON | SEL+RECHTS | Pattern A01>A02; Pattern A02 geaendert; Meldung "PATTERN A02"
+SRC auf DRON | SEL+A | Mutes A01 00>01; Meldung "SPUR 1 STUMM"
+SRC auf DRON | SEL+B | T1 Engine DRON>KICK; Meldung "RÜCKGÄNGIG: PATTERN A01 (0 WEITERE)"
+SRC auf DRON | SEL+X | T1 Engine DRON>KICK; Meldung "ENGINE: KICK"
+SRC auf DRON | SEL+Y | T1 Engine DRON>PERC; Meldung "ENGINE: PERC"
+SRC auf DRON | SEL+L1 | Step 1>13
+SRC auf DRON | SEL+R1 | Step 1>5
+SRC auf DRON | SEL+L2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
+SRC auf DRON | SEL+R2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
+SRC auf DRON | SEL+START | Meldung "GESPEICHERT"
+SRC auf DRON | A+B | T1 Step 1 0>1; Meldung "LOCKS GELÖSCHT"
+SRC auf DRON | A+X | T1 Step 1 0>1; T1 Step 1 Lock PART 255>4
+SRC auf DRON | A+Y | T1 Step 1 0>1; T1 Step 1 Lock PART 255>2
+SRC auf DRON | A+HOCH | T1 Step 1 0>1
+SRC auf DRON | A+RUNTER | T1 Step 1 0>1
+SRC auf DRON | A+L1 | Regler 1>8; T1 Step 1 0>1
+SRC auf DRON | A+R1 | Regler 1>2; T1 Step 1 0>1
+SRC auf DRON | A+SEL+L1 | Trig-Ablage voll; Meldung "LEEREN STEP KOPIERT"
+SRC auf DRON | A+SEL+R1 | T1 Step 1 0>1; Meldung "TRIG-ABLAGE LEER (LOCK-MODUS: SELECT + L1)"
+SRC auf DRON | Stick R hoch | T1.PART 3>0
+SRC auf DRON | Stick L rechts | Regler 1>2
+SR2 auf DRON | HOCH | Spur 1>8
+SR2 auf DRON | RUNTER | Seite SR2>SRC; Spur 1>2
+SR2 auf DRON | LINKS | Step 1>16
+SR2 auf DRON | RECHTS | Step 1>2
+SR2 auf DRON | A | T1 Step 1 0>1
+SR2 auf DRON | B | -
+SR2 auf DRON | X | T1.MRAT 20>21
+SR2 auf DRON | Y | T1.MRAT 20>19
+SR2 auf DRON | L1 | Regler 1>5
+SR2 auf DRON | R1 | Regler 1>2
+SR2 auf DRON | L2 | Seite SR2>SRC
+SR2 auf DRON | R2 | Seite SR2>FLT
+SR2 auf DRON | START | PLAY
+SR2 auf DRON | SELECT | Seitenkarte auf; Karte TRG>SR2
+SR2 auf DRON | A lang | Lock-Modus an; Step gehalten; T1 Step 1 0>1; Meldung "LOCK-MODUS STEP 1  (A ODER FERTIG = ENDE)"
+SR2 auf DRON | X lang | T1.MRAT 20>70
+SR2 auf DRON | Y lang | T1.MRAT 20>0
+SR2 auf DRON | START lang | PLAY
+SR2 auf DRON | SELECT lang | -
+SR2 auf DRON | SEL+HOCH | REC an; Meldung "AUFNAHME AN"
+SR2 auf DRON | SEL+RUNTER | Meldung "TAP ..."
+SR2 auf DRON | SEL+LINKS | Pattern A01>H16; Pattern H16 geaendert; Meldung "PATTERN H16"
+SR2 auf DRON | SEL+RECHTS | Pattern A01>A02; Pattern A02 geaendert; Meldung "PATTERN A02"
+SR2 auf DRON | SEL+A | Mutes A01 00>01; Meldung "SPUR 1 STUMM"
+SR2 auf DRON | SEL+B | Seite SR2>SRC; T1 Engine DRON>KICK; Meldung "RÜCKGÄNGIG: PATTERN A01 (0 WEITERE)"
+SR2 auf DRON | SEL+X | Seite SR2>SRC; T1 Engine DRON>KICK; Meldung "ENGINE: KICK"
+SR2 auf DRON | SEL+Y | T1 Engine DRON>PERC; Meldung "ENGINE: PERC"
+SR2 auf DRON | SEL+L1 | Step 1>13
+SR2 auf DRON | SEL+R1 | Step 1>5
+SR2 auf DRON | SEL+L2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
+SR2 auf DRON | SEL+R2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
+SR2 auf DRON | SEL+START | Meldung "GESPEICHERT"
+SR2 auf DRON | A+B | T1 Step 1 0>1; Meldung "LOCKS GELÖSCHT"
+SR2 auf DRON | A+X | T1 Step 1 0>1; T1 Step 1 Lock MRAT 255>21
+SR2 auf DRON | A+Y | T1 Step 1 0>1; T1 Step 1 Lock MRAT 255>19
+SR2 auf DRON | A+HOCH | T1 Step 1 0>1
+SR2 auf DRON | A+RUNTER | T1 Step 1 0>1
+SR2 auf DRON | A+L1 | Regler 1>5; T1 Step 1 0>1
+SR2 auf DRON | A+R1 | Regler 1>2; T1 Step 1 0>1
+SR2 auf DRON | A+SEL+L1 | Trig-Ablage voll; Meldung "LEEREN STEP KOPIERT"
+SR2 auf DRON | A+SEL+R1 | T1 Step 1 0>1; Meldung "TRIG-ABLAGE LEER (LOCK-MODUS: SELECT + L1)"
+SR2 auf DRON | Stick R hoch | T1.MRAT 20>0
+SR2 auf DRON | Stick L rechts | Regler 1>2
 TRIG mit Trig auf Step 1 | HOCH | Spur 5>4
 TRIG mit Trig auf Step 1 | RUNTER | Spur 5>6
 TRIG mit Trig auf Step 1 | LINKS | Step 1>16
@@ -2157,7 +2329,7 @@ TRIG mit Trig auf Step 1 | A | T5 Step 1 1>0
 TRIG mit Trig auf Step 1 | B | -
 TRIG mit Trig auf Step 1 | X | T5.NOTE 36>37
 TRIG mit Trig auf Step 1 | Y | T5.NOTE 36>35
-TRIG mit Trig auf Step 1 | L1 | Regler 1>8
+TRIG mit Trig auf Step 1 | L1 | Regler 1>12
 TRIG mit Trig auf Step 1 | R1 | Regler 1>2
 TRIG mit Trig auf Step 1 | L2 | Seite TRG>LF3
 TRIG mit Trig auf Step 1 | R2 | Seite TRG>SEQ
@@ -2186,7 +2358,7 @@ TRIG mit Trig auf Step 1 | A+X | T5 Step 1 Lock NOTE 255>37
 TRIG mit Trig auf Step 1 | A+Y | T5 Step 1 Lock NOTE 255>35
 TRIG mit Trig auf Step 1 | A+HOCH | T5 Step 1 1>0
 TRIG mit Trig auf Step 1 | A+RUNTER | T5 Step 1 1>0
-TRIG mit Trig auf Step 1 | A+L1 | Regler 1>8; T5 Step 1 1>0
+TRIG mit Trig auf Step 1 | A+L1 | Regler 1>12; T5 Step 1 1>0
 TRIG mit Trig auf Step 1 | A+R1 | Regler 1>2; T5 Step 1 1>0
 TRIG mit Trig auf Step 1 | A+SEL+L1 | Trig-Ablage voll; Meldung "TRIG KOPIERT (MIT LOCKS)"
 TRIG mit Trig auf Step 1 | A+SEL+R1 | T5 Step 1 1>0; Meldung "TRIG-ABLAGE LEER (LOCK-MODUS: SELECT + L1)"
@@ -2200,7 +2372,7 @@ TRIG Lock-Modus | A | Lock-Modus aus; Step losgelassen; T5 Step 1 1>0; Meldung "
 TRIG Lock-Modus | B | Meldung "LOCKS GELÖSCHT"
 TRIG Lock-Modus | X | T5 Step 1 Lock NOTE 255>37
 TRIG Lock-Modus | Y | T5 Step 1 Lock NOTE 255>35
-TRIG Lock-Modus | L1 | Regler 1>8
+TRIG Lock-Modus | L1 | Regler 1>12
 TRIG Lock-Modus | R1 | Regler 1>2
 TRIG Lock-Modus | L2 | Seite TRG>LF3
 TRIG Lock-Modus | R2 | Seite TRG>SEQ
@@ -2229,7 +2401,7 @@ TRIG Lock-Modus | A+X | Lock-Modus aus; Step losgelassen; T5.NOTE 36>37; T5 Step
 TRIG Lock-Modus | A+Y | Lock-Modus aus; Step losgelassen; T5.NOTE 36>35; T5 Step 1 1>0; Meldung "LOCK-MODUS AUS"
 TRIG Lock-Modus | A+HOCH | Spur 5>4; Lock-Modus aus; Step losgelassen; T5 Step 1 1>0; Meldung "LOCK-MODUS AUS"
 TRIG Lock-Modus | A+RUNTER | Spur 5>6; Lock-Modus aus; Step losgelassen; T5 Step 1 1>0; Meldung "LOCK-MODUS AUS"
-TRIG Lock-Modus | A+L1 | Regler 1>8; Lock-Modus aus; Step losgelassen; T5 Step 1 1>0; Meldung "LOCK-MODUS AUS"
+TRIG Lock-Modus | A+L1 | Regler 1>12; Lock-Modus aus; Step losgelassen; T5 Step 1 1>0; Meldung "LOCK-MODUS AUS"
 TRIG Lock-Modus | A+R1 | Regler 1>2; Lock-Modus aus; Step losgelassen; T5 Step 1 1>0; Meldung "LOCK-MODUS AUS"
 TRIG Lock-Modus | A+SEL+L1 | PAGE-Menue auf; Lock-Modus aus; Step losgelassen; T5 Step 1 1>0; Meldung "LOCK-MODUS AUS"
 TRIG Lock-Modus | A+SEL+R1 | PAGE-Menue auf; Lock-Modus aus; Step losgelassen; T5 Step 1 1>0; Meldung "LOCK-MODUS AUS"
@@ -2243,7 +2415,7 @@ TRIG spielt | A | T5 Step 1 0>1
 TRIG spielt | B | -
 TRIG spielt | X | T5.NOTE 36>37
 TRIG spielt | Y | T5.NOTE 36>35
-TRIG spielt | L1 | Regler 1>8
+TRIG spielt | L1 | Regler 1>12
 TRIG spielt | R1 | Regler 1>2
 TRIG spielt | L2 | Seite TRG>LF3
 TRIG spielt | R2 | Seite TRG>SEQ
@@ -2272,7 +2444,7 @@ TRIG spielt | A+X | T5 Step 1 0>1; T5 Step 1 Lock NOTE 255>37
 TRIG spielt | A+Y | T5 Step 1 0>1; T5 Step 1 Lock NOTE 255>35
 TRIG spielt | A+HOCH | T5 Step 1 0>1
 TRIG spielt | A+RUNTER | T5 Step 1 0>1
-TRIG spielt | A+L1 | Regler 1>8; T5 Step 1 0>1
+TRIG spielt | A+L1 | Regler 1>12; T5 Step 1 0>1
 TRIG spielt | A+R1 | Regler 1>2; T5 Step 1 0>1
 TRIG spielt | A+SEL+L1 | Trig-Ablage voll; Meldung "LEEREN STEP KOPIERT"
 TRIG spielt | A+SEL+R1 | T5 Step 1 0>1; Meldung "TRIG-ABLAGE LEER (LOCK-MODUS: SELECT + L1)"
@@ -2286,7 +2458,7 @@ TRIG Spur 32 Steps, Page 2 | A | T5 Step 21 0>1
 TRIG Spur 32 Steps, Page 2 | B | -
 TRIG Spur 32 Steps, Page 2 | X | T5.NOTE 36>37
 TRIG Spur 32 Steps, Page 2 | Y | T5.NOTE 36>35
-TRIG Spur 32 Steps, Page 2 | L1 | Regler 1>8
+TRIG Spur 32 Steps, Page 2 | L1 | Regler 1>12
 TRIG Spur 32 Steps, Page 2 | R1 | Regler 1>2
 TRIG Spur 32 Steps, Page 2 | L2 | Seite TRG>LF3
 TRIG Spur 32 Steps, Page 2 | R2 | Seite TRG>SEQ
@@ -2315,7 +2487,7 @@ TRIG Spur 32 Steps, Page 2 | A+X | T5 Step 21 0>1; T5 Step 21 Lock NOTE 255>37
 TRIG Spur 32 Steps, Page 2 | A+Y | T5 Step 21 0>1; T5 Step 21 Lock NOTE 255>35
 TRIG Spur 32 Steps, Page 2 | A+HOCH | T5 Step 21 0>1
 TRIG Spur 32 Steps, Page 2 | A+RUNTER | T5 Step 21 0>1
-TRIG Spur 32 Steps, Page 2 | A+L1 | Regler 1>8; T5 Step 21 0>1
+TRIG Spur 32 Steps, Page 2 | A+L1 | Regler 1>12; T5 Step 21 0>1
 TRIG Spur 32 Steps, Page 2 | A+R1 | Regler 1>2; T5 Step 21 0>1
 TRIG Spur 32 Steps, Page 2 | A+SEL+L1 | Trig-Ablage voll; Meldung "LEEREN STEP KOPIERT"
 TRIG Spur 32 Steps, Page 2 | A+SEL+R1 | T5 Step 21 0>1; Meldung "TRIG-ABLAGE LEER (LOCK-MODUS: SELECT + L1)"
@@ -2358,7 +2530,7 @@ Seitenkarte offen | A+X | Seitenkarte zu; T5.NOTE 36>37
 Seitenkarte offen | A+Y | Seitenkarte zu; T5.NOTE 36>35
 Seitenkarte offen | A+HOCH | Spur 5>4; Seitenkarte zu
 Seitenkarte offen | A+RUNTER | Spur 5>6; Seitenkarte zu
-Seitenkarte offen | A+L1 | Regler 1>8; Seitenkarte zu
+Seitenkarte offen | A+L1 | Regler 1>12; Seitenkarte zu
 Seitenkarte offen | A+R1 | Regler 1>2; Seitenkarte zu
 Seitenkarte offen | A+SEL+L1 | Seitenkarte zu; PAGE-Menue auf
 Seitenkarte offen | A+SEL+R1 | Seitenkarte zu; PAGE-Menue auf
@@ -3072,7 +3244,7 @@ TRIG mit Trig-Ablage | A | T5 Step 4 0>1
 TRIG mit Trig-Ablage | B | -
 TRIG mit Trig-Ablage | X | T5.NOTE 36>37
 TRIG mit Trig-Ablage | Y | T5.NOTE 36>35
-TRIG mit Trig-Ablage | L1 | Regler 1>8
+TRIG mit Trig-Ablage | L1 | Regler 1>12
 TRIG mit Trig-Ablage | R1 | Regler 1>2
 TRIG mit Trig-Ablage | L2 | Seite TRG>LF3
 TRIG mit Trig-Ablage | R2 | Seite TRG>SEQ
@@ -3101,7 +3273,7 @@ TRIG mit Trig-Ablage | A+X | T5 Step 4 0>1; T5 Step 4 Lock NOTE 255>37
 TRIG mit Trig-Ablage | A+Y | T5 Step 4 0>1; T5 Step 4 Lock NOTE 255>35
 TRIG mit Trig-Ablage | A+HOCH | T5 Step 4 0>1
 TRIG mit Trig-Ablage | A+RUNTER | T5 Step 4 0>1
-TRIG mit Trig-Ablage | A+L1 | Regler 1>8; T5 Step 4 0>1
+TRIG mit Trig-Ablage | A+L1 | Regler 1>12; T5 Step 4 0>1
 TRIG mit Trig-Ablage | A+R1 | Regler 1>2; T5 Step 4 0>1
 TRIG mit Trig-Ablage | A+SEL+L1 | Meldung "LEEREN STEP KOPIERT"
 TRIG mit Trig-Ablage | A+SEL+R1 | T5 Step 4 0>1; T5 Step 4 Lock NOTE 255>48; Meldung "TRIG EINGEFÜGT IN STEP 4"
@@ -3187,7 +3359,7 @@ PAGE-Menue mit Page-/Spur-Ablage (T1) | A+X | PAGE-Menue zu; T5.NOTE 36>37; Meld
 PAGE-Menue mit Page-/Spur-Ablage (T1) | A+Y | PAGE-Menue zu; T5.NOTE 36>35; Meldung "PAGE 1 VON SPUR 5 KOPIERT"
 PAGE-Menue mit Page-/Spur-Ablage (T1) | A+HOCH | Spur 5>4; PAGE-Menue zu; Meldung "PAGE 1 VON SPUR 5 KOPIERT"
 PAGE-Menue mit Page-/Spur-Ablage (T1) | A+RUNTER | Spur 5>6; PAGE-Menue zu; Meldung "PAGE 1 VON SPUR 5 KOPIERT"
-PAGE-Menue mit Page-/Spur-Ablage (T1) | A+L1 | Regler 1>8; PAGE-Menue zu; Meldung "PAGE 1 VON SPUR 5 KOPIERT"
+PAGE-Menue mit Page-/Spur-Ablage (T1) | A+L1 | Regler 1>12; PAGE-Menue zu; Meldung "PAGE 1 VON SPUR 5 KOPIERT"
 PAGE-Menue mit Page-/Spur-Ablage (T1) | A+R1 | Regler 1>2; PAGE-Menue zu; Meldung "PAGE 1 VON SPUR 5 KOPIERT"
 PAGE-Menue mit Page-/Spur-Ablage (T1) | A+SEL+L1 | Meldung "PAGE 1 VON SPUR 5 KOPIERT"
 PAGE-Menue mit Page-/Spur-Ablage (T1) | A+SEL+R1 | Meldung "PAGE 1 VON SPUR 5 KOPIERT"
@@ -3344,7 +3516,7 @@ TRIG mit Undo-Verlauf (Trig gesetzt) | A | T5 Step 1 0>1
 TRIG mit Undo-Verlauf (Trig gesetzt) | B | -
 TRIG mit Undo-Verlauf (Trig gesetzt) | X | T5.NOTE 36>37
 TRIG mit Undo-Verlauf (Trig gesetzt) | Y | T5.NOTE 36>35
-TRIG mit Undo-Verlauf (Trig gesetzt) | L1 | Regler 1>8
+TRIG mit Undo-Verlauf (Trig gesetzt) | L1 | Regler 1>12
 TRIG mit Undo-Verlauf (Trig gesetzt) | R1 | Regler 1>2
 TRIG mit Undo-Verlauf (Trig gesetzt) | L2 | Seite TRG>LF3
 TRIG mit Undo-Verlauf (Trig gesetzt) | R2 | Seite TRG>SEQ
@@ -3373,7 +3545,7 @@ TRIG mit Undo-Verlauf (Trig gesetzt) | A+X | T5 Step 1 0>1; T5 Step 1 Lock NOTE 
 TRIG mit Undo-Verlauf (Trig gesetzt) | A+Y | T5 Step 1 0>1; T5 Step 1 Lock NOTE 255>35
 TRIG mit Undo-Verlauf (Trig gesetzt) | A+HOCH | T5 Step 1 0>1
 TRIG mit Undo-Verlauf (Trig gesetzt) | A+RUNTER | T5 Step 1 0>1
-TRIG mit Undo-Verlauf (Trig gesetzt) | A+L1 | Regler 1>8; T5 Step 1 0>1
+TRIG mit Undo-Verlauf (Trig gesetzt) | A+L1 | Regler 1>12; T5 Step 1 0>1
 TRIG mit Undo-Verlauf (Trig gesetzt) | A+R1 | Regler 1>2; T5 Step 1 0>1
 TRIG mit Undo-Verlauf (Trig gesetzt) | A+SEL+L1 | Trig-Ablage voll; Meldung "LEEREN STEP KOPIERT"
 TRIG mit Undo-Verlauf (Trig gesetzt) | A+SEL+R1 | T5 Step 1 0>1; Meldung "TRIG-ABLAGE LEER (LOCK-MODUS: SELECT + L1)"
@@ -3416,7 +3588,7 @@ PAGE-Menue offen | A+X | PAGE-Menue zu; Page-Ablage 1; T5.NOTE 36>37; Meldung "P
 PAGE-Menue offen | A+Y | PAGE-Menue zu; Page-Ablage 1; T5.NOTE 36>35; Meldung "PAGE 1 VON SPUR 5 KOPIERT"
 PAGE-Menue offen | A+HOCH | Spur 5>4; PAGE-Menue zu; Page-Ablage 1; Meldung "PAGE 1 VON SPUR 5 KOPIERT"
 PAGE-Menue offen | A+RUNTER | Spur 5>6; PAGE-Menue zu; Page-Ablage 1; Meldung "PAGE 1 VON SPUR 5 KOPIERT"
-PAGE-Menue offen | A+L1 | Regler 1>8; PAGE-Menue zu; Page-Ablage 1; Meldung "PAGE 1 VON SPUR 5 KOPIERT"
+PAGE-Menue offen | A+L1 | Regler 1>12; PAGE-Menue zu; Page-Ablage 1; Meldung "PAGE 1 VON SPUR 5 KOPIERT"
 PAGE-Menue offen | A+R1 | Regler 1>2; PAGE-Menue zu; Page-Ablage 1; Meldung "PAGE 1 VON SPUR 5 KOPIERT"
 PAGE-Menue offen | A+SEL+L1 | Page-Ablage 1; Meldung "PAGE 1 VON SPUR 5 KOPIERT"
 PAGE-Menue offen | A+SEL+R1 | Page-Ablage 1; Meldung "PAGE 1 VON SPUR 5 KOPIERT"
@@ -3559,7 +3731,7 @@ Abfrage offen (Spur leeren) | A+X | Abfrage zu; T5.NOTE 36>37; Meldung "SPUR 5 G
 Abfrage offen (Spur leeren) | A+Y | Abfrage zu; T5.NOTE 36>35; Meldung "SPUR 5 GELEERT (SELECT+B = RÜCKGÄNGIG)"
 Abfrage offen (Spur leeren) | A+HOCH | Spur 5>4; Abfrage zu; Meldung "SPUR 5 GELEERT (SELECT+B = RÜCKGÄNGIG)"
 Abfrage offen (Spur leeren) | A+RUNTER | Spur 5>6; Abfrage zu; Meldung "SPUR 5 GELEERT (SELECT+B = RÜCKGÄNGIG)"
-Abfrage offen (Spur leeren) | A+L1 | Regler 1>8; Abfrage zu; Meldung "SPUR 5 GELEERT (SELECT+B = RÜCKGÄNGIG)"
+Abfrage offen (Spur leeren) | A+L1 | Regler 1>12; Abfrage zu; Meldung "SPUR 5 GELEERT (SELECT+B = RÜCKGÄNGIG)"
 Abfrage offen (Spur leeren) | A+R1 | Regler 1>2; Abfrage zu; Meldung "SPUR 5 GELEERT (SELECT+B = RÜCKGÄNGIG)"
 Abfrage offen (Spur leeren) | A+SEL+L1 | PAGE-Menue auf; Abfrage zu; Meldung "SPUR 5 GELEERT (SELECT+B = RÜCKGÄNGIG)"
 Abfrage offen (Spur leeren) | A+SEL+R1 | PAGE-Menue auf; Abfrage zu; Meldung "SPUR 5 GELEERT (SELECT+B = RÜCKGÄNGIG)"
@@ -3608,16 +3780,16 @@ Tastatur offen | A+SEL+L1 | Tastatur zu; Meldung "ABGEBROCHEN"
 Tastatur offen | A+SEL+R1 | Tastatur zu; Meldung "ABGEBROCHEN"
 Tastatur offen | Stick R hoch | -
 Tastatur offen | Stick L rechts | -
-Liste Engine | HOCH | Listeneintrag 7>6
-Liste Engine | RUNTER | Listeneintrag 7>8
+Liste Engine | HOCH | Listeneintrag 8>7
+Liste Engine | RUNTER | Listeneintrag 8>9
 Liste Engine | LINKS | Liste zu
 Liste Engine | RECHTS | Liste zu
 Liste Engine | A | Liste zu
 Liste Engine | B | Liste zu
 Liste Engine | X | -
 Liste Engine | Y | -
-Liste Engine | L1 | Listeneintrag 7>0
-Liste Engine | R1 | Listeneintrag 7>12
+Liste Engine | L1 | Listeneintrag 8>0
+Liste Engine | R1 | Listeneintrag 8>14
 Liste Engine | L2 | -
 Liste Engine | R2 | -
 Liste Engine | START | Liste zu
@@ -3646,7 +3818,7 @@ Liste Engine | A+Y | Liste zu
 Liste Engine | A+HOCH | Spur 5>4; Liste zu
 Liste Engine | A+RUNTER | Spur 5>6; Liste zu
 Liste Engine | A+L1 | Regler 8>7; Liste zu
-Liste Engine | A+R1 | Regler 8>1; Liste zu
+Liste Engine | A+R1 | Regler 8>9; Liste zu
 Liste Engine | A+SEL+L1 | PAGE-Menue auf; Liste zu
 Liste Engine | A+SEL+R1 | PAGE-Menue auf; Liste zu
 Liste Engine | Stick R hoch | -
@@ -3688,7 +3860,7 @@ Liste Bedingung | A+X | Liste zu; T5.NOTE 36>37
 Liste Bedingung | A+Y | Liste zu; T5.NOTE 36>35
 Liste Bedingung | A+HOCH | Spur 5>4; Liste zu
 Liste Bedingung | A+RUNTER | Spur 5>6; Liste zu
-Liste Bedingung | A+L1 | Regler 1>8; Liste zu
+Liste Bedingung | A+L1 | Regler 1>12; Liste zu
 Liste Bedingung | A+R1 | Regler 1>2; Liste zu
 Liste Bedingung | A+SEL+L1 | PAGE-Menue auf; Liste zu
 Liste Bedingung | A+SEL+R1 | PAGE-Menue auf; Liste zu
@@ -3817,7 +3989,7 @@ Liste Projekt | A+X | Liste zu; T5.NOTE 36>37; Meldung "GELADEN: Matrix"
 Liste Projekt | A+Y | Liste zu; T5.NOTE 36>35; Meldung "GELADEN: Matrix"
 Liste Projekt | A+HOCH | Spur 5>4; Liste zu; Meldung "GELADEN: Matrix"
 Liste Projekt | A+RUNTER | Spur 5>6; Liste zu; Meldung "GELADEN: Matrix"
-Liste Projekt | A+L1 | Regler 1>8; Liste zu; Meldung "GELADEN: Matrix"
+Liste Projekt | A+L1 | Regler 1>12; Liste zu; Meldung "GELADEN: Matrix"
 Liste Projekt | A+R1 | Regler 1>2; Liste zu; Meldung "GELADEN: Matrix"
 Liste Projekt | A+SEL+L1 | PAGE-Menue auf; Liste zu; Meldung "GELADEN: Matrix"
 Liste Projekt | A+SEL+R1 | PAGE-Menue auf; Liste zu; Meldung "GELADEN: Matrix"
