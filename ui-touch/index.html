@@ -160,6 +160,24 @@ body.tui.snd #tGrid{display:none}
 .tr .vl{position:relative;font-size:15px;color:var(--cy);font-weight:bold;min-width:68px;text-align:right}
 .tr.lk .vl{color:var(--lock,#ffba40)}
 .tr.act{border-color:var(--text)}
+/* P-Lock: Pad lange druecken haelt den Step fest, danach sind alle Reglerwerte Locks (gelb) */
+#tLock{display:none;align-items:center;gap:8px}
+body.tui.hold #tLock{display:flex}
+#tLock .tb{background:var(--lk,#2a2317);border-color:#ffba40;color:#ffba40}
+.tp.hold{outline:3px solid #ffba40;outline-offset:-3px}
+body.tui.hold .tr .vl{color:#ffba40}
+/* Auswahl (ENGINE, Filtertyp, Bus-Effekt ...): auf 15 Engines mit dem Finger zu zielen geht nicht
+   mit einem Schieber - antippen oeffnet eine Liste mit grossen Zeilen. */
+.tr.sel .vl::after{content:' ›';color:var(--dim)}
+#tPick{display:none;position:fixed;inset:0;z-index:9;background:#0e0f12ee;padding:14px;
+ grid-template-rows:auto minmax(0,1fr);gap:10px}
+body.pick #tPick{display:grid}
+#tPickT{font-size:15px;color:var(--cy)}
+#tPickL{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));grid-auto-rows:minmax(52px,auto);
+ gap:8px;overflow-y:auto;overscroll-behavior:contain;align-content:start}
+#tPickL .pk{display:flex;align-items:center;justify-content:center;border-radius:10px;background:var(--panel);
+ border:1px solid var(--line);color:var(--text);font-size:14px;padding:0 8px;text-align:center}
+#tPickL .pk.on{background:var(--panel2);border-color:var(--text);color:var(--cy)}
 /* schmal (Handy hochkant): die Kopfzeile darf nicht umbrechen - Meldung weg, Schrift kleiner */
 @media (max-width:560px){#tMsg{display:none}#tBpm{font-size:11px}#tTop .tb{padding:0 9px;font-size:12px}
  #tPat{font-size:16px;min-width:48px}#tPlay{min-width:52px}}
@@ -191,11 +209,13 @@ body.nopad #scr{grid-column:1 !important}
 </div></div>
 <div id="tui">
  <div id="tTop"><button class="tb" id="tPlay">▶</button><div class="tb" id="tPatD">‹</div><div id="tPat">A01</div><div class="tb" id="tPatU">›</div>
-  <div id="tBpm">120 BPM</div><span id="tMsg"></span><button class="tb" id="tMode">SOUND</button><button class="tb" id="tView" title="zum gespiegelten Geraetebild">BILD</button></div>
+  <div id="tBpm">120 BPM</div><span id="tMsg"></span><span id="tLock"><span style="color:#ffba40;font-size:12px" id="tLockT">LOCK</span><button class="tb" id="tLockC">LOCKS WEG</button><button class="tb" id="tLockE">FERTIG</button></span><button class="tb" id="tMode">SOUND</button><button class="tb" id="tView" title="zum gespiegelten Geraetebild">BILD</button></div>
  <div id="tMain"><div id="tTracks"></div>
   <div id="tGrid"></div>
   <div id="tSnd"><div id="tGrps"></div><div id="tPar"></div></div></div>
  <div id="tWait">warte auf die Groovebox …</div>
+ <div id="tPick"><div style="display:flex;align-items:center;gap:10px"><span id="tPickT"></span>
+  <span style="flex:1"></span><button class="tb" id="tPickX">ABBRECHEN</button></div><div id="tPickL"></div></div>
  <div id="tBot"><div id="tPages" style="display:flex;gap:6px;flex-wrap:wrap"></div></div>
 </div>
 <div id="help"><div><b style="color:#fff">Tastatur</b><br>
@@ -255,6 +275,8 @@ function tuiRender(m){
  const play=$('tPlay');play.textContent=m.play?'■':'▶';play.classList.toggle('on',!!m.play);
  $('tPat').textContent=m.pat;$('tBpm').textContent=m.bpm+' BPM'+(m.song?' · SONG':'');
  $('tMsg').textContent=m.msg||'';
+ document.body.classList.toggle('hold',m.hold>=0);
+ if(m.hold>=0)$('tLockT').textContent='LOCK STEP '+(m.hold+1);
  // Spuren: nur neu aufbauen, wenn sich die Struktur aendert (sonst flackert es und der Finger verliert das Ziel)
  const key=m.tracks.map(t=>t.n).join(',')+'|'+m.len;
  const tr=$('tTracks');
@@ -272,12 +294,22 @@ function tuiRender(m){
  const base=m.page*16,n=Math.min(16,m.len-base),g=$('tGrid');
  if(tPads.length!==16){g.innerHTML='';tPads=[];
   for(let i=0;i<16;i++){const d=document.createElement('div');d.className='tp';
+   // kurz = Trig an/aus, lange halten = P-Lock fuer diesen Step (wie A halten am Geraet)
+   // Ein Pad muss sofort reagieren, darum wird beim Druecken getoggelt. Wird daraus ein langes
+   // Halten, nimmt der zweite Toggle das zurueck und der Step haengt im P-Lock (wie A halten am Geraet).
+   let ht=null;
    d.addEventListener('pointerdown',e=>{e.preventDefault();const s=(tm?tm.page:0)*16+i;
-    if(tm&&s<tm.len){d.classList.toggle('on');tAct(1,s,0);}},{passive:false});
+    if(!tm||s>=tm.len||document.body.classList.contains('hold'))return;
+    d.classList.toggle('on');tAct(1,s,0);
+    ht=setTimeout(()=>{ht=null;tAct(1,s,0);tAct(12,s,1);
+     if(!document.body.classList.contains('snd')){document.body.classList.add('snd');$('tMode').textContent='STEPS';if(tm.view===0)tAct(9,1,0);}
+     if(navigator.vibrate)navigator.vibrate(12);},350);},{passive:false});
+   const up=()=>{if(ht){clearTimeout(ht);ht=null;}};
+   d.addEventListener('pointerup',up);d.addEventListener('pointercancel',up);
    g.appendChild(d);tPads.push(d);}}
  for(let i=0;i<16;i++){const d=tPads[i],s=base+i,st=s<m.len?m.steps[s]:-1;
   d.style.display=s<m.len?'':'none';
-  d.className='tp'+(st===1?' on':'')+(st===2?' tl':'')+(s===m.now?' now':'')+(i%4===0?' beat':'');
+  d.className='tp'+(st===1?' on':'')+(st===2?' tl':'')+(s===m.now?' now':'')+(i%4===0?' beat':'')+(s===m.hold?' hold':'');
   d.style.background=st===1?m.tracks[m.track].c:'';
   d.textContent=s+1;}
  // Klang: Gruppenleiste und Regler
@@ -297,7 +329,8 @@ function tuiRender(m){
   ps.forEach((p,i)=>{const d=pr.children[i];if(!d||d.dataset.drag)return;
    d.querySelector('.nm').textContent=p.n;d.querySelector('.vl').textContent=p.t;
    d.querySelector('.bar').style.width=Math.round(100*p.v/(p.mx||1))+'%';
-   d.classList.toggle('lk',!!p.lk);});
+   d.classList.toggle('lk',!!p.lk);d.classList.toggle('sel',!!p.opts);
+   if(p.opts)d.querySelector('.bar').style.width='0';});
  }
  // Seiten
  const pb=$('tPages');
@@ -309,9 +342,17 @@ function tuiRender(m){
 }
 // Regler ziehen: waagerecht = Wert. Die volle Breite deckt den ganzen Bereich ab; waehrend des Ziehens
 // zeigt die Zeile den eigenen Wert (sonst wuerde das nachziehende Modell darunter springen).
+function tPickOpen(i){const p=tm.params[i];document.body.classList.add('pick');
+ $('tPickT').textContent=p.n;const l=$('tPickL');l.innerHTML='';
+ p.opts.forEach((o,v)=>{const b=document.createElement('div');b.className='pk'+(v===p.v?' on':'');b.textContent=o;
+  b.addEventListener('pointerdown',e=>{e.preventDefault();tAct(11,i,v);document.body.classList.remove('pick');},{passive:false});
+  l.appendChild(b);});
+ const on=l.querySelector('.pk.on');if(on)setTimeout(()=>on.scrollIntoView({block:'nearest'}),0);}
+$('tPickX').addEventListener('pointerdown',e=>{e.preventDefault();document.body.classList.remove('pick');},{passive:false});
 function tParDrag(d,i){
  let id=null,x0=0,v0=0,mx=127,cur=0;
  d.addEventListener('pointerdown',e=>{if(!tm||!tm.params||!tm.params[i])return;e.preventDefault();
+  if(tm.params[i].opts){tPickOpen(i);return;}   // Auswahlregler: Liste statt Schieber
   id=e.pointerId;x0=e.clientX;v0=cur=tm.params[i].v;mx=tm.params[i].mx||1;d.dataset.drag='1';d.classList.add('act');
   try{d.setPointerCapture(id);}catch(err){}},{passive:false});
  d.addEventListener('pointermove',e=>{if(id===null||e.pointerId!==id)return;e.preventDefault();
@@ -322,6 +363,8 @@ function tParDrag(d,i){
  const end=e=>{if(id===null||(e&&e.pointerId!==id))return;id=null;delete d.dataset.drag;d.classList.remove('act');};
  d.addEventListener('pointerup',end);d.addEventListener('pointercancel',end);
 }
+$('tLockE').addEventListener('pointerdown',e=>{e.preventDefault();tAct(12,0,0);},{passive:false});
+$('tLockC').addEventListener('pointerdown',e=>{e.preventDefault();tAct(13,0,0);},{passive:false});
 $('tMode').addEventListener('pointerdown',e=>{e.preventDefault();
  const snd=!document.body.classList.contains('snd');document.body.classList.toggle('snd',snd);
  $('tMode').textContent=snd?'STEPS':'SOUND';
