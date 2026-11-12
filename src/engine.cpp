@@ -1382,12 +1382,23 @@ void Engine::trigger(int t, const uint8_t* lk, float velScale, bool fromSeq, boo
     float ls = lenSteps(val(P_LEN));
     double tss = trackStepSamples(t);
     int gs = ls < 0 ? -1 : (int)(ls * tss) + 1;
-    // Arpeggiator (nur Klangerzeuger mit Tonhoehe): statt eines Tons die Akkordtoene im Tempo RATE
-    if (fromSeq && val(P_AMOD) == ARP_CHORD && !machineIsDrum(P.machine[t])) {   // Akkord: Toene gleichzeitig
+    // Stimmen-Modus der Spur (nur fuer Klangerzeuger mit Tonhoehe; Drums sind immer einstimmig)
+    const bool pitched = !machineIsDrum(P.machine[t]);
+    const int vmod = pitched ? val(P_VMOD) % VM_COUNT : VM_POLY;
+    const bool mono = vmod != VM_POLY;          // MONO und LEGATO: eine Stimme, keine Akkordtoene
+    const bool legato = vmod == VM_LEGATO;      // Trig auf eine klingende Stimme wechselt nur die Tonhoehe
+    // freie Zusatznoten des Steps (NT2-NT4, 0 = aus): sie gehen dem Akkordtyp vor
+    int extra[NNOTEX], nx = 0;
+    if (pitched) for (int k = 0; k < NNOTEX; k++) { int e = val(P_NTX[k]); if (e > 0 && e <= 127) extra[nx++] = e; }
+    // Akkord: mehrere Toene gleichzeitig - entweder die freien Zusatznoten oder der Akkordtyp (ARP-Modus AKKD)
+    if (fromSeq && pitched && !mono && (nx > 0 || val(P_AMOD) == ARP_CHORD)) {
         int base = val(P_NOTE), chord = val(P_ACHD) % 10;
         int sv = proj.mst[MS_SCALE];
         int notes[4], n = 0;
-        if (chord == 9) {   // Skala: Terzschichtung 1-3-5-7 der Skala
+        if (nx > 0) {   // freie Noten des Steps: Hauptnote + NT2-NT4
+            notes[n++] = base;
+            for (int k = 0; k < nx && n < 4; k++) notes[n++] = extra[k];
+        } else if (chord == 9) {   // Skala: Terzschichtung 1-3-5-7 der Skala
             int x = sv ? quantizeNote(base, sv) : base;
             for (int k = 0; k < 4 && x <= 127; k++) { notes[n++] = x; x = sv ? stepScale(stepScale(x, 1, sv), 1, sv) : x + (k % 2 ? 3 : 4); }
         } else for (int k = 0; k < 5 && ARP_IV[chord][k] >= 0 && n < 4; k++) if (base + ARP_IV[chord][k] <= 127) notes[n++] = base + ARP_IV[chord][k];
@@ -1407,13 +1418,18 @@ void Engine::trigger(int t, const uint8_t* lk, float velScale, bool fromSeq, boo
         }
         return;
     }
-    if (fromSeq) for (int k = 0; k < NCHORDV; k++) if (cv[t][k].active) cv[t][k].noteOff();   // normaler Trig beendet einen Akkord
-    if (fromSeq && val(P_AMOD) > 0 && !machineIsDrum(P.machine[t])) {
+    if (fromSeq || mono) for (int k = 0; k < NCHORDV; k++) if (cv[t][k].active) cv[t][k].noteOff();   // normaler Trig (und MONO/LEGATO) beendet einen Akkord
+    if (fromSeq && val(P_AMOD) > 0 && pitched) {
         Arp& a = ar[t];
         int base = val(P_NOTE), chord = val(P_ACHD) % 10, oct = val(P_AOCT) % 4 + 1;
         int sv = proj.mst[MS_SCALE];
         uint8_t L[48]; int n = 0;
-        if (chord == 9) {   // Skalentoene (ohne Skala: Dur)
+        if (nx > 0) {   // freie Noten des Steps ueber OCT Oktaven (gehen dem Akkordtyp vor)
+            for (int o = 0; o < oct; o++) {
+                if (base + 12 * o <= 127 && n < 48) L[n++] = (uint8_t)(base + 12 * o);
+                for (int k = 0; k < nx && n < 48; k++) { int x = extra[k] + 12 * o; if (x <= 127) L[n++] = (uint8_t)x; }
+            }
+        } else if (chord == 9) {   // Skalentoene (ohne Skala: Dur)
             static const int maj[7] = {0, 2, 4, 5, 7, 9, 11};
             if (sv) { int x = quantizeNote(base, sv); while (x < base + 12 * oct && n < 48 && x <= 127) { L[n++] = (uint8_t)x; x = stepScale(x, 1, sv); } }
             else for (int o = 0; o < oct; o++) for (int k = 0; k < 7 && n < 48; k++) { int x = base + 12 * o + maj[k]; if (x <= 127) L[n++] = (uint8_t)x; }
@@ -1434,6 +1450,7 @@ void Engine::trigger(int t, const uint8_t* lk, float velScale, bool fromSeq, boo
         a.left = gs > 0 ? gs : (1 << 30);   // unendliche Laenge: bis zum naechsten Trig
         a.timer = 0; a.idx = 0;
         a.vel = velScale; a.acc = val(P_AACC) / 100.f;
+        a.legato = legato;
         a.rng.s ^= (uint32_t)(t * 7919 + base);
         for (int i = 0; i < NPARAMS; i++) a.lk[i] = lk ? lk[i] : NO_LOCK;
         rt[t].left = 0;
@@ -1441,7 +1458,7 @@ void Engine::trigger(int t, const uint8_t* lk, float velScale, bool fromSeq, boo
         return;
     }
     if (fromSeq) ar[t].left = 0;   // neuer normaler Trig beendet einen laufenden Arp
-    playNote(t, lk, velScale, gs, toMidi);
+    playNote(t, lk, velScale, gs, toMidi, legato);
     if (fromSeq) {
         int r = val(P_RTRG);
         if (r > 0) {
@@ -1459,13 +1476,13 @@ void Engine::trigger(int t, const uint8_t* lk, float velScale, bool fromSeq, boo
     }
 }
 
-void Engine::playNote(int t, const uint8_t* lk, float velScale, int gs, bool toMidi) {
+void Engine::playNote(int t, const uint8_t* lk, float velScale, int gs, bool toMidi, bool legato) {
     Pattern& P = TP(t);
     const uint8_t* b = P.p[t];
     auto val = [&](int i) { return (lk && lk[i] != NO_LOCK) ? lk[i] : b[i]; };
     v[t].scaleVal = proj.mst[MS_SCALE];
     v[t].stepSec = (float)(stepSamples() / sr);
-    v[t].noteOn(P.machine[t], b, lk, velScale, gs, (float)sr);
+    v[t].noteOn(P.machine[t], b, lk, velScale, gs, (float)sr, legato);
     if (toMidi && notesOut && midiOut) {
         if (midiNote[t] >= 0) emit(0x80 | t, (uint8_t)midiNote[t], 0, curOff);
         int nn = quantizeNote(val(P_NOTE), proj.mst[MS_SCALE]);
@@ -1484,7 +1501,7 @@ void Engine::arpFire(int t) {
     a.lk[P_NOTE] = a.notes[i];
     float vel = a.vel * ((a.idx % a.n) == 0 ? 1.f : 1.f - 0.6f * a.acc);
     a.idx++;
-    playNote(t, a.lk, vel, a.gate, true);
+    playNote(t, a.lk, vel, a.gate, true, a.legato);
 }
 
 void Engine::applyRow(int pos) {
@@ -1656,7 +1673,8 @@ void Engine::stepTrack(int t) {
     // Trigless Lock: Parameter des klingenden Tons aendern, ohne neu anzuschlagen (gilt bis zum naechsten Trig)
     if (st.on == 2 && !skip) {
         for (int i = 0; i < NPARAMS; i++)
-            if (st.lock[i] != NO_LOCK && i != P_NOTE && i != P_LEN && i != P_COND && i != P_PROB) {
+            if (st.lock[i] != NO_LOCK && i != P_NOTE && i != P_LEN && i != P_COND && i != P_PROB
+                && i != P_NT2 && i != P_NT3 && i != P_NT4) {   // Noten gehoeren zum Anschlag, nicht zum klingenden Ton
                 v[t].lk[i] = st.lock[i];
                 ar[t].lk[i] = st.lock[i];
             }

@@ -321,9 +321,10 @@ private:
     struct Retrig { int left = 0; int interval = 0; int timer = 0; float vel = 1, fade = 0; uint8_t lk[NPARAMS]; } rt[NTRACKS];
     // Arpeggiator je Spur: spielt waehrend der Trig-Laenge die Akkordtoene
     struct Arp { int left = 0; int interval = 0; int timer = 0; int idx = 0, n = 0, mode = 0, gate = 0; float vel = 1, acc = 0;
+                 bool legato = false;   // Spur steht auf LEGATO: der Arp bindet die Toene
                  uint8_t notes[48]; uint8_t lk[NPARAMS]; Rng rng; } ar[NTRACKS];
     void arpFire(int t);
-    void playNote(int t, const uint8_t* lk, float velScale, int gs, bool toMidi);
+    void playNote(int t, const uint8_t* lk, float velScale, int gs, bool toMidi, bool legato = false);
     SVF djL, djR;
     float cEnv = 0;
     Rng rng;

@@ -48,9 +48,25 @@ Die 8 Spuren liegen auf dem Bildschirm genau so wie die Tasten: **Steuerkreuz �
 | linker Stick ↑/↓ | Tempo ±1 BPM |
 | START | Play / Stop |
 
-## Akkorde (ARP-Seite, MODE = AKKD)
+## Akkorde und Stimmen (TRIG-Seite: NT2–NT4, VOICE)
 
-Im ARP-Modus **AKKD** spielt ein Trig alle Töne des gewählten Akkords (**CHRD**: Oktave, Quinte, Dur, Moll, sus4, Maj7, Min7, Dom7, Dim oder Skala = Terzschichtung der Projektskala) gleichzeitig – bis zu 4 Stimmen pro Spur, mit den Klangeinstellungen der Spur.
+Jede Spur spielt bis zu **4 Töne gleichzeitig**. Es gibt zwei Wege dorthin.
+
+**Freie Akkorde (NT2, NT3, NT4).** Auf der TRIG-Seite stehen in der dritten Reihe drei zusätzliche Noten. `---` heißt aus. Setzt du sie, klingen sie zusammen mit NOTE – frei wählbar, also auch Umkehrungen, weite Lagen oder Quartenschichtungen, die keine Akkordtabelle anbietet. Wie jeder Regler sind sie **pro Step lockbar**: Step halten und den Wert ändern, dann hat dieser eine Step seinen eigenen Akkord. So entsteht eine Akkordfolge in einer einzigen Spur.
+
+**Akkordtypen (ARP-Seite, MODE = AKKD).** Im ARP-Modus **AKKD** spielt ein Trig die Töne des gewählten Akkords (**CHRD**: Oktave, Quinte, Dur, Moll, sus4, Maj7, Min7, Dom7, Dim oder Skala = Terzschichtung der Projektskala). Das ist der schnelle Weg, wenn ein Standardakkord reicht – er folgt der Tonhöhe von NOTE.
+
+Sind beide gesetzt, **gewinnen die freien Noten**. Steht der Arpeggiator auf UP, DOWN, UPDN oder RAND, speisen die freien Noten auch ihn: der Arp spielt dann deine eigenen Töne statt der Tabelle, über OCT Oktaven.
+
+**VOICE** (TRIG-Seite, letzter Regler) bestimmt, wie die Spur mit Stimmen umgeht:
+
+| VOICE | Verhalten |
+|---|---|
+| **POLY** | NT2–NT4 klingen mit (bis 4 Töne). Jeder Trig löst die Hüllkurven neu aus. Grundeinstellung. |
+| **MONO** | Nur ein Ton, Zusatznoten werden ignoriert. Jeder Trig löst neu aus. |
+| **LEGATO** | Wie MONO, aber ein Trig auf einen noch klingenden Ton wechselt **nur die Tonhöhe**: Hüllkurven und LFOs laufen weiter, das Sample springt nicht zurück. Mit GLID (SYNTH/WTBL) gleitet die Tonhöhe. |
+
+LEGATO ist der Unterschied zwischen einer stakkato gestochenen Bassline und einer, die fließt: setze zwei Trigs hintereinander mit LEN auf „halten“, und der zweite bindet an den ersten an. Für Drum-Engines hat VOICE keine Wirkung – die sind immer einstimmig.
 
 ## Klangerzeugung
 
@@ -94,7 +110,7 @@ Beim Drehen erscheint der **Engine-Wähler** mit Symbolen für alle 13 Engines.
 | START | speichern als `samples/wavetables/draw-NN.wav` (16 Frames × 2048) und der Spur zuweisen |
 | B | abbrechen (vorige Tabelle bleibt) |
 
-Jede Spur spielt eine Stimme; SYNTH, FM, WTBL und die Sample-Engines spielen im ARP-Modus **AKKD** bis zu 4 Akkordtöne gleichzeitig.
+Spuren mit Tonhöhe (SYNTH, FM, WTBL, Sample-Engines) spielen bis zu 4 Töne gleichzeitig – über die freien Noten NT2–NT4 oder den ARP-Modus **AKKD**, siehe „Akkorde und Stimmen“. Der Regler **VOICE** schaltet auf MONO oder LEGATO um.
 Die Engine gilt pro Spur und Pattern. Wechselst du sie, werden nur die SRC-Regler auf die Grundwerte der neuen Engine gesetzt.
 
 Jede Spur hat diese Seiten:

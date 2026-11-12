@@ -7,7 +7,7 @@ Seite TRG | A | T5 Step 1 0>1
 Seite TRG | B | -
 Seite TRG | X | T5.NOTE 36>37
 Seite TRG | Y | T5.NOTE 36>35
-Seite TRG | L1 | Regler 1>8
+Seite TRG | L1 | Regler 1>12
 Seite TRG | R1 | Regler 1>2
 Seite TRG | L2 | Seite TRG>LF3
 Seite TRG | R2 | Seite TRG>SEQ
@@ -36,7 +36,7 @@ Seite TRG | A+X | T5 Step 1 0>1; T5 Step 1 Lock NOTE 255>37
 Seite TRG | A+Y | T5 Step 1 0>1; T5 Step 1 Lock NOTE 255>35
 Seite TRG | A+HOCH | T5 Step 1 0>1
 Seite TRG | A+RUNTER | T5 Step 1 0>1
-Seite TRG | A+L1 | Regler 1>8; T5 Step 1 0>1
+Seite TRG | A+L1 | Regler 1>12; T5 Step 1 0>1
 Seite TRG | A+R1 | Regler 1>2; T5 Step 1 0>1
 Seite TRG | A+SEL+L1 | Trig-Ablage voll; Meldung "LEEREN STEP KOPIERT"
 Seite TRG | A+SEL+R1 | T5 Step 1 0>1; Meldung "TRIG-ABLAGE LEER (LOCK-MODUS: SELECT + L1)"
@@ -824,7 +824,7 @@ Seite SR3 | A | T5 Step 1 0>1
 Seite SR3 | B | -
 Seite SR3 | X | T5.NOTE 36>37
 Seite SR3 | Y | T5.NOTE 36>35
-Seite SR3 | L1 | Regler 1>8
+Seite SR3 | L1 | Regler 1>12
 Seite SR3 | R1 | Regler 1>2
 Seite SR3 | L2 | Seite TRG>LF3
 Seite SR3 | R2 | Seite TRG>SEQ
@@ -853,7 +853,7 @@ Seite SR3 | A+X | T5 Step 1 0>1; T5 Step 1 Lock NOTE 255>37
 Seite SR3 | A+Y | T5 Step 1 0>1; T5 Step 1 Lock NOTE 255>35
 Seite SR3 | A+HOCH | T5 Step 1 0>1
 Seite SR3 | A+RUNTER | T5 Step 1 0>1
-Seite SR3 | A+L1 | Regler 1>8; T5 Step 1 0>1
+Seite SR3 | A+L1 | Regler 1>12; T5 Step 1 0>1
 Seite SR3 | A+R1 | Regler 1>2; T5 Step 1 0>1
 Seite SR3 | A+SEL+L1 | Trig-Ablage voll; Meldung "LEEREN STEP KOPIERT"
 Seite SR3 | A+SEL+R1 | T5 Step 1 0>1; Meldung "TRIG-ABLAGE LEER (LOCK-MODUS: SELECT + L1)"
@@ -867,7 +867,7 @@ Seite SR4 | A | T5 Step 1 0>1
 Seite SR4 | B | -
 Seite SR4 | X | T5.NOTE 36>37
 Seite SR4 | Y | T5.NOTE 36>35
-Seite SR4 | L1 | Regler 1>8
+Seite SR4 | L1 | Regler 1>12
 Seite SR4 | R1 | Regler 1>2
 Seite SR4 | L2 | Seite TRG>LF3
 Seite SR4 | R2 | Seite TRG>SEQ
@@ -896,7 +896,7 @@ Seite SR4 | A+X | T5 Step 1 0>1; T5 Step 1 Lock NOTE 255>37
 Seite SR4 | A+Y | T5 Step 1 0>1; T5 Step 1 Lock NOTE 255>35
 Seite SR4 | A+HOCH | T5 Step 1 0>1
 Seite SR4 | A+RUNTER | T5 Step 1 0>1
-Seite SR4 | A+L1 | Regler 1>8; T5 Step 1 0>1
+Seite SR4 | A+L1 | Regler 1>12; T5 Step 1 0>1
 Seite SR4 | A+R1 | Regler 1>2; T5 Step 1 0>1
 Seite SR4 | A+SEL+L1 | Trig-Ablage voll; Meldung "LEEREN STEP KOPIERT"
 Seite SR4 | A+SEL+R1 | T5 Step 1 0>1; Meldung "TRIG-ABLAGE LEER (LOCK-MODUS: SELECT + L1)"
@@ -910,7 +910,7 @@ Seite SR5 | A | T5 Step 1 0>1
 Seite SR5 | B | -
 Seite SR5 | X | T5.NOTE 36>37
 Seite SR5 | Y | T5.NOTE 36>35
-Seite SR5 | L1 | Regler 1>8
+Seite SR5 | L1 | Regler 1>12
 Seite SR5 | R1 | Regler 1>2
 Seite SR5 | L2 | Seite TRG>LF3
 Seite SR5 | R2 | Seite TRG>SEQ
@@ -939,7 +939,7 @@ Seite SR5 | A+X | T5 Step 1 0>1; T5 Step 1 Lock NOTE 255>37
 Seite SR5 | A+Y | T5 Step 1 0>1; T5 Step 1 Lock NOTE 255>35
 Seite SR5 | A+HOCH | T5 Step 1 0>1
 Seite SR5 | A+RUNTER | T5 Step 1 0>1
-Seite SR5 | A+L1 | Regler 1>8; T5 Step 1 0>1
+Seite SR5 | A+L1 | Regler 1>12; T5 Step 1 0>1
 Seite SR5 | A+R1 | Regler 1>2; T5 Step 1 0>1
 Seite SR5 | A+SEL+L1 | Trig-Ablage voll; Meldung "LEEREN STEP KOPIERT"
 Seite SR5 | A+SEL+R1 | T5 Step 1 0>1; Meldung "TRIG-ABLAGE LEER (LOCK-MODUS: SELECT + L1)"
@@ -2157,7 +2157,7 @@ TRIG mit Trig auf Step 1 | A | T5 Step 1 1>0
 TRIG mit Trig auf Step 1 | B | -
 TRIG mit Trig auf Step 1 | X | T5.NOTE 36>37
 TRIG mit Trig auf Step 1 | Y | T5.NOTE 36>35
-TRIG mit Trig auf Step 1 | L1 | Regler 1>8
+TRIG mit Trig auf Step 1 | L1 | Regler 1>12
 TRIG mit Trig auf Step 1 | R1 | Regler 1>2
 TRIG mit Trig auf Step 1 | L2 | Seite TRG>LF3
 TRIG mit Trig auf Step 1 | R2 | Seite TRG>SEQ
@@ -2186,7 +2186,7 @@ TRIG mit Trig auf Step 1 | A+X | T5 Step 1 Lock NOTE 255>37
 TRIG mit Trig auf Step 1 | A+Y | T5 Step 1 Lock NOTE 255>35
 TRIG mit Trig auf Step 1 | A+HOCH | T5 Step 1 1>0
 TRIG mit Trig auf Step 1 | A+RUNTER | T5 Step 1 1>0
-TRIG mit Trig auf Step 1 | A+L1 | Regler 1>8; T5 Step 1 1>0
+TRIG mit Trig auf Step 1 | A+L1 | Regler 1>12; T5 Step 1 1>0
 TRIG mit Trig auf Step 1 | A+R1 | Regler 1>2; T5 Step 1 1>0
 TRIG mit Trig auf Step 1 | A+SEL+L1 | Trig-Ablage voll; Meldung "TRIG KOPIERT (MIT LOCKS)"
 TRIG mit Trig auf Step 1 | A+SEL+R1 | T5 Step 1 1>0; Meldung "TRIG-ABLAGE LEER (LOCK-MODUS: SELECT + L1)"
@@ -2200,7 +2200,7 @@ TRIG Lock-Modus | A | Lock-Modus aus; Step losgelassen; T5 Step 1 1>0; Meldung "
 TRIG Lock-Modus | B | Meldung "LOCKS GELÖSCHT"
 TRIG Lock-Modus | X | T5 Step 1 Lock NOTE 255>37
 TRIG Lock-Modus | Y | T5 Step 1 Lock NOTE 255>35
-TRIG Lock-Modus | L1 | Regler 1>8
+TRIG Lock-Modus | L1 | Regler 1>12
 TRIG Lock-Modus | R1 | Regler 1>2
 TRIG Lock-Modus | L2 | Seite TRG>LF3
 TRIG Lock-Modus | R2 | Seite TRG>SEQ
@@ -2229,7 +2229,7 @@ TRIG Lock-Modus | A+X | Lock-Modus aus; Step losgelassen; T5.NOTE 36>37; T5 Step
 TRIG Lock-Modus | A+Y | Lock-Modus aus; Step losgelassen; T5.NOTE 36>35; T5 Step 1 1>0; Meldung "LOCK-MODUS AUS"
 TRIG Lock-Modus | A+HOCH | Spur 5>4; Lock-Modus aus; Step losgelassen; T5 Step 1 1>0; Meldung "LOCK-MODUS AUS"
 TRIG Lock-Modus | A+RUNTER | Spur 5>6; Lock-Modus aus; Step losgelassen; T5 Step 1 1>0; Meldung "LOCK-MODUS AUS"
-TRIG Lock-Modus | A+L1 | Regler 1>8; Lock-Modus aus; Step losgelassen; T5 Step 1 1>0; Meldung "LOCK-MODUS AUS"
+TRIG Lock-Modus | A+L1 | Regler 1>12; Lock-Modus aus; Step losgelassen; T5 Step 1 1>0; Meldung "LOCK-MODUS AUS"
 TRIG Lock-Modus | A+R1 | Regler 1>2; Lock-Modus aus; Step losgelassen; T5 Step 1 1>0; Meldung "LOCK-MODUS AUS"
 TRIG Lock-Modus | A+SEL+L1 | PAGE-Menue auf; Lock-Modus aus; Step losgelassen; T5 Step 1 1>0; Meldung "LOCK-MODUS AUS"
 TRIG Lock-Modus | A+SEL+R1 | PAGE-Menue auf; Lock-Modus aus; Step losgelassen; T5 Step 1 1>0; Meldung "LOCK-MODUS AUS"
@@ -2243,7 +2243,7 @@ TRIG spielt | A | T5 Step 1 0>1
 TRIG spielt | B | -
 TRIG spielt | X | T5.NOTE 36>37
 TRIG spielt | Y | T5.NOTE 36>35
-TRIG spielt | L1 | Regler 1>8
+TRIG spielt | L1 | Regler 1>12
 TRIG spielt | R1 | Regler 1>2
 TRIG spielt | L2 | Seite TRG>LF3
 TRIG spielt | R2 | Seite TRG>SEQ
@@ -2272,7 +2272,7 @@ TRIG spielt | A+X | T5 Step 1 0>1; T5 Step 1 Lock NOTE 255>37
 TRIG spielt | A+Y | T5 Step 1 0>1; T5 Step 1 Lock NOTE 255>35
 TRIG spielt | A+HOCH | T5 Step 1 0>1
 TRIG spielt | A+RUNTER | T5 Step 1 0>1
-TRIG spielt | A+L1 | Regler 1>8; T5 Step 1 0>1
+TRIG spielt | A+L1 | Regler 1>12; T5 Step 1 0>1
 TRIG spielt | A+R1 | Regler 1>2; T5 Step 1 0>1
 TRIG spielt | A+SEL+L1 | Trig-Ablage voll; Meldung "LEEREN STEP KOPIERT"
 TRIG spielt | A+SEL+R1 | T5 Step 1 0>1; Meldung "TRIG-ABLAGE LEER (LOCK-MODUS: SELECT + L1)"
@@ -2286,7 +2286,7 @@ TRIG Spur 32 Steps, Page 2 | A | T5 Step 21 0>1
 TRIG Spur 32 Steps, Page 2 | B | -
 TRIG Spur 32 Steps, Page 2 | X | T5.NOTE 36>37
 TRIG Spur 32 Steps, Page 2 | Y | T5.NOTE 36>35
-TRIG Spur 32 Steps, Page 2 | L1 | Regler 1>8
+TRIG Spur 32 Steps, Page 2 | L1 | Regler 1>12
 TRIG Spur 32 Steps, Page 2 | R1 | Regler 1>2
 TRIG Spur 32 Steps, Page 2 | L2 | Seite TRG>LF3
 TRIG Spur 32 Steps, Page 2 | R2 | Seite TRG>SEQ
@@ -2315,7 +2315,7 @@ TRIG Spur 32 Steps, Page 2 | A+X | T5 Step 21 0>1; T5 Step 21 Lock NOTE 255>37
 TRIG Spur 32 Steps, Page 2 | A+Y | T5 Step 21 0>1; T5 Step 21 Lock NOTE 255>35
 TRIG Spur 32 Steps, Page 2 | A+HOCH | T5 Step 21 0>1
 TRIG Spur 32 Steps, Page 2 | A+RUNTER | T5 Step 21 0>1
-TRIG Spur 32 Steps, Page 2 | A+L1 | Regler 1>8; T5 Step 21 0>1
+TRIG Spur 32 Steps, Page 2 | A+L1 | Regler 1>12; T5 Step 21 0>1
 TRIG Spur 32 Steps, Page 2 | A+R1 | Regler 1>2; T5 Step 21 0>1
 TRIG Spur 32 Steps, Page 2 | A+SEL+L1 | Trig-Ablage voll; Meldung "LEEREN STEP KOPIERT"
 TRIG Spur 32 Steps, Page 2 | A+SEL+R1 | T5 Step 21 0>1; Meldung "TRIG-ABLAGE LEER (LOCK-MODUS: SELECT + L1)"
@@ -2358,7 +2358,7 @@ Seitenkarte offen | A+X | Seitenkarte zu; T5.NOTE 36>37
 Seitenkarte offen | A+Y | Seitenkarte zu; T5.NOTE 36>35
 Seitenkarte offen | A+HOCH | Spur 5>4; Seitenkarte zu
 Seitenkarte offen | A+RUNTER | Spur 5>6; Seitenkarte zu
-Seitenkarte offen | A+L1 | Regler 1>8; Seitenkarte zu
+Seitenkarte offen | A+L1 | Regler 1>12; Seitenkarte zu
 Seitenkarte offen | A+R1 | Regler 1>2; Seitenkarte zu
 Seitenkarte offen | A+SEL+L1 | Seitenkarte zu; PAGE-Menue auf
 Seitenkarte offen | A+SEL+R1 | Seitenkarte zu; PAGE-Menue auf
@@ -2372,7 +2372,7 @@ TRIG mit Trig-Ablage | A | T5 Step 4 0>1
 TRIG mit Trig-Ablage | B | -
 TRIG mit Trig-Ablage | X | T5.NOTE 36>37
 TRIG mit Trig-Ablage | Y | T5.NOTE 36>35
-TRIG mit Trig-Ablage | L1 | Regler 1>8
+TRIG mit Trig-Ablage | L1 | Regler 1>12
 TRIG mit Trig-Ablage | R1 | Regler 1>2
 TRIG mit Trig-Ablage | L2 | Seite TRG>LF3
 TRIG mit Trig-Ablage | R2 | Seite TRG>SEQ
@@ -2401,7 +2401,7 @@ TRIG mit Trig-Ablage | A+X | T5 Step 4 0>1; T5 Step 4 Lock NOTE 255>37
 TRIG mit Trig-Ablage | A+Y | T5 Step 4 0>1; T5 Step 4 Lock NOTE 255>35
 TRIG mit Trig-Ablage | A+HOCH | T5 Step 4 0>1
 TRIG mit Trig-Ablage | A+RUNTER | T5 Step 4 0>1
-TRIG mit Trig-Ablage | A+L1 | Regler 1>8; T5 Step 4 0>1
+TRIG mit Trig-Ablage | A+L1 | Regler 1>12; T5 Step 4 0>1
 TRIG mit Trig-Ablage | A+R1 | Regler 1>2; T5 Step 4 0>1
 TRIG mit Trig-Ablage | A+SEL+L1 | Meldung "LEEREN STEP KOPIERT"
 TRIG mit Trig-Ablage | A+SEL+R1 | T5 Step 4 0>1; T5 Step 4 Lock NOTE 255>48; Meldung "TRIG EINGEFÜGT IN STEP 4"
@@ -2487,7 +2487,7 @@ PAGE-Menue mit Page-/Spur-Ablage (T1) | A+X | PAGE-Menue zu; T5.NOTE 36>37; Meld
 PAGE-Menue mit Page-/Spur-Ablage (T1) | A+Y | PAGE-Menue zu; T5.NOTE 36>35; Meldung "PAGE 1 VON SPUR 5 KOPIERT"
 PAGE-Menue mit Page-/Spur-Ablage (T1) | A+HOCH | Spur 5>4; PAGE-Menue zu; Meldung "PAGE 1 VON SPUR 5 KOPIERT"
 PAGE-Menue mit Page-/Spur-Ablage (T1) | A+RUNTER | Spur 5>6; PAGE-Menue zu; Meldung "PAGE 1 VON SPUR 5 KOPIERT"
-PAGE-Menue mit Page-/Spur-Ablage (T1) | A+L1 | Regler 1>8; PAGE-Menue zu; Meldung "PAGE 1 VON SPUR 5 KOPIERT"
+PAGE-Menue mit Page-/Spur-Ablage (T1) | A+L1 | Regler 1>12; PAGE-Menue zu; Meldung "PAGE 1 VON SPUR 5 KOPIERT"
 PAGE-Menue mit Page-/Spur-Ablage (T1) | A+R1 | Regler 1>2; PAGE-Menue zu; Meldung "PAGE 1 VON SPUR 5 KOPIERT"
 PAGE-Menue mit Page-/Spur-Ablage (T1) | A+SEL+L1 | Meldung "PAGE 1 VON SPUR 5 KOPIERT"
 PAGE-Menue mit Page-/Spur-Ablage (T1) | A+SEL+R1 | Meldung "PAGE 1 VON SPUR 5 KOPIERT"
@@ -2644,7 +2644,7 @@ TRIG mit Undo-Verlauf (Trig gesetzt) | A | T5 Step 1 0>1
 TRIG mit Undo-Verlauf (Trig gesetzt) | B | -
 TRIG mit Undo-Verlauf (Trig gesetzt) | X | T5.NOTE 36>37
 TRIG mit Undo-Verlauf (Trig gesetzt) | Y | T5.NOTE 36>35
-TRIG mit Undo-Verlauf (Trig gesetzt) | L1 | Regler 1>8
+TRIG mit Undo-Verlauf (Trig gesetzt) | L1 | Regler 1>12
 TRIG mit Undo-Verlauf (Trig gesetzt) | R1 | Regler 1>2
 TRIG mit Undo-Verlauf (Trig gesetzt) | L2 | Seite TRG>LF3
 TRIG mit Undo-Verlauf (Trig gesetzt) | R2 | Seite TRG>SEQ
@@ -2673,7 +2673,7 @@ TRIG mit Undo-Verlauf (Trig gesetzt) | A+X | T5 Step 1 0>1; T5 Step 1 Lock NOTE 
 TRIG mit Undo-Verlauf (Trig gesetzt) | A+Y | T5 Step 1 0>1; T5 Step 1 Lock NOTE 255>35
 TRIG mit Undo-Verlauf (Trig gesetzt) | A+HOCH | T5 Step 1 0>1
 TRIG mit Undo-Verlauf (Trig gesetzt) | A+RUNTER | T5 Step 1 0>1
-TRIG mit Undo-Verlauf (Trig gesetzt) | A+L1 | Regler 1>8; T5 Step 1 0>1
+TRIG mit Undo-Verlauf (Trig gesetzt) | A+L1 | Regler 1>12; T5 Step 1 0>1
 TRIG mit Undo-Verlauf (Trig gesetzt) | A+R1 | Regler 1>2; T5 Step 1 0>1
 TRIG mit Undo-Verlauf (Trig gesetzt) | A+SEL+L1 | Trig-Ablage voll; Meldung "LEEREN STEP KOPIERT"
 TRIG mit Undo-Verlauf (Trig gesetzt) | A+SEL+R1 | T5 Step 1 0>1; Meldung "TRIG-ABLAGE LEER (LOCK-MODUS: SELECT + L1)"
@@ -2716,7 +2716,7 @@ PAGE-Menue offen | A+X | PAGE-Menue zu; Page-Ablage 1; T5.NOTE 36>37; Meldung "P
 PAGE-Menue offen | A+Y | PAGE-Menue zu; Page-Ablage 1; T5.NOTE 36>35; Meldung "PAGE 1 VON SPUR 5 KOPIERT"
 PAGE-Menue offen | A+HOCH | Spur 5>4; PAGE-Menue zu; Page-Ablage 1; Meldung "PAGE 1 VON SPUR 5 KOPIERT"
 PAGE-Menue offen | A+RUNTER | Spur 5>6; PAGE-Menue zu; Page-Ablage 1; Meldung "PAGE 1 VON SPUR 5 KOPIERT"
-PAGE-Menue offen | A+L1 | Regler 1>8; PAGE-Menue zu; Page-Ablage 1; Meldung "PAGE 1 VON SPUR 5 KOPIERT"
+PAGE-Menue offen | A+L1 | Regler 1>12; PAGE-Menue zu; Page-Ablage 1; Meldung "PAGE 1 VON SPUR 5 KOPIERT"
 PAGE-Menue offen | A+R1 | Regler 1>2; PAGE-Menue zu; Page-Ablage 1; Meldung "PAGE 1 VON SPUR 5 KOPIERT"
 PAGE-Menue offen | A+SEL+L1 | Page-Ablage 1; Meldung "PAGE 1 VON SPUR 5 KOPIERT"
 PAGE-Menue offen | A+SEL+R1 | Page-Ablage 1; Meldung "PAGE 1 VON SPUR 5 KOPIERT"
@@ -2859,7 +2859,7 @@ Abfrage offen (Spur leeren) | A+X | Abfrage zu; T5.NOTE 36>37; Meldung "SPUR 5 G
 Abfrage offen (Spur leeren) | A+Y | Abfrage zu; T5.NOTE 36>35; Meldung "SPUR 5 GELEERT (SELECT+B = RÜCKGÄNGIG)"
 Abfrage offen (Spur leeren) | A+HOCH | Spur 5>4; Abfrage zu; Meldung "SPUR 5 GELEERT (SELECT+B = RÜCKGÄNGIG)"
 Abfrage offen (Spur leeren) | A+RUNTER | Spur 5>6; Abfrage zu; Meldung "SPUR 5 GELEERT (SELECT+B = RÜCKGÄNGIG)"
-Abfrage offen (Spur leeren) | A+L1 | Regler 1>8; Abfrage zu; Meldung "SPUR 5 GELEERT (SELECT+B = RÜCKGÄNGIG)"
+Abfrage offen (Spur leeren) | A+L1 | Regler 1>12; Abfrage zu; Meldung "SPUR 5 GELEERT (SELECT+B = RÜCKGÄNGIG)"
 Abfrage offen (Spur leeren) | A+R1 | Regler 1>2; Abfrage zu; Meldung "SPUR 5 GELEERT (SELECT+B = RÜCKGÄNGIG)"
 Abfrage offen (Spur leeren) | A+SEL+L1 | PAGE-Menue auf; Abfrage zu; Meldung "SPUR 5 GELEERT (SELECT+B = RÜCKGÄNGIG)"
 Abfrage offen (Spur leeren) | A+SEL+R1 | PAGE-Menue auf; Abfrage zu; Meldung "SPUR 5 GELEERT (SELECT+B = RÜCKGÄNGIG)"
@@ -2946,7 +2946,7 @@ Liste Engine | A+Y | Liste zu
 Liste Engine | A+HOCH | Spur 5>4; Liste zu
 Liste Engine | A+RUNTER | Spur 5>6; Liste zu
 Liste Engine | A+L1 | Regler 8>7; Liste zu
-Liste Engine | A+R1 | Regler 8>1; Liste zu
+Liste Engine | A+R1 | Regler 8>9; Liste zu
 Liste Engine | A+SEL+L1 | PAGE-Menue auf; Liste zu
 Liste Engine | A+SEL+R1 | PAGE-Menue auf; Liste zu
 Liste Engine | Stick R hoch | -
@@ -2988,7 +2988,7 @@ Liste Bedingung | A+X | Liste zu; T5.NOTE 36>37
 Liste Bedingung | A+Y | Liste zu; T5.NOTE 36>35
 Liste Bedingung | A+HOCH | Spur 5>4; Liste zu
 Liste Bedingung | A+RUNTER | Spur 5>6; Liste zu
-Liste Bedingung | A+L1 | Regler 1>8; Liste zu
+Liste Bedingung | A+L1 | Regler 1>12; Liste zu
 Liste Bedingung | A+R1 | Regler 1>2; Liste zu
 Liste Bedingung | A+SEL+L1 | PAGE-Menue auf; Liste zu
 Liste Bedingung | A+SEL+R1 | PAGE-Menue auf; Liste zu
@@ -3117,7 +3117,7 @@ Liste Projekt | A+X | Liste zu; T5.NOTE 36>37; Meldung "GELADEN: Matrix"
 Liste Projekt | A+Y | Liste zu; T5.NOTE 36>35; Meldung "GELADEN: Matrix"
 Liste Projekt | A+HOCH | Spur 5>4; Liste zu; Meldung "GELADEN: Matrix"
 Liste Projekt | A+RUNTER | Spur 5>6; Liste zu; Meldung "GELADEN: Matrix"
-Liste Projekt | A+L1 | Regler 1>8; Liste zu; Meldung "GELADEN: Matrix"
+Liste Projekt | A+L1 | Regler 1>12; Liste zu; Meldung "GELADEN: Matrix"
 Liste Projekt | A+R1 | Regler 1>2; Liste zu; Meldung "GELADEN: Matrix"
 Liste Projekt | A+SEL+L1 | PAGE-Menue auf; Liste zu; Meldung "GELADEN: Matrix"
 Liste Projekt | A+SEL+R1 | PAGE-Menue auf; Liste zu; Meldung "GELADEN: Matrix"
