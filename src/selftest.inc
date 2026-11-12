@@ -1076,6 +1076,30 @@ static void uiScenariosV2() {
       UCHECK(true, "knobInfo mit zu grossem Index"); }   // darf nicht abstuerzen (Sanitizer)
     simReset(); simFrame();
 
+    // Gemeldet: nach "Neues Projekt" wirkte das Steuerkreuz links/rechts auf die Gruppe
+    // (Makros, LFO3 ...) statt auf die Steps - die Ansicht blieb auf SOUND stehen.
+    uiCase = "Neues Projekt: Ansicht und Cursor";
+    {
+        simReset(); simFrame();
+        goPage(PG_FLT);                      // irgendwo in SOUND, Gruppe weit unten
+        goTrack(5); goStep(9);
+        UCHECK(v2View == V2_SOUND, "Vorbereitung: nicht in SOUND (%d)", v2View);
+        doNewProject("TestNeu");
+        simFrame();
+        UCHECK(v2View == V2_SEQ, "nach Neues Projekt: Ansicht SEQ erwartet (%d)", v2View);
+        UCHECK(page == PG_TRG && slot == 0, "nach Neues Projekt: TRIG/Regler 1 erwartet (Seite %d, Regler %d)", page, slot);
+        UCHECK(track == 0 && cursor == 0, "nach Neues Projekt: Spur 1/Step 1 erwartet (%d/%d)", track + 1, cursor + 1);
+        int c0 = cursor, p0 = page;
+        tap(BT_RIGHT); tap(BT_RIGHT);
+        UCHECK(cursor == c0 + 2 && page == p0, "links/rechts muss die Steps bewegen (Step %d, Seite %d)", cursor + 1, page);
+        // und das neue Projekt ist leer, nicht der Demo-Song
+        int trigs = 0;
+        for (int t = 0; t < NTRACKS; t++) for (int st = 0; st < NSTEPS; st++) if (eng.proj.pat[0].s[t][st].on) trigs++;
+        UCHECK(trigs == 0, "neues Projekt ist nicht leer (%d Trigs)", trigs);
+        UCHECK(!eng.songOn, "neues Projekt startet im Song-Modus");
+    }
+    simReset(); simFrame();
+
     uiCase = "Touch: alles mit dem Finger";
     simReset(); simFrame(); simDraw = true; simFrame();
     { // Spur waehlen und stummschalten (M am rechten Rand der Spurzeile)

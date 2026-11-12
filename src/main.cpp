@@ -3760,6 +3760,7 @@ static int loadPresetPath(int t, const char* p) {   // 1 ok, 0 fehlt, -1 Fehler
     return 1;
 }
 
+static void uiResetToStart();   // ui2.inc: nach Projektwechsel in den Startzustand
 #include "filedlg.inc"
 #include "wtedit.inc"
 static void drawWtEditorIfOpen() { if (wteOpen) drawWtEditor(); }
@@ -5802,7 +5803,7 @@ int main(int argc, char** argv) {
         snprintf(old, sizeof old, "%sprojects/project1.gbx", basePath);
         projectPath("song01", s1, sizeof s1);
         if (fileExists(old) && !fileExists(s1)) { rename(old, s1); firstRun = false; }
-        if (!cfg.project[0]) snprintf(cfg.project, sizeof cfg.project, "%s", firstRun ? "Neon Nights" : "song01");
+        if (!cfg.project[0]) snprintf(cfg.project, sizeof cfg.project, "%s", "song01");
         projectPath(cfg.project, projPath, sizeof projPath);
     } else {   // --project DATEI: Name aus dem Dateinamen
         const char* b = strrchr(projPath, '/'); b = b ? b + 1 : projPath;
@@ -5836,14 +5837,13 @@ int main(int argc, char** argv) {
     eng.audioThreads = eng.helperReady() && cfg.cores > 1 ? 2 : 1;
     printf("Audio-Rechenkerne: %d\n", eng.audioThreads);
     if (eng.load(projPath)) { printf("Projekt geladen: %s\n", projPath); poolLoadForProject(projPath); }
-    else if (firstRun) { buildDemo(eng); eng.songOn = true; eng.songStart(0); poolDefaults(); printf("Erster Start: Demo-Song angelegt\n"); }
-    else poolDefaults();
+    else poolDefaults();   // erster Start: leeres Projekt (den Demo-Song gibt es auf der PRJ-Seite)
     markSaved();
     applyMidiSettings();
     eng.midiOut = midiOutHook;
     midiStart();
     openAudio();
-    if (firstRun) toast(TR("WILLKOMMEN! START = DEMO ABSPIELEN, SELECT = MENÜ", "WELCOME! START = PLAY DEMO, SELECT = MENU"));
+    if (firstRun) toast(TR("WILLKOMMEN! A = TRIG SETZEN, START = ABSPIELEN, SELECT = MEHR", "WELCOME! A = SET TRIG, START = PLAY, SELECT = MORE"));
     else toast(TR("%d SAMPLES GELADEN", "%d SAMPLES LOADED"), sampleCount());
     if (firstRun) msgUntil = SDL_GetTicks() + 6000;
     webStart(basePath);

@@ -9,7 +9,7 @@ Sie startet als App aus dem Ports-Menü oder auf Wunsch direkt beim Booten statt
 
 ![Spurseite TRIG: links die 8 Spuren, oben der Signalweg, darunter Grafik, Regler und die 16 Steps](shot:0)
 
-* Beim **ersten Start** ist der Demo-Song **„Neon Nights“** geladen: **START** spielt ihn ab (Song-Modus, 4 Patterns). Jederzeit wieder: SET → „Demo-Song laden“.
+* Beim **ersten Start** beginnst du mit einem **leeren Projekt**: **A** setzt einen Trig, **START** spielt ab. Den Demo-Song **„Neon Nights“** lädst du jederzeit über die **PRJ**-Seite → „DEMO-SONG“.
 * **Bedienen geht komplett mit Steuerkreuz und Tasten** – die Sticks sind nur Abkürzungen. Überall gilt: **L2/R2 = Ansicht**, **SELECT antippen = MEHR-Menü**, **START = Play/Stop** (beim Spielen halten = **FILL**). In den Listen: **▲▼ = Regler**, **L1/R1 = Spur**, **X/Y = Wert**.
 * **SELECT antippen** öffnet das **MEHR-Menü** (Ansicht wählen, Page/Spur/Sound kopieren, Engine, Speichern). **SELECT halten** zeigt die Tastenhilfe. Am Handy gibt es dafür unten rechts den Knopf **MEHR**.
 * Unten im Bedienfeld steht zu jedem Regler eine kurze Erklärung.

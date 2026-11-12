@@ -69,6 +69,7 @@ static void doLoadProject(const char* name) {
     poolLoadForProject(p);
     markSaved();
     setCurrentProject(name);
+    uiResetToStart();   // das geladene Projekt hat andere Engines: Ansicht und Fokus neu setzen
     toast(TR("GELADEN: %s", "LOADED: %s"), name);
 }
 static void doSaveProjectAs(const char* name) {
@@ -79,6 +80,7 @@ static void doSaveProjectAs(const char* name) {
 static void doNewProject(const char* name) {
     lockA(); eng.stop(); eng.defaultProject(false); eng.songOn = false; unlockA();
     poolDefaults();
+    uiResetToStart();
     doSaveProjectAs(name);
     toast(TR("NEUES PROJEKT: %s", "NEW PROJECT: %s"), name);
 }

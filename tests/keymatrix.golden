@@ -3955,8 +3955,8 @@ Liste Sound | Stick L rechts | -
 Liste Projekt | HOCH | -
 Liste Projekt | RUNTER | Listeneintrag 0>1
 Liste Projekt | LINKS | Liste zu
-Liste Projekt | RECHTS | Liste zu; Meldung "GELADEN: Matrix"
-Liste Projekt | A | Liste zu; Meldung "GELADEN: Matrix"
+Liste Projekt | RECHTS | Spur 5>1; Liste zu; Meldung "GELADEN: Matrix"
+Liste Projekt | A | Spur 5>1; Liste zu; Meldung "GELADEN: Matrix"
 Liste Projekt | B | Liste zu
 Liste Projekt | X | -
 Liste Projekt | Y | -
@@ -3964,12 +3964,12 @@ Liste Projekt | L1 | -
 Liste Projekt | R1 | Listeneintrag 0>1
 Liste Projekt | L2 | -
 Liste Projekt | R2 | -
-Liste Projekt | START | Liste zu; Meldung "GELADEN: Matrix"
+Liste Projekt | START | Spur 5>1; Liste zu; Meldung "GELADEN: Matrix"
 Liste Projekt | SELECT | Liste zu
-Liste Projekt | A lang | Liste zu; Meldung "GELADEN: Matrix"
+Liste Projekt | A lang | Spur 5>1; Liste zu; Meldung "GELADEN: Matrix"
 Liste Projekt | X lang | -
 Liste Projekt | Y lang | -
-Liste Projekt | START lang | Liste zu; Meldung "GELADEN: Matrix"
+Liste Projekt | START lang | Spur 5>1; Liste zu; Meldung "GELADEN: Matrix"
 Liste Projekt | SELECT lang | Liste zu
 Liste Projekt | SEL+HOCH | Liste zu
 Liste Projekt | SEL+RUNTER | Liste zu
@@ -3984,15 +3984,15 @@ Liste Projekt | SEL+R1 | Liste zu
 Liste Projekt | SEL+L2 | Liste zu
 Liste Projekt | SEL+R2 | Liste zu
 Liste Projekt | SEL+START | Liste zu
-Liste Projekt | A+B | Liste zu; Meldung "GELADEN: Matrix"
-Liste Projekt | A+X | Liste zu; T5.NOTE 36>37; Meldung "GELADEN: Matrix"
-Liste Projekt | A+Y | Liste zu; T5.NOTE 36>35; Meldung "GELADEN: Matrix"
-Liste Projekt | A+HOCH | Seite TRG>ARP; Regler 1>6; Liste zu; Meldung "GELADEN: Matrix"
-Liste Projekt | A+RUNTER | Regler 1>2; Liste zu; Meldung "GELADEN: Matrix"
-Liste Projekt | A+L1 | Spur 5>4; Liste zu; Meldung "GELADEN: Matrix"
-Liste Projekt | A+R1 | Spur 5>6; Liste zu; Meldung "GELADEN: Matrix"
-Liste Projekt | A+SEL+L1 | Step 1>13; Liste zu; Meldung "GELADEN: Matrix"
-Liste Projekt | A+SEL+R1 | Step 1>5; Liste zu; Meldung "GELADEN: Matrix"
+Liste Projekt | A+B | Spur 5>1; Liste zu; Meldung "GELADEN: Matrix"
+Liste Projekt | A+X | Spur 5>1; Liste zu; T1.NOTE 60>61; Meldung "GELADEN: Matrix"
+Liste Projekt | A+Y | Spur 5>1; Liste zu; T1.NOTE 60>59; Meldung "GELADEN: Matrix"
+Liste Projekt | A+HOCH | Seite TRG>SEQ; Spur 5>1; Regler 1>8; Liste zu; Meldung "GELADEN: Matrix"
+Liste Projekt | A+RUNTER | Spur 5>1; Regler 1>2; Liste zu; Meldung "GELADEN: Matrix"
+Liste Projekt | A+L1 | Spur 5>8; Liste zu; Meldung "GELADEN: Matrix"
+Liste Projekt | A+R1 | Spur 5>2; Liste zu; Meldung "GELADEN: Matrix"
+Liste Projekt | A+SEL+L1 | Spur 5>1; Step 1>13; Liste zu; Meldung "GELADEN: Matrix"
+Liste Projekt | A+SEL+R1 | Spur 5>1; Step 1>5; Liste zu; Meldung "GELADEN: Matrix"
 Liste Projekt | Stick R hoch | -
 Liste Projekt | Stick L rechts | -
 Liste Sample-Slots | HOCH | -

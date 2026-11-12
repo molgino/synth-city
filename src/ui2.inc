@@ -148,6 +148,18 @@ static int v2RingIndex() {
     return trackPage(page) ? 1 : 0;
 }
 static void v2Step(int dir) { v2GoView(v2RingIndex() + dir); }
+// Nach einem Projektwechsel (neu, geladen): definierter Startzustand. Ohne das blieben Ansicht,
+// Fokus, Spur und Step vom alten Projekt stehen - links/rechts wechselte dann in SOUND die
+// Gruppe statt die Steps zu bewegen, und die Liste zeigte auf Regler, die es nicht mehr gab.
+static void uiResetToStart() {
+    page = PG_TRG; slot = 0; track = 0; cursor = 0;
+    static const int FOC0[V2_VIEWS] = {1, 2, 1};
+    for (int i = 0; i < V2_VIEWS; i++) { v2Foc[i] = FOC0[i]; v2Scroll[i] = 0; }
+    v2View = V2_SEQ;
+    v2Dirty(); v2Build(v2View);
+    v2Foc[v2View] = v2Clamp(v2Foc[v2View], 1);
+    v2Apply();
+}
 // Wischen in der Liste: der Fokus wandert mit (die Liste folgt ihm ohnehin, freies Scrollen spraenge zurueck)
 static float v2SwipeAcc = 0;
 static void v2ScrollBy(float rows) {
