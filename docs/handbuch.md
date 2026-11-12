@@ -10,21 +10,19 @@ Sie startet als App aus dem Ports-Menü oder auf Wunsch direkt beim Booten statt
 ![Spurseite TRIG: links die 8 Spuren, oben der Signalweg, darunter Grafik, Regler und die 16 Steps](shot:0)
 
 * Beim **ersten Start** ist der Demo-Song **„Neon Nights“** geladen: **START** spielt ihn ab (Song-Modus, 4 Patterns). Jederzeit wieder: SET → „Demo-Song laden“.
-* **Bedienen geht komplett mit Steuerkreuz und Tasten** – die Sticks sind nur Abkürzungen. Überall gilt: **L2/R2 = Seite**, **SELECT antippen = Seitenkarte**, **START = Play/Stop** (beim Spielen halten = **FILL**). Auf Spurseiten: **L1/R1 = Regler**, **X/Y = Wert**.
-* **SELECT antippen** öffnet die **Seitenkarte** mit allen Seiten (Signalweg der Spur, LIVE/Mix/FX, Song/Projekt/Einstellungen). **SELECT halten** zeigt die Tastenhilfe.
+* **Bedienen geht komplett mit Steuerkreuz und Tasten** – die Sticks sind nur Abkürzungen. Überall gilt: **L2/R2 = Ansicht**, **SELECT antippen = MEHR-Menü**, **START = Play/Stop** (beim Spielen halten = **FILL**). In den Listen: **▲▼ = Regler**, **L1/R1 = Spur**, **X/Y = Wert**.
+* **SELECT antippen** öffnet das **MEHR-Menü** (Ansicht wählen, Page/Spur/Sound kopieren, Engine, Speichern). **SELECT halten** zeigt die Tastenhilfe. Am Handy gibt es dafür unten rechts den Knopf **MEHR**.
 * Unten im Bedienfeld steht zu jedem Regler eine kurze Erklärung.
 * Fertige Klänge: Seite PRJ → **PRESET** über Platz 32 hinaus drehen → **Werksklänge** (z. B. „NIGHT DRIVE BASS“, „PUNCH KICK“, „HAZE PAD“) → **P.LADEN**. Ein Werksklang setzt auch die Engine.
 * **Rave & Acid (Werksklänge):** „303 ACID“, „303 SQUARE ACID“, „ACID SCREAMER“, „ACID DEEP“ (Acid-Bässe im 303-Stil), „REESE BASS“, „REESE GROWL“ (Jungle/DnB), „HOOVER“, „HOOVER LEAD“, „RAVE STAB“ (Moll-Akkord auf einer Taste), „DUB CHORD“, „SUPERSAW“, „TRANCE PLUCK“, „WOBBLE BASS“, „JUNGLE SUB“, „HOUSE ORGAN“ (FM).
   * **Acid spielen wie auf der 303:** Die Acid-Presets haben eine kurze Notenlänge (LEN 0.71). **Slide** = einen Trig mit LEN über 1 Step locken – die Note läuft dann zur nächsten hin (GLID bestimmt die Gleitzeit). **Akzent** = höhere Anschlagstärke (VEL-Lock): VELF öffnet dabei das Filter weiter. Am meisten passiert mit FREQ, RESO und auf HÜLLKURVE 2 mit DEPTH1 und DEC – am besten per LFO oder P-Lock bewegen.
 * Vertan? **SELECT + B** macht die letzte Änderung rückgängig (12 Schritte), SET → „Wiederholen“ stellt sie wieder her.
 
-## Neue Oberfläche (Testversion, Branch ui-neu)
+## Die Oberfläche
 
 ![SEQ: Trig-Werte als Liste, Spuren links, Steps unten](shot:70)
 ![SOUND: alle Klang-Regler als Liste in Gruppen; orange = Cutoff-Locks in den Steps](shot:71)
 ![MEHR (SELECT): Ansicht wechseln, Steps/Spur/Sound kopieren, Engine, Sound laden](shot:72)
-
-Umschalten: **SET → SYSTEM → Oberfläche: NEU / KLASSISCH** (die klassische Bedienung ist weiter unten beschrieben).
 
 **Immer am selben Platz:** oben Pattern, Tempo und die **Ansichten als Reiter** (in jeder Ansicht, auch in MIX, PRJ …) · links die 8 Spuren mit Pegel und Mute · in der Mitte **eine Liste** · unten die **16 Steps** der Spur · ganz unten eine Leiste, die zeigt, was die Tasten **gerade** tun (auch mit gehaltenem SELECT oder A).
 
@@ -60,10 +58,8 @@ Hältst du A auf einem Step, gilt SELECT + X / Y für den **Step**. Die **Lock-S
 
 **MEHR** (SELECT): Ansicht direkt wählen · Steps (Page kopieren/einfügen/leeren/anhängen/entfernen, neue Page = Kopie/leer) · Spur (kopieren/einfügen/leeren) · Sound (Engine wählen, laden, speichern, zurücksetzen) · Live-Aufnahme, Tap-Tempo, Rückgängig/Wiederholen, Speichern. L1/R1 springen zum nächsten Abschnitt.
 
-**Vergleich** (gemessen mit 14 typischen Aufgaben im Selbsttest): klassisch 131 Tastendrücke, neu 106. Besonders kürzer: Cutoff ändern 6 statt 10, Delay-Send 9 statt 14, Attack + Release 13 statt 18. Länger: Engine wechseln 9 statt 4 (bewusst, damit sie nicht aus Versehen wechselt). Die neue Oberfläche zeichnet auch etwas schneller als die klassische (2,7 statt 3,4 ms je Bild).
+**Bedienweg** (gemessen mit typischen Aufgaben im Selbsttest): 106 Tastendrücke für die 14 Aufgaben, gegenüber 131 in der früheren Kachel-Oberfläche. Besonders kürzer: Cutoff ändern 6 statt 10, Delay-Send 9 statt 14, Attack + Release 13 statt 18. Länger nur: Engine wechseln 9 statt 4 – bewusst, damit sie nicht aus Versehen wechselt und den Klang löscht. Das Bild baut sich in 2,7 statt 3,4 ms auf.
 
-
-![Seitenkarte (SELECT antippen): alle Seiten auf einen Blick](shot:25)
 ![Tastenhilfe (SELECT halten)](shot:20)
 
 **Animationen:** Leere Flächen zeigen das echte Audiosignal: Oszilloskop, Spektrum und Takt-Ringe in freien Kacheln, eine Piano-Roll auf TRIG, die Oszillatoren auf der OSC-Seite, fließende Partikel zu den Effekt-Bussen auf SENDS, und je Effekt-Bus eine eigene Animation (Delay-Echos, Tonband-Spulen, Hall-Ringe, schwingende Feder, Chorus-Stimmen). Auch Einstellungen, Song, LIVE und Projekt haben passende Bilder. Jede Regler-Kachel zeigt oben Name und Wert und darunter ein bewegtes Bild des Werts (Hüllkurve, Welle, Oktav-Treppe, Akkord, Arp-Folge, Lautsprecher, Hall-Ringe …).

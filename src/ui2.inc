@@ -54,6 +54,13 @@ static bool v2Valid(int p, int k) {
     if (idx < 0) return false;
     return paramDef(curP().machine[track] % M_COUNT, idx).kind != K_NONE;
 }
+// Listeneintrag zu (Seite, Regler): bevorzugt der echte Eintrag, sonst das Makro (ENGINE gibt es nur als Makro)
+static int v2FindAny(int pg, int k) {
+    for (int i = 0; i < v2N; i++) if (!v2It[i].hdr && !v2It[i].mac && v2It[i].pg == pg && v2It[i].k == k) return i;
+    for (int i = 0; i < v2N; i++) if (!v2It[i].hdr && v2It[i].pg == pg && v2It[i].k == k) return i;
+    return -1;
+}
+static bool v2HasPage(int p) { for (int i = 0; i < v2N; i++) if (!v2It[i].hdr && v2It[i].pg == p) return true; return false; }
 static int v2FindItem2(int pg, int k) { for (int i = 0; i < v2N; i++) if (!v2It[i].hdr && !v2It[i].mac && v2It[i].pg == pg && v2It[i].k == k) return i; return 0; }
 static bool v2Find(int param, int& pg, int& k) {   // Regler zu einem Parameter (fuer die Makros)
     for (int p : V2_SND_P) { if (!pageAvail(p)) continue; for (int i = 0; i < uiSlots(p); i++) if (uiParam(p, i) == param) { pg = p; k = i; return true; } }
@@ -451,6 +458,13 @@ static void v2Help() {   // was die Tasten JETZT tun
     else if (v2View != V2_SEQ) h = TR("[<>]GRUPPE [^v]WERT [X/Y]ÄNDERN [L1/R1]SPUR [A]TRIG [B]HÖREN [L2/R2]ANSICHT [SEL]MEHR", "[<>]GROUP [^v]VALUE [X/Y]CHANGE [L1/R1]TRACK [A]TRIG [B]LISTEN [L2/R2]VIEW [SEL]MORE");
     else h = TR("[<>]STEP [^v]WERT [X/Y]ÄNDERN [L1/R1]SPUR [A]TRIG [B]HÖREN [L2/R2]ANSICHT [SEL]MEHR", "[<>]STEP [^v]VALUE [X/Y]CHANGE [L1/R1]TRACK [A]TRIG [B]LISTEN [L2/R2]VIEW [SEL]MORE");
     hint(6, 456, h, C_ACC, C_DIM);
+    {   // antippbarer MEHR-Knopf: am Handy gibt es kein SELECT unter dem Daumen
+        const char* m = TR("MEHR", "MORE");
+        int w = textW(m) + 14, x = 634 - w, y = 452;
+        rrect(x, y, w, 20, 5, mrOpen ? C_SEL : C_PANEL);
+        text(x + 7, y + 4, m, mrOpen ? C_TEXT : C_ACC);
+        hitAdd(x - 2, y - 2, w + 4, 24, HK_MORE, -1);   // a = -1: Menue oeffnen (sonst Zeile ausfuehren)
+    }
 }
 static void drawV2() {
     v2Sync();

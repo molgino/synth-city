@@ -960,6 +960,7 @@ static const char* pageLong(int p) {
 }
 static void v2Step(int dir);   // ui2.inc
 static void gotoPage(int dir) {
+    if (getenv("GB_DBG_GOTO")) { printf("[gotoPage %+d] page=%d\n", dir, page); fflush(stdout); }
     v2Step(dir); return;   // Ansichten-Kreis SEQ, SOUND, MIX ... SET
     const int* r; int n; pageRing(page, r, n);
     int cur = 0; for (int i = 0; i < n; i++) if (r[i] == page) cur = i;
@@ -4356,7 +4357,7 @@ static void settingsInput(Input& I, Uint32 now, float dt) {
         if (dy) nextCat(dy);
         if (I.pressed(BT_A) || I.pressed(BT_RIGHT)) setIn = true;
         else if (I.pressed(BT_B)) page = prevPage == PG_SYS ? PG_TRG : prevPage;
-        if (I.pressed(BT_L2)) gotoPage(-1);
+        if (I.pressed(BT_L2)) { if (getenv("GB_DBG_GOTO")) printf("   <L2 an Zeile %d>\n", 4360); gotoPage(-1); }
         if (I.pressed(BT_R2)) gotoPage(1);
         if (startTap(I, now)) startStop();
         return;
@@ -4379,7 +4380,7 @@ static void settingsInput(Input& I, Uint32 now, float dt) {
         if (d) { stickAcc -= d; setChange(setSel, d); }
     } else if (fabsf(ry) <= 0.25f) stickAcc = 0;
     if (I.pressed(BT_A)) setAction(setSel);
-    if (I.pressed(BT_L2)) gotoPage(-1);
+    if (I.pressed(BT_L2)) { if (getenv("GB_DBG_GOTO")) printf("   <L2 an Zeile %d>\n", 4383); gotoPage(-1); }
     if (I.pressed(BT_R2)) gotoPage(1);
     if (startTap(I, now)) startStop();
 }
@@ -4883,7 +4884,7 @@ static void liveInput(Input& I, Uint32 now, float dt) {
     if (I.pressed(BT_L1)) eng.fill = true;
     if (I.released(BT_L1)) eng.fill = false;
     if (I.pressed(BT_R1)) recToggle();
-    if (I.pressed(BT_L2)) gotoPage(-1);   // Seiten wie ueberall; Pattern: SELECT + links/rechts
+    if (I.pressed(BT_L2)) { if (getenv("GB_DBG_GOTO")) printf("   <L2 an Zeile %d>\n", 4887); gotoPage(-1); }   // Seiten wie ueberall; Pattern: SELECT + links/rechts
     if (I.pressed(BT_R2)) gotoPage(1);
     if (startTap(I, now)) startStop();
     if (fabsf(I.ry) > 0.2f) { eng.dj = I.ry > 0 ? (I.ry - 0.2f) / 0.8f : (I.ry + 0.2f) / 0.8f; stickDj = true; }
@@ -4938,6 +4939,7 @@ static void handleInput(Uint32 now, float dt) {
     if (page == PG_LIVE && !func) { liveInput(I, now, dt); return; }
     if (page == PG_SMPR && !func) { samplerInput(I, now); return; }
     if (page == PG_PRJ && !func) { prjInput(I, now); return; }
+    if (getenv("GB_DBG_GOTO") && I.pressed(BT_R2)) { printf("[R2 bei v2Input] page=%d func=%d mask=%u\n", page, (int)func, I.mask); fflush(stdout); }
     if (trackPage(page) || v2Active()) v2Input(I, now, func);   // ^v Liste, L1/R1 Spur, SELECT+^v/X/Y; Rest wie bisher
 
     if (func) {
@@ -5098,7 +5100,8 @@ static void handleInput(Uint32 now, float dt) {
                 slot = s2;
             }
         }
-        if (I.pressed(BT_L2)) gotoPage(-1);   // L2/R2: Seite (auch im Lock-Modus)
+        if (getenv("GB_DBG_GOTO") && I.pressed(BT_R2)) { printf("[R2 erreicht die L2/R2-Stelle] page=%d\n", page); fflush(stdout); }
+        if (I.pressed(BT_L2)) { if (getenv("GB_DBG_GOTO")) printf("   <L2 an Zeile %d>\n", 5104); gotoPage(-1); }   // L2/R2: Seite (auch im Lock-Modus)
         if (I.pressed(BT_R2)) gotoPage(1);
         if (startTap(I, now)) startStop();
         if (prjAct) {

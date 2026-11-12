@@ -79,7 +79,7 @@ static void touchDown(TouchPtr& t, int x, int y, Uint32 now) {
     case HK_BLOCK: if (menuOpen) menuOpen = false; if (pgmOpen) pgmOpen = false; if (mrOpen) mrOpen = false; break;   // daneben getippt: schliessen
     case HK_V2ROW: v2Foc[v2View < 0 ? 1 : v2View] = h->a; v2Apply(); t.kind = HK_SLOT; t.a = slot; t.wasSel = false; break;   // Zeile: waehlen, ziehen = Wert
     case HK_V2VIEW: v2GoView(h->a); break;
-    case HK_MORE: mrSel = h->a; mrRun(h->a); break;
+    case HK_MORE: if (h->a < 0) { mrOpen = true; mrSel = v2RingIndex(); } else { mrSel = h->a; mrRun(h->a); } break;
     case HK_PGM: if (h->a < 0) openPageMenu(); else { pgmSel = h->a; pgmRun(h->a); } break;
     case HK_LOCKEND: if (lockLatch) remoteHit[BT_A] = true; break;
     case HK_FBROW: t.wasSel = fbSel == h->a; fbSel = h->a; break;
