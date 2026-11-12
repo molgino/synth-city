@@ -222,7 +222,7 @@ Seite FLT | A | T5 Step 1 0>1
 Seite FLT | B | -
 Seite FLT | X | T5.FREQ 70>71
 Seite FLT | Y | T5.FREQ 70>69
-Seite FLT | L1 | Seite FLT>INS; Spur 5>4; Regler 1>2
+Seite FLT | L1 | Seite FLT>INS; Spur 5>4
 Seite FLT | R1 | Spur 5>6
 Seite FLT | L2 | Ansicht SOUND>SEQ; Seite FLT>TRG
 Seite FLT | R2 | Ansicht SOUND>EFFEKTE; Seite FLT>FX A
@@ -265,7 +265,7 @@ Seite FL2 | A | T5 Step 1 0>1
 Seite FL2 | B | -
 Seite FL2 | X | T5.BASE 0>1
 Seite FL2 | Y | -
-Seite FL2 | L1 | Seite FL2>INS; Spur 5>4; Regler 1>8
+Seite FL2 | L1 | Seite FL2>INS; Spur 5>4; Regler 1>7
 Seite FL2 | R1 | Spur 5>6
 Seite FL2 | L2 | Ansicht SOUND>SEQ; Seite FL2>TRG
 Seite FL2 | R2 | Ansicht SOUND>EFFEKTE; Seite FL2>FX A
@@ -308,7 +308,7 @@ Seite AMP | A | T5 Step 1 0>1
 Seite AMP | B | -
 Seite AMP | X | T5.VOL 100>101
 Seite AMP | Y | T5.VOL 100>99
-Seite AMP | L1 | Seite AMP>SND; Spur 5>4; Regler 1>2
+Seite AMP | L1 | Seite AMP>SND; Spur 5>4
 Seite AMP | R1 | Spur 5>6
 Seite AMP | L2 | Ansicht SOUND>SEQ; Seite AMP>TRG
 Seite AMP | R2 | Ansicht SOUND>EFFEKTE; Seite AMP>FX A
@@ -472,7 +472,7 @@ Seite LF3 | A+SEL+L1 | Trig-Ablage voll; Meldung "LEEREN STEP KOPIERT"
 Seite LF3 | A+SEL+R1 | T5 Step 1 0>1; Meldung "TRIG-ABLAGE LEER (LOCK-MODUS: SELECT + L1)"
 Seite LF3 | Stick R hoch | T5.RATE 64>35
 Seite LF3 | Stick L rechts | -
-Seite INS | HOCH | Seite INS>AMP; Regler 1>2
+Seite INS | HOCH | Seite INS>AMP; Regler 1>3
 Seite INS | RUNTER | Regler 1>2
 Seite INS | LINKS | Seite INS>AMP
 Seite INS | RECHTS | Seite INS>SND
@@ -507,7 +507,7 @@ Seite INS | SEL+START | Meldung "GESPEICHERT"
 Seite INS | A+B | T5 Step 1 0>1; Meldung "LOCKS GELÖSCHT"
 Seite INS | A+X | T5 Step 1 0>1; T5 Step 1 Lock TYPE 255>1
 Seite INS | A+Y | T5 Step 1 0>1; T5 Step 1 Lock TYPE 255>0
-Seite INS | A+HOCH | Seite INS>AMP; Regler 1>2; T5 Step 1 0>1
+Seite INS | A+HOCH | Seite INS>AMP; Regler 1>3; T5 Step 1 0>1
 Seite INS | A+RUNTER | Regler 1>2; T5 Step 1 0>1
 Seite INS | A+L1 | T5 Step 1 0>1
 Seite INS | A+R1 | T5 Step 1 0>1
@@ -523,7 +523,7 @@ Seite MIX | A | Mutes A01 00>10; Meldung "SPUR 5 STUMM"
 Seite MIX | B | Solo 00>10; Meldung "SPUR 5 SOLO"
 Seite MIX | X | T5.VOL 100>101
 Seite MIX | Y | T5.VOL 100>99
-Seite MIX | L1 | Mixer-Zeile 0>4
+Seite MIX | L1 | Mixer-Zeile 0>5
 Seite MIX | R1 | Mixer-Zeile 0>1
 Seite MIX | L2 | Ansicht SEQ>-; Seite MIX>SET; SET 1>7
 Seite MIX | R2 | Ansicht SEQ>SOUND; Seite MIX>SRC
@@ -552,7 +552,7 @@ Seite MIX | A+X | T5.VOL 100>101; Mutes A01 00>10; Meldung "SPUR 5 STUMM"
 Seite MIX | A+Y | T5.VOL 100>99; Mutes A01 00>10; Meldung "SPUR 5 STUMM"
 Seite MIX | A+HOCH | Mutes A01 00>10; Meldung "SPUR 5 STUMM"
 Seite MIX | A+RUNTER | Mixer-Zeile 0>1; Mutes A01 00>10; Meldung "SPUR 5 STUMM"
-Seite MIX | A+L1 | Mixer-Zeile 0>4; Mutes A01 00>10; Meldung "SPUR 5 STUMM"
+Seite MIX | A+L1 | Mixer-Zeile 0>5; Mutes A01 00>10; Meldung "SPUR 5 STUMM"
 Seite MIX | A+R1 | Mixer-Zeile 0>1; Mutes A01 00>10; Meldung "SPUR 5 STUMM"
 Seite MIX | A+SEL+L1 | Step 1>13; Mutes A01 00>10; Meldung "SPUR 5 STUMM"
 Seite MIX | A+SEL+R1 | Step 1>5; Mutes A01 00>10; Meldung "SPUR 5 STUMM"
@@ -1642,7 +1642,7 @@ SR4 auf FM | B | -
 SR4 auf FM | X | T1.RAT 3>4
 SR4 auf FM | Y | T1.RAT 3>2
 SR4 auf FM | L1 | Seite SR4>FL2; Spur 1>8; Regler 1>2
-SR4 auf FM | R1 | Seite SR4>INS; Spur 1>2; Regler 1>8
+SR4 auf FM | R1 | Seite SR4>INS; Spur 1>2; Regler 1>7
 SR4 auf FM | L2 | Ansicht SOUND>SEQ; Seite SR4>TRG
 SR4 auf FM | R2 | Ansicht SOUND>EFFEKTE; Seite SR4>FX A
 SR4 auf FM | START | PLAY
@@ -1684,8 +1684,8 @@ SR5 auf FM | A | T1 Step 1 0>1
 SR5 auf FM | B | -
 SR5 auf FM | X | T1.RAT 3>4
 SR5 auf FM | Y | T1.RAT 3>2
-SR5 auf FM | L1 | Seite SR5>INS; Spur 1>8; Regler 1>5
-SR5 auf FM | R1 | Seite SR5>EN1; Spur 1>2; Regler 1>4
+SR5 auf FM | L1 | Seite SR5>INS; Spur 1>8; Regler 1>4
+SR5 auf FM | R1 | Seite SR5>EN1; Spur 1>2; Regler 1>3
 SR5 auf FM | L2 | Ansicht SOUND>SEQ; Seite SR5>TRG
 SR5 auf FM | R2 | Ansicht SOUND>EFFEKTE; Seite SR5>FX A
 SR5 auf FM | START | PLAY
@@ -2673,7 +2673,7 @@ NEU SOUND Filter | A | T5 Step 1 0>1
 NEU SOUND Filter | B | -
 NEU SOUND Filter | X | T5.FREQ 70>71
 NEU SOUND Filter | Y | T5.FREQ 70>69
-NEU SOUND Filter | L1 | Seite FLT>INS; Spur 5>4; Regler 1>2
+NEU SOUND Filter | L1 | Seite FLT>INS; Spur 5>4
 NEU SOUND Filter | R1 | Spur 5>6
 NEU SOUND Filter | L2 | Ansicht SOUND>SEQ; Seite FLT>TRG
 NEU SOUND Filter | R2 | Ansicht SOUND>EFFEKTE; Seite FLT>FX A
@@ -2788,7 +2788,7 @@ NEU SOUND Lock-Modus | A+X | Lock-Modus aus; Step losgelassen; T5.FREQ 70>71; T5
 NEU SOUND Lock-Modus | A+Y | Lock-Modus aus; Step losgelassen; T5.FREQ 70>69; T5 Step 1 1>0; Meldung "LOCK-MODUS AUS"
 NEU SOUND Lock-Modus | A+HOCH | Seite FLT>SR2; Regler 1>8; Lock-Modus aus; Step losgelassen; T5 Step 1 1>0; Meldung "LOCK-MODUS AUS"
 NEU SOUND Lock-Modus | A+RUNTER | Regler 1>2; Lock-Modus aus; Step losgelassen; T5 Step 1 1>0; Meldung "LOCK-MODUS AUS"
-NEU SOUND Lock-Modus | A+L1 | Seite FLT>INS; Spur 5>4; Regler 1>2; Lock-Modus aus; Step losgelassen; T5 Step 1 1>0; Meldung "LOCK-MODUS AUS"
+NEU SOUND Lock-Modus | A+L1 | Seite FLT>INS; Spur 5>4; Lock-Modus aus; Step losgelassen; T5 Step 1 1>0; Meldung "LOCK-MODUS AUS"
 NEU SOUND Lock-Modus | A+R1 | Spur 5>6; Lock-Modus aus; Step losgelassen; T5 Step 1 1>0; Meldung "LOCK-MODUS AUS"
 NEU SOUND Lock-Modus | A+SEL+L1 | Step 1>13; Lock-Modus aus; Step losgelassen; T5 Step 1 1>0; Meldung "LOCK-MODUS AUS"
 NEU SOUND Lock-Modus | A+SEL+R1 | Step 1>5; Lock-Modus aus; Step losgelassen; T5 Step 1 1>0; Meldung "LOCK-MODUS AUS"
@@ -2888,7 +2888,7 @@ NEU MIX | A | Mutes A01 00>10; Meldung "SPUR 5 STUMM"
 NEU MIX | B | Solo 00>10; Meldung "SPUR 5 SOLO"
 NEU MIX | X | T5.VOL 100>101
 NEU MIX | Y | T5.VOL 100>99
-NEU MIX | L1 | Mixer-Zeile 0>4
+NEU MIX | L1 | Mixer-Zeile 0>5
 NEU MIX | R1 | Mixer-Zeile 0>1
 NEU MIX | L2 | Ansicht SEQ>-; Seite MIX>SET; SET 1>7
 NEU MIX | R2 | Ansicht SEQ>SOUND; Seite MIX>SRC
@@ -2917,7 +2917,7 @@ NEU MIX | A+X | T5.VOL 100>101; Mutes A01 00>10; Meldung "SPUR 5 STUMM"
 NEU MIX | A+Y | T5.VOL 100>99; Mutes A01 00>10; Meldung "SPUR 5 STUMM"
 NEU MIX | A+HOCH | Mutes A01 00>10; Meldung "SPUR 5 STUMM"
 NEU MIX | A+RUNTER | Mixer-Zeile 0>1; Mutes A01 00>10; Meldung "SPUR 5 STUMM"
-NEU MIX | A+L1 | Mixer-Zeile 0>4; Mutes A01 00>10; Meldung "SPUR 5 STUMM"
+NEU MIX | A+L1 | Mixer-Zeile 0>5; Mutes A01 00>10; Meldung "SPUR 5 STUMM"
 NEU MIX | A+R1 | Mixer-Zeile 0>1; Mutes A01 00>10; Meldung "SPUR 5 STUMM"
 NEU MIX | A+SEL+L1 | Step 1>13; Mutes A01 00>10; Meldung "SPUR 5 STUMM"
 NEU MIX | A+SEL+R1 | Step 1>5; Mutes A01 00>10; Meldung "SPUR 5 STUMM"
@@ -3326,7 +3326,7 @@ Seitenkarte mit Seiten-Ablage FILTER1 von T1 | A+X | Ansicht SEQ>SOUND; Seite TR
 Seitenkarte mit Seiten-Ablage FILTER1 von T1 | A+Y | Ansicht SEQ>SOUND; Seite TRG>FLT; Seitenkarte zu; T5.FREQ 70>69
 Seitenkarte mit Seiten-Ablage FILTER1 von T1 | A+HOCH | Ansicht SEQ>SOUND; Seite TRG>SR2; Regler 1>8; Seitenkarte zu
 Seitenkarte mit Seiten-Ablage FILTER1 von T1 | A+RUNTER | Ansicht SEQ>SOUND; Seite TRG>FLT; Regler 1>2; Seitenkarte zu
-Seitenkarte mit Seiten-Ablage FILTER1 von T1 | A+L1 | Ansicht SEQ>SOUND; Seite TRG>INS; Spur 5>4; Regler 1>2; Seitenkarte zu
+Seitenkarte mit Seiten-Ablage FILTER1 von T1 | A+L1 | Ansicht SEQ>SOUND; Seite TRG>INS; Spur 5>4; Seitenkarte zu
 Seitenkarte mit Seiten-Ablage FILTER1 von T1 | A+R1 | Ansicht SEQ>SOUND; Seite TRG>FLT; Spur 5>6; Seitenkarte zu
 Seitenkarte mit Seiten-Ablage FILTER1 von T1 | A+SEL+L1 | Ansicht SEQ>SOUND; Seite TRG>FLT; Step 1>13; Seitenkarte zu
 Seitenkarte mit Seiten-Ablage FILTER1 von T1 | A+SEL+R1 | Ansicht SEQ>SOUND; Seite TRG>FLT; Step 1>5; Seitenkarte zu
@@ -5208,7 +5208,7 @@ MIX Zeile 0 | A | Mutes A01 00>10; Meldung "SPUR 5 STUMM"
 MIX Zeile 0 | B | Solo 00>10; Meldung "SPUR 5 SOLO"
 MIX Zeile 0 | X | T5.VOL 100>101
 MIX Zeile 0 | Y | T5.VOL 100>99
-MIX Zeile 0 | L1 | Mixer-Zeile 0>4
+MIX Zeile 0 | L1 | Mixer-Zeile 0>5
 MIX Zeile 0 | R1 | Mixer-Zeile 0>1
 MIX Zeile 1 | HOCH | Mixer-Zeile 1>0
 MIX Zeile 1 | RUNTER | Mixer-Zeile 1>2
@@ -5241,7 +5241,7 @@ MIX Zeile 3 | Y | -
 MIX Zeile 3 | L1 | Mixer-Zeile 3>2
 MIX Zeile 3 | R1 | Mixer-Zeile 3>4
 MIX Zeile 4 | HOCH | Mixer-Zeile 4>3
-MIX Zeile 4 | RUNTER | -
+MIX Zeile 4 | RUNTER | Mixer-Zeile 4>5
 MIX Zeile 4 | LINKS | Spur 5>4
 MIX Zeile 4 | RECHTS | Spur 5>6
 MIX Zeile 4 | A | Mutes A01 00>10; Meldung "SPUR 5 STUMM"
@@ -5249,7 +5249,17 @@ MIX Zeile 4 | B | Solo 00>10; Meldung "SPUR 5 SOLO"
 MIX Zeile 4 | X | T5.SND.C 0>1
 MIX Zeile 4 | Y | -
 MIX Zeile 4 | L1 | Mixer-Zeile 4>3
-MIX Zeile 4 | R1 | Mixer-Zeile 4>0
+MIX Zeile 4 | R1 | Mixer-Zeile 4>5
+MIX Zeile 5 | HOCH | Mixer-Zeile 5>4
+MIX Zeile 5 | RUNTER | -
+MIX Zeile 5 | LINKS | Spur 5>4
+MIX Zeile 5 | RECHTS | Spur 5>6
+MIX Zeile 5 | A | Mutes A01 00>10; Meldung "SPUR 5 STUMM"
+MIX Zeile 5 | B | Solo 00>10; Meldung "SPUR 5 SOLO"
+MIX Zeile 5 | X | -
+MIX Zeile 5 | Y | T5.COMP 1>0
+MIX Zeile 5 | L1 | Mixer-Zeile 5>4
+MIX Zeile 5 | R1 | Mixer-Zeile 5>0
 SAMPLER Regler 1 | HOCH | Meldung "NICHTS ZUM SPEICHERN"
 SAMPLER Regler 1 | RUNTER | -
 SAMPLER Regler 1 | LINKS | -

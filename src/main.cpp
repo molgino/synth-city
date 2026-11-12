@@ -74,9 +74,9 @@ static Pattern mutUndo;            // Pattern vor der letzten Mutation
 static bool haveMutUndo = false;
 static int mutAmt = 1, mutPat = 0;
 static int mixRow = 0;
-enum { MIX_ROWS = 5 };
-static const uint8_t MIX_P[MIX_ROWS] = {P_VOL, P_PAN, P_DLY, P_REV, P_SNDC};
-static const char* const MIX_NAMES[MIX_ROWS] = {"VOL", "PAN", "S.A", "S.B", "S.C"};   // Sends an Effekt-Bus A/B/C
+enum { MIX_ROWS = 6 };
+static const uint8_t MIX_P[MIX_ROWS] = {P_VOL, P_PAN, P_DLY, P_REV, P_SNDC, P_CMPS};
+static const char* const MIX_NAMES[MIX_ROWS] = {"VOL", "PAN", "S.A", "S.B", "S.C", "CMP"};   // Sends an Effekt-Bus A/B/C, CMP = Spur geht in den Kompressor
 static bool menuOpen = false; static int menuSel = 0;
 static bool confirmOpen = false; static char confirmText[80]; static int confirmAct = 0, confirmArg = 0;
 static Uint32 selDownAt = 0;
@@ -2486,7 +2486,7 @@ static void drawMixer(int ox) {
         rrect(x + 50, y + 5, 22, 14, 3, eng.muted(t) ? C_TRIG : C_OFF2); text(x + 57, y + 4, "M", eng.muted(t) ? C_BG : C_DIM);
         rrect(x + 50, y + 21, 22, 14, 3, eng.solo[t] ? C_LOCK : C_OFF2); text(x + 57, y + 20, "S", eng.solo[t] ? C_BG : C_DIM);
         // Fader + Pegel
-        int fy = y + 44, fh = 84, vol = P.p[t][P_VOL];
+        int fy = y + 44, fh = 66, vol = P.p[t][P_VOL];
         int hy = fy + fh - vol * fh / 127;
         fill(x + 22, fy, 4, fh, C_OFF2);
         fill(x + 22, hy, 4, fy + fh - hy, dimC(tc, 0.7f));
@@ -2498,14 +2498,15 @@ static void drawMixer(int ox) {
         snprintf(b, sizeof b, "%d", vol);
         text(x + 54, fy + fh - 14, b, rs ? C_PLAY : C_DIM);
         // Panorama + Sends
-        int rowY[MIX_ROWS - 1] = {y + 134, y + 148, y + 162, y + 176};
+        int rowY[MIX_ROWS - 1] = {y + 115, y + 127, y + 139, y + 151, y + 163};
         for (int r = 1; r < MIX_ROWS; r++) {
             int yy = rowY[r - 1], v = P.p[t][MIX_P[r]];
             bool on = sel && mixRow == r;
             text(x + 8, yy - 5, MIX_NAMES[r], on ? C_PLAY : C_DIM);
             int bx = x + 36, bw = 36;
             fill(bx, yy + 2, bw, 3, C_OFF2);
-            if (r == 1) { int px = bx + v * (bw - 1) / 127; fill(bx + bw / 2, yy, 1, 7, C_DIM); rrect(px - 2, yy, 5, 7, 2, on ? C_PLAY : tc); }
+            if (MIX_P[r] == P_CMPS) { const char* lb = v ? "ON" : "-"; rrect(bx, yy - 1, 20, 9, 3, v ? (on ? C_PLAY : tc) : C_OFF2); text(bx + 10 - textW(lb) / 2, yy - 3, lb, v ? C_BG : C_DIM); }
+            else if (r == 1) { int px = bx + v * (bw - 1) / 127; fill(bx + bw / 2, yy, 1, 7, C_DIM); rrect(px - 2, yy, 5, 7, 2, on ? C_PLAY : tc); }
             else { int w = v * bw / 127; if (w) fill(bx, yy + 2, w, 3, on ? C_PLAY : tc); }
         }
     }
@@ -2513,6 +2514,7 @@ static void drawMixer(int ox) {
     char h[48];
     int v = P.p[track][MIX_P[mixRow]];
     if (mixRow == 1) snprintf(h, sizeof h, "T%d  PAN %+d", track + 1, v - 64);
+    else if (MIX_P[mixRow] == P_CMPS) snprintf(h, sizeof h, TR("T%d  KOMPRESSOR %s", "T%d  COMPRESSOR %s"), track + 1, v ? TR("AN", "ON") : TR("AUS", "OFF"));
     else snprintf(h, sizeof h, "T%d  %s %d", track + 1, MIX_NAMES[mixRow], v);
     text(8, 222, h, TCOL[track]);
     text(640 - 8 - textW("A=MUTE  B=SOLO"), 222, "A=MUTE  B=SOLO", C_DIM);
@@ -3574,7 +3576,8 @@ static void editValue(int delta) {
     editAt = SDL_GetTicks(); editSlot = slot;
     if (page == PG_MIX) {
         int idx = MIX_P[mixRow];
-        curP().p[track][idx] = (uint8_t)clampi(curP().p[track][idx] + delta, 0, 127);
+        int mx = idx == P_CMPS ? 1 : 127;   // CMP ist ein Schalter
+        curP().p[track][idx] = (uint8_t)clampi(curP().p[track][idx] + delta, 0, mx);
         return;
     }
     if (page == PG_PRJ) return;   // nur Schaltflaechen
@@ -3754,6 +3757,7 @@ static int loadPresetPath(int t, const char* p) {   // 1 ok, 0 fehlt, -1 Fehler
     } else memcpy(P.p[t], prm, np);
     if (hdr[6] == 0 && (hdr[4] == M_SYNTH || hdr[4] == M_WTBL) && P.p[t][P_FTYP] == FT_LP12) P.p[t][P_FTYP] = FT_LP24;   // alte Presets
     if (hdr[6] < 2) { P.p[t][P_FCRV] = 64; P.p[t][P_ACRV] = 64; }
+    if (hdr[6] < 4) P.p[t][P_CMPS] = 1;   // vor Format 4 gab es das Kompressor-Routing nicht
     if (slot >= 0 && si >= 0) P.p[t][si] = (uint8_t)slot;
     else if (si == P_X3 && P.p[t][P_S0] % 5 == 4) P.p[t][P_S0] = 0;   // eigene Wavetable fehlt: BASIC
     unlockA();

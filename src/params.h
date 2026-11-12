@@ -93,7 +93,7 @@ enum {
     P_NOTE = 0, P_VEL, P_LEN, P_PROB, P_RTRG, P_MTIM, P_T6, P_COND, P_T7 = P_COND, P_RFAD = P_MTIM,
     P_S0 = 8, P_S1, P_S2, P_S3, P_S4, P_S5, P_S6, P_S7,
     P_FREQ = 16, P_RESO, P_FTYP, P_FENV, P_FATK, P_FDEC, P_FSUS, P_FREL,
-    P_AATK = 24, P_ADEC, P_ASUS, P_AREL, P_VOL, P_PAN, P_A6, P_A7,   // P_A6/P_A7 = bis v12 DLY/REV (jetzt auf der SEND-Seite)
+    P_AATK = 24, P_ADEC, P_ASUS, P_AREL, P_VOL, P_PAN, P_CMPS, P_A7,   // P_CMPS = in den Kompressor (ab v17; bis v12 lagen hier DLY/REV)
     P_L1 = 32,                                                   // LFO1 (Seite 4)
     P_ITYP = 40, P_IP1, P_IP2, P_IP3, P_IMIX, P_CRSH, P_SRR, P_DRIV,
     P_X0 = 48, P_X1, P_X2, P_X3, P_X4, P_X5, P_X6, P_X7,      // SRC2 (maschinenabhaengig)
@@ -154,7 +154,7 @@ inline int uiParam(int p, int k) {
     if (p == PG_TRG && k >= 8) { static const int T[4] = {P_NT2, P_NT3, P_NT4, P_VMOD}; return T[k - 8]; }   // Zusatznoten + Stimmen-Modus
     if (p == PG_FLT) { static const int F[8] = {P_FREQ, P_RESO, P_FTYP, P_KEYT, P_VELF, -1, -1, -1}; return F[k]; }   // Huellkurve -> ENV2
     if (p == PG_FLT2) return k < 2 ? P_BASE + k : -1;
-    if (p == PG_AMP) return k == 0 ? P_VOL : (k == 1 ? P_PAN : -1);                                            // Huellkurve -> ENV1
+    if (p == PG_AMP) return k == 0 ? P_VOL : (k == 1 ? P_PAN : (k == 2 ? P_CMPS : -1));                                            // Huellkurve -> ENV1
     return PG_STORE[p] * 8 + k;
 }
 enum { LW_SIN, LW_TRI, LW_SAWUP, LW_SAWDN, LW_SQR, LW_EXPUP, LW_EXPDN, LW_SH, LW_RND, LW_COUNT };
@@ -190,7 +190,7 @@ static const ParamDef COMMON_DEFS[NPARAMS] = {
     {"ATK", K_NUM, 0, 127}, {"DEC", K_NUM, 60, 127}, {"SUS", K_NUM, 0, 127}, {"REL", K_NUM, 60, 127},      // ENV2 (Filter-Huellkurve)
     // AMP
     {"ATK", K_NUM, 0, 127}, {"DEC", K_NUM, 80, 127}, {"SUS", K_NUM, 127, 127}, {"REL", K_NUM, 50, 127},
-    {"VOL", K_NUM, 100, 127}, {"PAN", K_BIP, 64, 127}, PDEF_NONE, PDEF_NONE,
+    {"VOL", K_NUM, 100, 127}, {"PAN", K_BIP, 64, 127}, {"COMP", K_OFFON, 1, 1}, PDEF_NONE,
     // LFO / FX
     // LFO1
     {"RATE", K_NUM, 64, 127}, {"SYNC", K_LSYNC, 0, 11}, {"DEST", K_LDEST, 0, NPARAMS}, {"DEPTH", K_BIP, 64, 127},

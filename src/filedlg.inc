@@ -44,7 +44,7 @@ static bool savePresetFile(int t, const char* path) {
     snprintf(d, sizeof d, "%spresets/%s", basePath, MACHINE_NAMES[m]); mkdir(d, 0755);
     FILE* f = fopen(path, "wb");
     if (!f) return false;
-    uint8_t hdr[8] = {'G', 'B', 'P', '1', (uint8_t)m, (uint8_t)NPARAMS, 3, 0};   // Format 3 = 128 Parameter (v13)
+    uint8_t hdr[8] = {'G', 'B', 'P', '1', (uint8_t)m, (uint8_t)NPARAMS, 4, 0};   // Format 3 = 128 Parameter (v13), 4 = mit COMP (v17)
     bool ok = fwrite(hdr, 8, 1, f) == 1 && fwrite(curP().p[t], NPARAMS, 1, f) == 1;
     int si = machineSampleParam(m), sl = si >= 0 ? curP().p[t][si] : 0;
     if (si == P_X3 && curP().p[t][P_S0] % 5 != 4) si = -1;   // WTBL ohne eigene Wavetable

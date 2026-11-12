@@ -980,7 +980,7 @@ struct Task { const char* name; int keys; int steps; };
 static int v2FindItem(int pg, int k) { for (int i = 0; i < v2N; i++) if (!v2It[i].hdr && v2It[i].pg == pg && v2It[i].k == k) return i; return -1; }
 static int v2GroupOf(int i) { while (i > 0 && !v2It[i].hdr) i--; return i; }
 static void v2GoTo(int view, int pg, int k) {   // wie ein Mensch: L2/R2 zur Ansicht, Gruppe springen (SOUND <>, SEQ SELECT+^v), dann ^v
-    for (int g = 0; g < 4 && v2View != view; g++) tap(view == V2_SOUND ? BT_R2 : BT_L2);
+    for (int g = 0; g < V2_RING_N && v2View != view; g++) tap(view == V2_SOUND ? BT_R2 : BT_L2);
     v2Build(v2View);
     int t = -1; for (int i = (view == V2_SOUND ? 10 : 0); i < v2N && t < 0; i++) if (!v2It[i].hdr && v2It[i].pg == pg && v2It[i].k == k) t = i;   // Gruppe, nicht Makro
     if (t < 0) t = v2FindItem(pg, k);
@@ -1076,6 +1076,27 @@ static void uiScenariosV2() {
       for (int k = 0; k < 16; k++) { int o = slot; slot = k; knobInfo(k, d, v, lk, bv, lb, sizeof lb); slot = o; }
       UCHECK(true, "knobInfo mit zu grossem Index"); }   // darf nicht abstuerzen (Sanitizer)
     simReset(); simFrame();
+
+    uiCase = "Kompressor-Routing (MIX-Zeile CMP)";
+    {
+        simReset(); simFrame();
+        goView(PG_MIX); simFrame();
+        UCHECK(page == PG_MIX, "MIX nicht erreichbar (Seite %d)", page);
+        for (int i = 0; i < MIX_ROWS && MIX_P[mixRow] != P_CMPS; i++) tap(BT_DOWN);
+        UCHECK(MIX_P[mixRow] == P_CMPS, "Zeile CMP nicht erreichbar (Zeile %d)", mixRow);
+        for (int i = 0; i < NTRACKS && track != 2; i++) tap(BT_RIGHT);   // im Mixer waehlt links/rechts den Kanal
+        UCHECK(track == 2, "Kanal 3 nicht erreichbar (%d)", track);
+        UCHECK(curP().p[2][P_CMPS] == 1, "COMP steht nicht auf AN (%d)", curP().p[2][P_CMPS]);
+        tap(BT_Y);
+        UCHECK(curP().p[2][P_CMPS] == 0, "Y schaltet COMP nicht aus (%d)", curP().p[2][P_CMPS]);
+        tap(BT_X);
+        UCHECK(curP().p[2][P_CMPS] == 1, "X schaltet COMP nicht wieder an (%d)", curP().p[2][P_CMPS]);
+        v2GoTo(V2_SOUND, PG_AMP, 2);   // derselbe Wert auf der AMP-Seite
+        ParamDef d; int v, bv; bool lk; char lb[24];
+        knobInfo(slot, d, v, lk, bv, lb, sizeof lb);
+        UCHECK(!strcmp(d.name, "COMP"), "AMP Regler 3 ist nicht COMP (%s)", d.name);
+        simReset(); simFrame();
+    }
 
     // Gemeldet: nach "Neues Projekt" wirkte das Steuerkreuz links/rechts auf die Gruppe
     // (Makros, LFO3 ...) statt auf die Steps - die Ansicht blieb auf SOUND stehen.

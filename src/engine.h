@@ -40,7 +40,7 @@ struct Project {
     uint8_t patMute[NPATTERNS];   // Mutes je Pattern (Bit je Spur)
     struct SongRow { uint8_t pat[NTRACKS]; uint8_t rep, mute, pad[2]; } row[64];   // Song als Clip-Matrix; pat = SONG_EMPTY: Spur schweigt
 };
-enum { PROJECT_VERSION = 16, SONG_MAX = 64, SONG_EMPTY = 255 };
+enum { PROJECT_VERSION = 17, SONG_MAX = 64, SONG_EMPTY = 255 };
 // Groessen der Formate v9-v12 (96 Parameter je Spur): danach steht ggf. die Sample-Namensliste
 enum { OLD_PAT_SIZE = 24 + 8 * OLD_NPARAMS + NTRACKS * NSTEPS * (1 + OLD_NPARAMS),
        PROJECT_V11_SIZE = 20 + OLD_NPAT * OLD_PAT_SIZE + 8 + 8 + 128 + 4,
@@ -376,7 +376,7 @@ private:
     void trigger(int t, const uint8_t* lk, float velScale, bool fromSeq, bool toMidi = true);
     void processBlock(float* out, int n);
     // Mehrkern: ein Hilfs-Thread rechnet pro Block etwa die Haelfte der klingenden Stimmen
-    struct WkItem { Voice* v; bool key; int t; };
+    struct WkItem { Voice* v; signed char dst; int t; };   // dst: 0 = in den Kompressor, 1 = Sidechain-Spur, 2 = am Kompressor vorbei
     pthread_t wkThread;
     sem_t wkGo;
     volatile int wkGoSeq = 0, wkSleeping = 0, wkDone = 0;   // __atomic: Blocknummer, Schlafzustand, vom Helfer fertige Stimmen
@@ -386,7 +386,7 @@ private:
     int wkN = 0, wkNs = 0;
     volatile bool wkMo = false;
     bool wkClaimOne(uint32_t tag, int& idx);
-    float wL[32], wR[32], wS[NBUS][32], wKL[32], wKR[32];
+    float wL[32], wR[32], wS[NBUS][32], wKL[32], wKR[32], wUL[32], wUR[32];
     float TL[NTRACKS][32], TR[NTRACKS][32], wTL[NTRACKS][32], wTR[NTRACKS][32];   // Mehrkanal: je Spur (nur wenn multiCh > 2)
     float moDly[22][LIM_LA]; int moDlyPos = 0;   // Spuren/Busse um die Limiter-Vorausschau verzoegern (gleiche Lage wie der Master)
     int moPos = 0;

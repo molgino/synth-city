@@ -639,7 +639,7 @@ static void testSaveLoad() {
         CHECK(q[FM_OPB[1] + OP_DETN] > 64 && q[FM_OPB[0] + OP_DETN] == 64, "FM: FINE nicht in DETN umgerechnet (%d)", q[FM_OPB[1] + OP_DETN]);
         CHECK(FM_RATIOS[P.s[0][5].lock[FM_OPB[1] + OP_RAT]] == 3.f, "FM: Ratio-Lock falsch (%d)", P.s[0][5].lock[FM_OPB[1] + OP_RAT]);
         const uint8_t* w = P.p[1];
-        CHECK(w[P_DLY] == 50 && w[P_REV] == 60 && w[P_A6] == 0 && w[P_A7] == 0, "Sends nicht verschoben (%d %d)", w[P_DLY], w[P_REV]);
+        CHECK(w[P_DLY] == 50 && w[P_REV] == 60 && w[P_CMPS] == 1 && w[P_A7] == 0, "Sends nicht verschoben (%d %d), COMP %d", w[P_DLY], w[P_REV], w[P_CMPS]);
         CHECK(w[P_L1 + LF_DEST] == P_DLY + 1, "LFO-Ziel nicht mitgezogen (%d)", w[P_L1 + LF_DEST]);
         CHECK(P.s[1][3].lock[P_REV] == 99 && P.s[1][3].lock[OLD_P_REV] == NO_LOCK, "Send-Lock nicht verschoben");
         CHECK(w[P_X0] == 3 && w[P_X2] == 127 && w[P_X3] == 127, "SYNTH 2. Seite nicht auf Grundwerte (%d %d)", w[P_X0], w[P_X2]);
@@ -852,6 +852,48 @@ static void testLoop() {
 }
 
 // Sampler-Abgriff: eine Spur getrennt mitschreiben, Master bleibt gleich
+static void testCmpRoute() {   // Kompressor-Routing: Spuren mit COMP=AUS gehen am Kompressor vorbei
+    curTest = "Kompressor-Routing";
+    static float out[3][22050 * 2];
+    float pk[3] = {0, 0, 0};
+    for (int run = 0; run < 3; run++) {   // 0: ohne Kompressor, 1: beide Spuren hinein, 2: Spur 2 vorbei
+        static Engine RC[3];
+        Engine& X = RC[run];
+        X.init(44100); X.stop(); X.audioThreads = 1; X.defaultProject(false); X.proj.bpm = 120;
+        Pattern& P = X.proj.pat[0];
+        Engine::initTrack(P, 0, M_KICK); Engine::initTrack(P, 1, M_SNARE);
+        for (int t = 2; t < NTRACKS; t++) for (int s2 = 0; s2 < NSTEPS; s2++) P.s[t][s2].on = 0;
+        for (int s2 = 0; s2 < 16; s2 += 4) { P.s[0][s2].on = 1; P.s[1][s2 + 2].on = 1; }
+        for (int i = 0; i < 8; i++) X.proj.cmp[i] = CMP_DEFS[i].def;
+        if (run) { X.proj.cmp[CM_THR] = 10; X.proj.cmp[CM_RAT] = 8; X.proj.cmp[CM_MIX] = 127; X.proj.cmp[CM_ATK] = 0; }
+        if (run == 2) P.p[1][P_CMPS] = 0;   // Snare am Kompressor vorbei
+        X.start();
+        for (int i = 0; i < 22050; i += 256) { int n = 22050 - i < 256 ? 22050 - i : 256; X.render(out[run] + i * 2, n); }
+        for (int i = 0; i < 22050 * 2; i++) { float v = fabsf(out[run][i]); if (v > pk[run]) pk[run] = v; }
+        CHECK(isfinite(pk[run]), "Lauf %d: NaN im Ausgang", run);
+    }
+    CHECK(pk[1] < pk[0] * 0.9f, "Kompressor greift nicht (ohne %.3f, mit %.3f)", pk[0], pk[1]);
+    CHECK(pk[2] > pk[1] * 1.05f, "COMP=AUS aendert nichts (alle %.3f, Spur 2 vorbei %.3f)", pk[1], pk[2]);
+    {   // Alle Spuren vorbei = wie ohne Kompressor (bis auf das Makeup)
+        static Engine RB[2]; float p2[2] = {0, 0};
+        for (int run = 0; run < 2; run++) {
+            Engine& X = RB[run];
+            X.init(44100); X.stop(); X.audioThreads = 1; X.defaultProject(false); X.proj.bpm = 120;
+            Pattern& P = X.proj.pat[0];
+            Engine::initTrack(P, 0, M_KICK);
+            for (int t = 1; t < NTRACKS; t++) for (int s2 = 0; s2 < NSTEPS; s2++) P.s[t][s2].on = 0;
+            for (int s2 = 0; s2 < 16; s2 += 4) P.s[0][s2].on = 1;
+            for (int i = 0; i < 8; i++) X.proj.cmp[i] = CMP_DEFS[i].def;
+            if (run) { X.proj.cmp[CM_THR] = 10; X.proj.cmp[CM_RAT] = 8; X.proj.cmp[CM_MIX] = 127; P.p[0][P_CMPS] = 0; }
+            X.start();
+            for (int i = 0; i < 22050; i += 256) { int n = 22050 - i < 256 ? 22050 - i : 256; X.render(out[0] + i * 2, n); }
+            for (int i = 0; i < 22050 * 2; i++) { float v = fabsf(out[0][i]); if (v > p2[run]) p2[run] = v; }
+        }
+        CHECK(fabsf(p2[0] - p2[1]) < 0.01f, "einzige Spur am Kompressor vorbei: %.3f statt %.3f", p2[1], p2[0]);
+    }
+    printf("  Kompressor: ohne %.3f, alle %.3f, Spur 2 vorbei %.3f\n", pk[0], pk[1], pk[2]);
+}
+
 static void testTrackTap() {
     curTest = "Spur-Abgriff";
     static float a[22050 * 2], b[22050 * 2], tap[22050 * 2];
@@ -1142,6 +1184,7 @@ int main(int argc, char** argv) {
     testModTargets();
     testWarp();
     testTrackTap();
+    testCmpRoute();
     testStereoSample();
     testLoop();
     testPcm24(sdir);

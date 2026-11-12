@@ -36,7 +36,7 @@ Sie startet als App aus dem Ports-Menü oder auf Wunsch direkt beim Booten statt
 | **SOUND** | oben Engine + 8 Makros, dann Quelle, Filter, Amp, Insert, Sends, Hüllkurven, LFOs |
 | **EFFEKTE** | Effekt-Bus A, B, C in **einer** Liste (vorher drei getrennte Seiten) |
 | **MASTER** | Tempo, Swing, Summen-Lautstärke, Drive, Skala und Grundton – darunter der Kompressor |
-| **MIX** | 8 Kanalzüge mit Pegeln, Mutes und Sends |
+| **MIX** | 8 Kanalzüge mit Pegeln, Mutes, Sends und dem Kompressor-Schalter (CMP) |
 | **LIVE · PROJEKT · SONG · SAMPLER · SET** | eigenständige Werkzeuge im Vollbild |
 
 In SEQ, SOUND, EFFEKTE und MASTER bleiben Spuren links und Steps unten sichtbar; die anderen fünf brauchen die ganze Fläche. **A setzt auch in SOUND, EFFEKTE und MASTER einen Trig** der gewählten Spur, du musst also zum Beat-Bauen nicht zurückwechseln.
@@ -524,6 +524,8 @@ Gespeichert wird in `projects/<Name>.gbx` und `presets/<ENGINE>/<Name>.gbp`. Äl
 | GR | Anzeige der aktuellen Gain-Reduktion. Zusätzlich zeigt der rote Balken im Header die Gain-Reduktion |
 
 Bei SC = T1 bis T8 läuft die Quellspur **am Kompressor vorbei**, und alles andere wird von ihr „weggedrückt“. Die Effekt-Returns zählen dazu.
+
+**Routing: welche Spuren überhaupt in den Kompressor gehen** – jede Spur hat den Schalter **COMP** (AMP-Seite in der SOUND-Ansicht, oder in der MIX-Ansicht die Zeile **CMP**, dort siehst du alle acht nebeneinander). Steht er auf AUS, geht die Spur unkomprimiert zur Summe: sie wird nicht gedrückt **und** sie löst den Kompressor nicht aus. So kannst du zum Beispiel Drums und Bass zusammen komprimieren, während Pads und Leads davon unberührt bleiben. Der Schalter wird im Pattern gespeichert und kann mit einem Lock pro Step umgeschaltet werden.
 
 Klassisches Pumpen: SC = T1 (Kick), THR um −30 dB, RATIO 8:1 oder mehr, ATK kurz, REL 100–200 ms.
 

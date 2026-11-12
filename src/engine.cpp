@@ -1284,7 +1284,8 @@ void* Engine::wkMain(void* arg) {
             v.update(n, (float)E->sr, E->proj.bpm);
             int t = E->wkList[idx].t;
             if (E->wkMo) v.render(E->wTL[t], E->wTR[t], E->wS, n, (float)E->sr);
-            else if (E->wkList[idx].key) v.render(E->wKL, E->wKR, E->wS, n, (float)E->sr);
+            else if (E->wkList[idx].dst == 1) v.render(E->wKL, E->wKR, E->wS, n, (float)E->sr);
+            else if (E->wkList[idx].dst == 2) v.render(E->wUL, E->wUR, E->wS, n, (float)E->sr);
             else v.render(E->wL, E->wR, E->wS, n, (float)E->sr);
             __atomic_add_fetch(&E->wkDone, 1, __ATOMIC_RELEASE);
         }
@@ -1944,8 +1945,10 @@ void Engine::render(float* out, int frames) {
 }
 
 void Engine::processBlock(float* out, int n) {
-    float L[32] = {0}, R[32] = {0}, S[NBUS][32] = {{0}}, KL[32] = {0}, KR[32] = {0};   // = BLK in render(); S = Sends an Bus A/B/C
+    float L[32] = {0}, R[32] = {0}, S[NBUS][32] = {{0}}, KL[32] = {0}, KR[32] = {0}, UL[32] = {0}, UR[32] = {0};   // = BLK in render(); S = Sends an Bus A/B/C; U = am Kompressor vorbei
     int key = (int)proj.cmp[CM_SRC] - 1;   // -1 = intern (Summe), sonst Sidechain-Spur
+    bool cmpRoute[NTRACKS];                // Kompressor-Routing je Spur (AMP > COMP): false = am Kompressor vorbei
+    for (int t = 0; t < NTRACKS; t++) cmpRoute[t] = TP(t).p[t][P_CMPS] != 0;
     // klingende Stimmen sammeln; bei spuerbarer Last rechnet ein zweiter Kern mit (beide holen sich Stimmen ab,
     // der Audio-Thread wartet nie auf einen schlafenden Helfer, hoechstens auf dessen laufende Stimme)
     static const float WEIGHT[M_COUNT] = {1.9f, 2.3f, 2.f, 1.7f, 2.3f, 3.2f, 1.7f, 1.8f, 1.6f, 1.9f, 2.5f, 1.8f, 2.1f,
@@ -1956,8 +1959,9 @@ void Engine::processBlock(float* out, int n) {
     const float stepS = (float)(stepSamples() / sr);
     for (int t = 0; t < NTRACKS; t++) {
         if (!v[t].active) { v[t].stepSec = stepS; v[t].lfoAdvance(n, (float)sr); }
-        if (v[t].active) { act[nAct].v = &v[t]; act[nAct].key = t == key; act[nAct].t = t; nAct++; tot += WEIGHT[v[t].machine % M_COUNT]; }
-        for (int k = 0; k < NCHORDV; k++) if (cv[t][k].active) { act[nAct].v = &cv[t][k]; act[nAct].key = t == key; act[nAct].t = t; nAct++; tot += WEIGHT[cv[t][k].machine % M_COUNT]; }
+        const signed char dst = t == key ? 1 : (cmpRoute[t] ? 0 : 2);
+        if (v[t].active) { act[nAct].v = &v[t]; act[nAct].dst = dst; act[nAct].t = t; nAct++; tot += WEIGHT[v[t].machine % M_COUNT]; }
+        for (int k = 0; k < NCHORDV; k++) if (cv[t][k].active) { act[nAct].v = &cv[t][k]; act[nAct].dst = dst; act[nAct].t = t; nAct++; tot += WEIGHT[cv[t][k].machine % M_COUNT]; }
     }
     bool split = wkOn && audioThreads > 1 && nAct >= 2 && tot >= 8.f;
     const bool mo = multiBuf && multiCh > 2;   // Mehrkanal: jede Spur in eigenen Puffer, danach zur Summe
@@ -1968,7 +1972,9 @@ void Engine::processBlock(float* out, int n) {
             Voice& vc = *act[i].v;
             vc.update(n, (float)sr, proj.bpm);
             if (trk) vc.render(TL[act[i].t], TR[act[i].t], S, n, (float)sr);
-            else if (act[i].key) vc.render(KL, KR, S, n, (float)sr); else vc.render(L, R, S, n, (float)sr);
+            else if (act[i].dst == 1) vc.render(KL, KR, S, n, (float)sr);
+            else if (act[i].dst == 2) vc.render(UL, UR, S, n, (float)sr);
+            else vc.render(L, R, S, n, (float)sr);
         }
     } else {
         if (!wkPrioSet) {   // Helfer bekommt die Prioritaet des Audio-Threads
@@ -1976,7 +1982,7 @@ void Engine::processBlock(float* out, int n) {
             int pol; struct sched_param sp;
             if (pthread_getschedparam(pthread_self(), &pol, &sp) == 0) pthread_setschedparam(wkThread, pol, &sp);
         }
-        for (int i = 0; i < n; i++) { wL[i] = wR[i] = wKL[i] = wKR[i] = 0.f; for (int b = 0; b < NBUS; b++) wS[b][i] = 0.f; }
+        for (int i = 0; i < n; i++) { wL[i] = wR[i] = wKL[i] = wKR[i] = wUL[i] = wUR[i] = 0.f; for (int b = 0; b < NBUS; b++) wS[b][i] = 0.f; }
         if (trk) for (int t = 0; t < NTRACKS; t++) for (int i = 0; i < n; i++) wTL[t][i] = wTR[t][i] = 0.f;
         wkMo = trk;
         __atomic_store_n(&wkN, nAct, __ATOMIC_RELAXED); wkNs = n;
@@ -1991,14 +1997,16 @@ void Engine::processBlock(float* out, int n) {
             Voice& vc = *act[idx].v;
             vc.update(n, (float)sr, proj.bpm);
             if (trk) vc.render(TL[act[idx].t], TR[act[idx].t], S, n, (float)sr);
-            else if (act[idx].key) vc.render(KL, KR, S, n, (float)sr); else vc.render(L, R, S, n, (float)sr);
+            else if (act[idx].dst == 1) vc.render(KL, KR, S, n, (float)sr);
+            else if (act[idx].dst == 2) vc.render(UL, UR, S, n, (float)sr);
+            else vc.render(L, R, S, n, (float)sr);
             mineN++;
         }
         __atomic_store_n(&wkClaim, (tag << 16) | 0xFFFF, __ATOMIC_RELEASE);   // Block schliessen
         int helper = nAct - mineN;
         if (helper > 0) {
             while (__atomic_load_n(&wkDone, __ATOMIC_ACQUIRE) < helper) { __asm__ __volatile__("" ::: "memory"); }
-            for (int i = 0; i < n; i++) { L[i] += wL[i]; R[i] += wR[i]; KL[i] += wKL[i]; KR[i] += wKR[i]; for (int b = 0; b < NBUS; b++) S[b][i] += wS[b][i]; }
+            for (int i = 0; i < n; i++) { L[i] += wL[i]; R[i] += wR[i]; KL[i] += wKL[i]; KR[i] += wKR[i]; UL[i] += wUL[i]; UR[i] += wUR[i]; for (int b = 0; b < NBUS; b++) S[b][i] += wS[b][i]; }
             if (trk) for (int t = 0; t < NTRACKS; t++) for (int i = 0; i < n; i++) { TL[t][i] += wTL[t][i]; TR[t][i] += wTR[t][i]; }
             wkBlocks++;
         }
@@ -2007,8 +2015,8 @@ void Engine::processBlock(float* out, int n) {
         float* o = tapOut + (size_t)moPos * 2;
         for (int i = 0; i < n; i++) { o[i * 2] = TL[tapTrack][i]; o[i * 2 + 1] = TR[tapTrack][i]; }
     }
-    if (trk) for (int t = 0; t < NTRACKS; t++) {   // Spuren zur Summe (Sidechain-Spur am Kompressor vorbei wie sonst)
-        float* dl = t == key ? KL : L; float* dr = t == key ? KR : R;
+    if (trk) for (int t = 0; t < NTRACKS; t++) {   // Spuren zur Summe (Sidechain-Spur und COMP-AUS-Spuren am Kompressor vorbei)
+        float* dl = t == key ? KL : (cmpRoute[t] ? L : UL); float* dr = t == key ? KR : (cmpRoute[t] ? R : UR);
         for (int i = 0; i < n; i++) { dl[i] += TL[t][i]; dr[i] += TR[t][i]; }
     }
     // Kompressor-Parameter
@@ -2059,7 +2067,7 @@ void Engine::processBlock(float* out, int n) {
             float w = 1.f - cMix + cMix * g;
             oL *= w; oR *= w;
         }
-        oL += KL[i]; oR += KR[i];
+        oL += KL[i] + UL[i]; oR += KR[i] + UR[i];
         if (djMode) {
             float lo, bp, hp;
             djL.proc(oL, lo, bp, hp); oL = djMode == 1 ? lo : hp;
@@ -2337,7 +2345,7 @@ bool Engine::load(const char* path) {
     long nPat = 24 + 8 * nNp + NTRACKS * 128 * (1 + nNp), nBase = 20 + OLD_NPAT * nPat;
     long nSize = ver <= 8 ? nBase + 16 : projectDataSize(ver);
     Project* np = nullptr;
-    if (ok && ver == PROJECT_VERSION) {   // v16: Kopf, Rest, dann belegte Patterns (RLE); dahinter evtl. Sample-Namensliste
+    if (ok && (ver == PROJECT_VERSION || ver == 16)) {   // v16/v17 (gleiches Dateilayout): Kopf, Rest, dann belegte Patterns (RLE); dahinter evtl. Sample-Namensliste
         ok = size >= 20 + PROJECT_TAIL_SIZE + 2;
         if (ok) {
             np = (Project*)malloc(sizeof(Project));
@@ -2500,6 +2508,14 @@ bool Engine::load(const char* path) {
     if (ok && ver < 16) {   // bis v15: 16 Patterns (= Bank A, alle belegt), B-H frisch und unbelegt
         for (int pi = 0; pi < OLD_NPAT; pi++) { proj.pat[pi].used = 1; memset(proj.pat[pi].chgPad, 0, sizeof proj.pat[pi].chgPad); }
         for (int pi = OLD_NPAT; pi < NPATTERNS; pi++) { initPattern(proj.pat[pi]); proj.patMute[pi] = 0; }
+        proj.version = PROJECT_VERSION;
+    }
+    if (ok && ver < 17) {   // bis v16: COMP (Kompressor-Routing) gab es nicht -> alle Spuren in den Kompressor
+        for (int pi = 0; pi < NPATTERNS; pi++) for (int t = 0; t < NTRACKS; t++) {
+            Pattern& P = proj.pat[pi];
+            P.p[t][P_CMPS] = 1;
+            for (int st = 0; st < NSTEPS; st++) P.s[t][st].lock[P_CMPS] = NO_LOCK;
+        }
         proj.version = PROJECT_VERSION;
     }
     if (ok) {   // Grundton getrennt merken (aeltere Projekte hatten ihn nur in SCALE)

@@ -29,7 +29,7 @@ static const ParamHelp PARAM_HELP[] = {
     {"EDIT", "Sample-Editor: Wellenform, Zoom, Start/Loop/Ende", "Sample editor: waveform, zoom, start/loop/end"},
     {"TEMPO", "Sample folgt dem Song-Tempo (Time-Warp), Tonhöhe bleibt", "Sample follows the song tempo (time warp), pitch stays"},
     {"BEATS", "Länge des Samples in Steps (AUTO: 4, 8, 16, 32 ... geschätzt)", "Length of the sample in steps (AUTO: 4, 8, 16, 32 ... estimated)"},
-    {"GRAIN", "Korngröße: klein = Drums knackig, groß = Flächen weich", "Grain size: small = punchy drums, large = smooth pads"}, {"VOL", "Lautstärke der Spur", "Track volume"}, {"PAN", "Position links/rechts", "Position left/right"},
+    {"GRAIN", "Korngröße: klein = Drums knackig, groß = Flächen weich", "Grain size: small = punchy drums, large = smooth pads"}, {"VOL", "Lautstärke der Spur", "Track volume"}, {"PAN", "Position links/rechts", "Position left/right"}, {"COMP", "Spur in den Kompressor schicken (AUS = unkomprimiert zur Summe)", "Send track into the compressor (OFF = straight to the master)"},
     {"DLY", "Anteil ins Echo (Delay)", "Amount sent to the delay"}, {"REV", "Anteil in den Hall (Reverb)", "Amount sent to the reverb"},
     {"RISE", "Sweep läuft nach oben statt nach unten (0 % = klassisch)", "Sweep rises instead of falling (0 % = classic)"},
     {"HARM", "unharmonischer Oberton: aus Fell wird Metall", "Inharmonic partial: turns skin into metal"},
