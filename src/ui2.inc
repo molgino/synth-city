@@ -425,13 +425,23 @@ static void v2List(int x, int y0, int w, int h) {
             if (src > 0) { char gn[20]; snprintf(gn, sizeof gn, "%.9s", v2GrpName(src)); text(x + 12 + textW(d.name) + 8, y + 5, gn, dimC(C_CYAN, 0.55f)); }
         }
         if (label[0]) { char lb[28]; snprintf(lb, sizeof lb, "%.16s", label); strcpy(vb, lb); }   // Sample-/Dateiname statt Nummer
-        // Wertbalken (bipolar ab der Mitte), Wert rechts
-        int bx = x + w / 2 - 20, bw = w / 2 - 110;
+        // Wertbalken (bipolar ab der Mitte) mit Griff am Ende, Wert rechts
+        int bx = x + 104, bw = w - 104 - 66;   // Name links, Wert rechts, dazwischen der Balken
         float fr = knobFrac(d, val);
-        fill(bx, y + 11, bw, 2, C_OFF2);
         Col bc = locked ? C_LOCK : (sel ? tc : dimC(tc, 0.7f));
-        if (d.kind == K_BIP || d.kind == K_OCT) { int mid = bx + bw / 2, e = bx + (int)(bw * fr); fill(e < mid ? e : mid, y + 10, abs(e - mid) + 1, 4, bc); }
-        else fill(bx, y + 10, (int)(bw * fr), 4, bc);
+        int bh = sel ? 5 : 3, by = y + 12 - bh / 2;
+        fill(bx, y + 11, bw, 2, C_OFF2);                       // Schiene
+        int e = bx + (int)(bw * fr);
+        if (d.kind == K_BIP || d.kind == K_OCT) {              // bipolar: von der Mitte aus
+            int mid = bx + bw / 2;
+            fill(mid - 1, y + 8, 1, 8, dimC(C_OFF2, 1.4f));    // Mittenmarke
+            fill(e < mid ? e : mid, by, abs(e - mid) + 1, bh, bc);
+        } else fill(bx, by, e - bx, bh, bc);
+        if (sel) {                                             // Griff: zeigt den Wert als Punkt auf der Schiene
+            int hx = e < bx + 2 ? bx + 2 : (e > bx + bw - 2 ? bx + bw - 2 : e);
+            disc(hx, y + 12, 4, mix(bc, C_PLAY, 0.45f));
+            disc(hx, y + 12, 2, C_PLAY);
+        }
         text(x + w - 10 - textW(vb), y + 4, vb, locked ? C_LOCK : (sel ? C_PLAY : C_TEXT));
         hitAdd(x, y, w, rh, HK_V2ROW, i);
     }
@@ -505,14 +515,55 @@ static void v2Help() {   // was die Tasten JETZT tun
         hitAdd(x - 2, y - 2, w + 4, 24, HK_MORE, -1);   // a = -1: Menue oeffnen (sonst Zeile ausfuehren)
     }
 }
+// Grafikspalte rechts: was der gewaehlte Regler tut. Oben die Grafik der Gruppe (Filterkurve,
+// Huellkurve, LFO-Welle, Oszillatoren, FM-Algorithmus, Piano-Roll ...), darunter das animierte
+// Symbol des Reglers, unten das echte Audiosignal - eine Liste allein ist zu nuechtern.
+static void v2Art(int x, int y, int w, int h) {
+    Col tc = v2View == V2_FX ? C_CYAN : TCOL[track];
+    rrect(x - 4, y - 2, w + 8, h + 4, 8, C_PANEL);
+    int gy = y + 2, gh = 0;
+    int gk = trackPage(page) ? graphKind(0) : 0;
+    if (busOfPage(page) >= 0) gk = 21;   // Bus: die Animation des Effekts, nicht das breite Signalfluss-Bild
+    {   // nur Bilder, die in dieser schmalen Spalte lesbar bleiben (die anderen haben Beschriftungen,
+        // die bei dieser Breite ineinanderlaufen) - dann bleibt mehr Platz fuer Symbol und Signal
+        static const int OK_HERE[] = {1, 2, 8, 9, 12, 14, 16, 17, 18, 21};
+        bool ok = false;
+        for (int k : OK_HERE) if (k == gk) ok = true;
+        if (!ok) gk = 0;
+    }
+    if (gk) {   // Grafik der Gruppe
+        gh = h * 45 / 100;
+        drawPageGraph(gk, x + 2, gy, w - 4, gh, slot);
+        gy += gh + 6;
+    }
+    int p = slotParam(slot);
+    if (p >= 0 && gy + 60 < y + h) {   // Symbol des gewaehlten Reglers, gross und animiert
+        ParamDef d; int val, bv; bool lk; char lb[24];
+        if (knobInfo(slot, d, val, lk, bv, lb, sizeof lb) && d.kind != K_NONE) {
+            int sh = gk ? 64 : (h - 70) / 2;
+            if (gy + sh > y + h - 56) sh = y + h - 56 - gy;
+            if (sh > 20) {
+                text(x + 2, gy, d.name, dimC(tc, 0.8f));
+                paramSymbol(d, val, knobFrac(d, val), x + 2, gy + 14, w - 4, sh - 14, lk ? C_LOCK : tc);
+                gy += sh + 6;
+            }
+        }
+    }
+    int rest = y + h - gy;   // Leere Flaeche nie leer lassen: echtes Audiosignal
+    if (rest > 28) {
+        fill(x + 2, gy, w - 4, 1, C_OFF2);
+        drawScope(x + 2, gy + 3, w - 4, rest - 6, dimC(tc, 0.85f));
+    }
+}
 static void drawV2() {
     v2Sync();
     if (v2View == V2_NONE) return;
     v2Tracks(4, 48, 108, 342);   // Kopfzeile (mit den Ansichten-Reitern) und Hintergrund kommen aus drawAll
     {   // Inhalt: Gruppen-Kopfzeile, Liste, Erklaerung des gewaehlten Reglers
-        int x = 118, y = 48, w = 506, h = 342;
-        rrect(x - 4, y - 2, w + 14, h + 4, 8, C_PANEL);
+        int x = 118, y = 48, w = 344, h = 342;
+        rrect(x - 4, y - 2, w + 8, h + 4, 8, C_PANEL);
         v2List(x, y, w, h - 20);
+        v2Art(x + w + 12, y, 150, h);
         int p = slotParam(slot);
         if (p >= 0) {
             ParamDef d = paramDef(curP().machine[track] % M_COUNT, p);
