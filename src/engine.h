@@ -40,7 +40,7 @@ struct Project {
     uint8_t patMute[NPATTERNS];   // Mutes je Pattern (Bit je Spur)
     struct SongRow { uint8_t pat[NTRACKS]; uint8_t rep, mute, pad[2]; } row[64];   // Song als Clip-Matrix; pat = SONG_EMPTY: Spur schweigt
 };
-enum { PROJECT_VERSION = 17, SONG_MAX = 64, SONG_EMPTY = 255 };
+enum { PROJECT_VERSION = 18, SONG_MAX = 64, SONG_EMPTY = 255 };
 // Groessen der Formate v9-v12 (96 Parameter je Spur): danach steht ggf. die Sample-Namensliste
 enum { OLD_PAT_SIZE = 24 + 8 * OLD_NPARAMS + NTRACKS * NSTEPS * (1 + OLD_NPARAMS),
        PROJECT_V11_SIZE = 20 + OLD_NPAT * OLD_PAT_SIZE + 8 + 8 + 128 + 4,

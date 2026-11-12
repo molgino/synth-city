@@ -96,7 +96,9 @@ Die 8 Spuren liegen auf dem Bildschirm genau so wie die Tasten: **Steuerkreuz �
 
 Jede Spur spielt bis zu **4 Töne gleichzeitig**. Es gibt zwei Wege dorthin.
 
-**Freie Akkorde (NT2, NT3, NT4).** Auf der TRIG-Seite stehen in der dritten Reihe drei zusätzliche Noten. `---` heißt aus. Setzt du sie, klingen sie zusammen mit NOTE – frei wählbar, also auch Umkehrungen, weite Lagen oder Quartenschichtungen, die keine Akkordtabelle anbietet. Wie jeder Regler sind sie **pro Step lockbar**: Step halten und den Wert ändern, dann hat dieser eine Step seinen eigenen Akkord. So entsteht eine Akkordfolge in einer einzigen Spur.
+**Freie Akkorde (NT2, NT3, NT4).** Auf der TRIG-Seite stehen in der dritten Reihe drei zusätzliche Noten. `---` heißt aus. Sie sind **Intervalle zur Hauptnote NOTE**, nicht feste Tonhöhen: die Anzeige nennt den Abstand in Halbtönen und seinen Namen, also `+4 gr3`, `+7 q5`, `-12 okt`. Von −24 bis +24 Halbtönen ist alles möglich, auch `+0 uni` als Verdopplung.
+
+Der Vorteil: **transponierst du NOTE, wandert der ganze Akkord mit.** Ein einmal eingestelltes Dur (`+4`, `+7`) bleibt Dur, egal auf welchem Grundton der Step steht – du baust die Akkordfolge also nur über NOTE, und die Form bleibt. Frei wählbar heißt trotzdem frei: Umkehrungen, weite Lagen oder Quartenschichtungen, die keine Akkordtabelle anbietet. Wie jeder Regler sind sie **pro Step lockbar**: Step halten und den Wert ändern, dann hat dieser eine Step seinen eigenen Akkord.
 
 **Akkordtypen (ARP-Seite, MODE = AKKD).** Im ARP-Modus **AKKD** spielt ein Trig die Töne des gewählten Akkords (**CHRD**: Oktave, Quinte, Dur, Moll, sus4, Maj7, Min7, Dom7, Dim oder Skala = Terzschichtung der Projektskala). Das ist der schnelle Weg, wenn ein Standardakkord reicht – er folgt der Tonhöhe von NOTE.
 

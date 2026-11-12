@@ -250,7 +250,7 @@ static void testChordNotes() {
     Engine::initTrack(P, 4, M_SYNTH);
     P.s[4][0].on = 1; P.p[4][P_LEN] = 100;
     P.p[4][P_NOTE] = 60;                                  // C3
-    P.p[4][P_NT2] = 64; P.p[4][P_NT3] = 67;               // + E3 + G3, NT4 bleibt aus
+    P.p[4][P_NT2] = NOTEX_ZERO + 4; P.p[4][P_NT3] = NOTEX_ZERO + 7;   // Intervalle: + gr. Terz + Quinte, NT4 bleibt aus
     E.start();
     bool bad = false;
     run(4410, &bad);
@@ -275,6 +275,26 @@ static void testChordNotes() {
     E.stop(); run(44100 * 3);
     act = 0; for (int k = 0; k < NCHORDV; k++) act += E.cv[4][k].active ? 1 : 0;
     CHECK(act == 0, "Zusatznoten klingen nach Stop weiter (%d)", act);
+    {   // Intervalle wandern mit der Hauptnote (NT2-NT4 sind relativ, nicht absolut)
+        P.p[4][P_AMOD] = 0;
+        P.p[4][P_NOTE] = 67;                              // G3 statt C3 -> B3 und D4
+        E.stop(); run(44100 * 2); E.start(); run(4410, &bad);
+        bool h71 = false, h74 = false;
+        for (int k = 0; k < NCHORDV; k++) if (E.cv[4][k].active) {
+            int n = (int)(E.cv[4][k].note + 0.5f);
+            if (n == 71) h71 = true; if (n == 74) h74 = true;
+        }
+        CHECK((int)(E.v[4].note + 0.5f) == 67, "Hauptnote ist %d statt 67", (int)(E.v[4].note + 0.5f));
+        CHECK(h71 && h74, "Intervalle wandern nicht mit der Hauptnote (71 %d, 74 %d)", h71, h74);
+    }
+    {   // negatives Intervall: eine Oktave tiefer
+        P.p[4][P_NOTE] = 60; P.p[4][P_NT2] = NOTEX_ZERO - 12; P.p[4][P_NT3] = 0;
+        E.stop(); run(44100 * 2); E.start(); run(4410, &bad);
+        bool h48 = false;
+        for (int k = 0; k < NCHORDV; k++) if (E.cv[4][k].active && (int)(E.cv[4][k].note + 0.5f) == 48) h48 = true;
+        CHECK(h48, "negatives Intervall (-12) fehlt");
+        E.stop(); run(44100 * 3);
+    }
 }
 
 // Stimmen-Modus: MONO laesst nur eine Stimme, LEGATO bindet (Huellkurve laeuft weiter)

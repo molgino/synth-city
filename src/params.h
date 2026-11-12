@@ -116,8 +116,9 @@ enum {
     P_VMOD = 142,                          // Stimmen-Modus der Spur: POLY / MONO / LEGATO
     OLD_P_DLY = 30, OLD_P_REV = 31                                         // bis v12
 };
-// Zusatznoten je Step (0 = aus); zusammen mit P_NOTE bis zu 4 Toene, passend zu NCHORDV Zusatzstimmen
-enum { NNOTEX = 3 };
+// Zusatznoten je Step als INTERVALL zur Hauptnote (0 = aus, sonst v - NOTEX_ZERO Halbtoene, also -24 .. +24);
+// zusammen mit P_NOTE bis zu 4 Toene, passend zu NCHORDV Zusatzstimmen
+enum { NNOTEX = 3, NOTEX_ZERO = 25, NOTEX_MAX = 49 };
 static const int P_NTX[NNOTEX] = {P_NT2, P_NT3, P_NT4};
 // FM: Operator k liegt auf einer eigenen Seite (OP1 = SRC2, OP2-4 = SRC3-5): RATIO FINE DETN LEVEL ATK DEC SUS REL
 static const int FM_OPB[4] = {P_X0, P_Y0, P_Z0, P_W0};
@@ -211,7 +212,7 @@ static const ParamDef COMMON_DEFS[NPARAMS] = {
     // FLT2: Base-Width-Filter (Hochpass BASE, Tiefpass BASE+WDTH), Key-Tracking und Velocity fuer Filter 1
     {"BASE", K_NUM, 0, 127}, {"WDTH", K_NUM, 127, 127}, {"KEYT", K_PCT, 0, 100}, {"VELF", K_BIP, 64, 127},
     {"CURVE", K_BIP, 64, 127}, {"CURVE", K_BIP, 64, 127},                        // Huellkurvenform ENV2/ENV1 (ab v11)
-    {"NT2", K_NOTEX, 0, 127}, {"NT3", K_NOTEX, 0, 127},                          // 86/87: Zusatznoten 2/3 (Anzeige auf TRIG)
+    {"NT2", K_NOTEX, 0, NOTEX_MAX}, {"NT3", K_NOTEX, 0, NOTEX_MAX},                // 86/87: Zusatznoten 2/3 als Intervall (Anzeige auf TRIG)
     // ARP: spielt waehrend der Trig-Laenge die Akkordtoene ueber OCT Oktaven im Tempo RATE
     {"MODE", K_ARPM, 0, 5}, {"CHRD", K_ACHD, 2, 9}, {"OCT", K_CNT, 0, 3}, {"RATE", K_ARAT, 2, 5},
     {"GATE", K_PCT, 60, 100}, {"ACCT", K_PCT, 0, 100}, PDEF_NONE, PDEF_NONE,
@@ -224,7 +225,7 @@ static const ParamDef COMMON_DEFS[NPARAMS] = {
     // ab v14: ENV1-Ziele (Ziel 1 = Lautstaerke wie frueher die AMP-Huellkurve)
     {"DEST1", K_EDEST, MOD_VCA, MOD_VCA}, {"DEPTH1", K_BIP, 127, 127}, {"DEST2", K_EDEST, 0, MOD_VCA}, {"DEPTH2", K_BIP, 64, 127},
     {"DEST3", K_EDEST, 0, MOD_VCA}, {"DEPTH3", K_BIP, 64, 127}, {"VELO", K_PCT, 0, 100},
-    {"NT4", K_NOTEX, 0, 127},                                                    // 135: Zusatznote 4 (Anzeige auf TRIG)
+    {"NT4", K_NOTEX, 0, NOTEX_MAX},                                              // 135: Zusatznote 4 als Intervall (Anzeige auf TRIG)
     // ENV2-Ziele (Ziel 1 = Filterfrequenz, Tiefe 1 = P_FENV)
     {"DEST1", K_EDEST, P_FREQ + 1, MOD_VCA}, {"DEST2", K_EDEST, 0, MOD_VCA}, {"DEPTH2", K_BIP, 64, 127}, {"DEST3", K_EDEST, 0, MOD_VCA},
     {"DEPTH3", K_BIP, 64, 127}, {"VELO", K_PCT, 0, 100},
@@ -478,7 +479,14 @@ inline void fmtParam(const ParamDef& d, int v, char* buf, int n) {
     case K_NUM: snprintf(buf, n, "%d", v); break;
     case K_BIP: snprintf(buf, n, "%+d", v - 64); break;
     case K_NOTE: snprintf(buf, n, "%s%d", notes[v % 12], v / 12 - 1); break;
-    case K_NOTEX: if (v) snprintf(buf, n, "%s%d", notes[v % 12], v / 12 - 1); else snprintf(buf, n, "---"); break;
+    case K_NOTEX: {   // Intervall zur Hauptnote: AUS, +0 (Verdopplung), +7, -5 ...
+        if (!v) { snprintf(buf, n, "---"); break; }
+        int iv = v - NOTEX_ZERO;
+        static const char* const IVN[13] = {"", "kl2", "gr2", "kl3", "gr3", "q4", "tri", "q5", "kl6", "gr6", "kl7", "gr7", "okt"};
+        int a = iv < 0 ? -iv : iv;
+        if (a <= 12) snprintf(buf, n, "%+d %s", iv, a ? IVN[a] : "uni");
+        else snprintf(buf, n, "%+d", iv);
+    } break;
     case K_VMOD: snprintf(buf, n, "%s", VMOD_NAMES[v % VM_COUNT]); break;
     case K_PCT: snprintf(buf, n, "%d%%", v); break;
     case K_LEN: {

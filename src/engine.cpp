@@ -1569,8 +1569,17 @@ void Engine::trigger(int t, const uint8_t* lk, float velScale, bool fromSeq, boo
     const bool mono = vmod != VM_POLY;          // MONO und LEGATO: eine Stimme, keine Akkordtoene
     const bool legato = vmod == VM_LEGATO;      // Trig auf eine klingende Stimme wechselt nur die Tonhoehe
     // freie Zusatznoten des Steps (NT2-NT4, 0 = aus): sie gehen dem Akkordtyp vor
+    // NT2-NT4 sind Intervalle zur Hauptnote (0 = aus): -24 .. +24 Halbtoene
     int extra[NNOTEX], nx = 0;
-    if (pitched) for (int k = 0; k < NNOTEX; k++) { int e = val(P_NTX[k]); if (e > 0 && e <= 127) extra[nx++] = e; }
+    if (pitched) {
+        const int bn = val(P_NOTE);
+        for (int k = 0; k < NNOTEX; k++) {
+            int e = val(P_NTX[k]);
+            if (e <= 0 || e > NOTEX_MAX) continue;
+            int a = bn + (e - NOTEX_ZERO);
+            if (a >= 0 && a <= 127) extra[nx++] = a;
+        }
+    }
     // Akkord: mehrere Toene gleichzeitig - entweder die freien Zusatznoten oder der Akkordtyp (ARP-Modus AKKD)
     if (fromSeq && pitched && !mono && (nx > 0 || val(P_AMOD) == ARP_CHORD)) {
         int base = val(P_NOTE), chord = val(P_ACHD) % 10;
@@ -2395,7 +2404,7 @@ bool Engine::load(const char* path) {
     long nPat = 24 + 8 * nNp + NTRACKS * 128 * (1 + nNp), nBase = 20 + OLD_NPAT * nPat;
     long nSize = ver <= 8 ? nBase + 16 : projectDataSize(ver);
     Project* np = nullptr;
-    if (ok && (ver == PROJECT_VERSION || ver == 16)) {   // v16/v17 (gleiches Dateilayout): Kopf, Rest, dann belegte Patterns (RLE); dahinter evtl. Sample-Namensliste
+    if (ok && (ver == PROJECT_VERSION || ver == 16 || ver == 17)) {   // v16-v18 (gleiches Dateilayout): Kopf, Rest, dann belegte Patterns (RLE); dahinter evtl. Sample-Namensliste
         ok = size >= 20 + PROJECT_TAIL_SIZE + 2;
         if (ok) {
             np = (Project*)malloc(sizeof(Project));
@@ -2558,6 +2567,24 @@ bool Engine::load(const char* path) {
     if (ok && ver < 16) {   // bis v15: 16 Patterns (= Bank A, alle belegt), B-H frisch und unbelegt
         for (int pi = 0; pi < OLD_NPAT; pi++) { proj.pat[pi].used = 1; memset(proj.pat[pi].chgPad, 0, sizeof proj.pat[pi].chgPad); }
         for (int pi = OLD_NPAT; pi < NPATTERNS; pi++) { initPattern(proj.pat[pi]); proj.patMute[pi] = 0; }
+        proj.version = PROJECT_VERSION;
+    }
+    if (ok && ver < 18) {   // bis v17: NT2-NT4 waren absolute Noten -> in Intervalle zur Hauptnote umrechnen
+        for (int pi = 0; pi < NPATTERNS; pi++) for (int t = 0; t < NTRACKS; t++) {
+            Pattern& P = proj.pat[pi];
+            auto conv = [](int v, int note) {
+                if (v <= 0) return 0;
+                int iv = v - note;
+                if (iv < -24) iv = -24; else if (iv > 24) iv = 24;
+                return iv + NOTEX_ZERO;
+            };
+            for (int k = 0; k < NNOTEX; k++) P.p[t][P_NTX[k]] = (uint8_t)conv(P.p[t][P_NTX[k]], P.p[t][P_NOTE]);
+            for (int st = 0; st < NSTEPS; st++) {
+                Step& sp = P.s[t][st];
+                int note = sp.lock[P_NOTE] != NO_LOCK ? sp.lock[P_NOTE] : P.p[t][P_NOTE];
+                for (int k = 0; k < NNOTEX; k++) if (sp.lock[P_NTX[k]] != NO_LOCK) sp.lock[P_NTX[k]] = (uint8_t)conv(sp.lock[P_NTX[k]], note);
+            }
+        }
         proj.version = PROJECT_VERSION;
     }
     if (ok && ver < 17) {   // bis v16: COMP (Kompressor-Routing) gab es nicht -> alle Spuren in den Kompressor
