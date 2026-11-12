@@ -137,7 +137,10 @@ static void v2GoView(int i) {   // Index in V2_RING
         v2Build(v2View);
         v2Foc[v2View] = v2Clamp(v2Foc[v2View], 1);
         v2Apply();
-    } else { v2View = V2_NONE; page = v; }
+    } else {   // eigene Ansicht (MIX, PRJ, SET ...): die Seite hat weniger Regler als eine Liste
+        v2View = V2_NONE; page = v;
+        int ns = nSlots(); if (slot >= ns) slot = ns - 1; if (slot < 0) slot = 0;
+    }
 }
 static int v2RingIndex() {
     if (v2View >= 0 && v2View < 3) return v2View;

@@ -1149,6 +1149,7 @@ static void drawHeader() {
 static bool knobInfo(int k, ParamDef& d, int& val, bool& locked, int& baseVal, char* label, int ln) {
     const Pattern& P = curP();
     locked = false; label[0] = 0;
+    if (k < 0 || k >= nSlots()) return false;   // Seite gewechselt, Regler-Index noch von der alten: nie ueber die Tabelle hinaus lesen
     if (page == PAGE_MST) {
         d = MST_DEFS[k];
         val = k == MS_BPM ? eng.proj.bpm : eng.proj.mst[k];

@@ -1061,6 +1061,21 @@ static void uiScenariosV2() {
     tapAt(360, 12); UCHECK(v2View == V2_SOUND || v2View == V2_SEQ, "Reiter in der Kopfzeile antippen");
 
     // --- volle Touch-Bedienung: alles ohne Tasten erreichbar
+    // Gefunden vom Monkey unter AddressSanitizer: die TRIG-Seite hat 12 Regler, MASTER nur 8.
+    // Beim Wechsel auf eine Seite mit weniger Reglern muss der Index mitgehen, sonst liest
+    // knobInfo hinter MST_DEFS (global-buffer-overflow).
+    uiCase = "Regler-Index beim Seitenwechsel";
+    simReset(); simFrame();
+    goPage(PG_TRG); goSlot(11);
+    UCHECK(slot == 11 && page == PG_TRG, "TRIG: Regler 12 nicht erreichbar (Seite %d, Regler %d)", page, slot);
+    goPage(PG_MST); simFrame();
+    UCHECK(page == PG_MST, "MASTER nicht erreichbar (Seite %d)", page);
+    UCHECK(slot < nSlots(), "Regler %d auf MASTER (nur %d Regler)", slot + 1, nSlots());
+    { ParamDef d; int v, bv; bool lk; char lb[24];
+      for (int k = 0; k < 16; k++) { int o = slot; slot = k; knobInfo(k, d, v, lk, bv, lb, sizeof lb); slot = o; }
+      UCHECK(true, "knobInfo mit zu grossem Index"); }   // darf nicht abstuerzen (Sanitizer)
+    simReset(); simFrame();
+
     uiCase = "Touch: alles mit dem Finger";
     simReset(); simFrame(); simDraw = true; simFrame();
     { // Spur waehlen und stummschalten (M am rechten Rand der Spurzeile)
