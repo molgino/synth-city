@@ -297,7 +297,9 @@ static void fbLine(int x1, int y1, int x2, int y2) {   // Bresenham
 static void setCol(Col c, Uint8 a = 255) { curCol = c; curA = a; if (!fbPix) SDL_SetRenderDrawColor(ren, c.r, c.g, c.b, a); }
 static void drawLine(int x1, int y1, int x2, int y2) { if (fbPix) fbLine(x1, y1, x2, y2); else SDL_RenderDrawLine(ren, x1, y1, x2, y2); }
 static void clearScreen(Col c) { if (fbPix) fbFill(0, 0, SW, SH, c, 255); else { setCol(c); SDL_RenderClear(ren); } }
+static void gdCheck(int x, int y, int w, int h);   // Zeichen-Wache (Selbsttest), Definition weiter unten
 static void fill(int x, int y, int w, int h, Col c, Uint8 a = 255) {
+    gdCheck(x, y, w, h);
     if (fbPix) { fbFill(x, y, w, h, c, a); return; }
     setCol(c, a); SDL_Rect r = {x, y, w, h}; SDL_RenderFillRect(ren, &r);
 }
@@ -338,6 +340,7 @@ static int textW(const char* s, int sc = 1) { return textLen(s) * FONT_W * sc; }
 static void (*textHook)(const char*) = nullptr;   // Selbsttest: angezeigte Texte mitschneiden
 static void text(int x, int y, const char* s, Col c, int sc = 1) {
     if (textHook) textHook(s);
+    gdCheck(x, y, textW(s, sc), FONT_H * sc);
     if (fbPix) {   // Glyphen direkt mischen
         uint32_t srb = ((uint32_t)c.r << 16) | c.b, sg = (uint32_t)c.g << 8;
         uint32_t solid = 0xff000000u | srb | sg;
@@ -1301,6 +1304,18 @@ static void handle(int x, int y, Col c, bool sel) {
     rrect(x - 3, y - 3, 7, 7, 3, sel ? C_PLAY : c);
 }
 
+// Zeichen-Wache: meldet, was ausserhalb eines Kastens landet. Scharf nur im Selbsttest (gdWant),
+// sonst kostet sie einen Vergleich. Grund: die Grafikspalte ist 150 px breit, und Bilder, die fuer
+// den alten breiten Streifen gebaut waren, zeichneten weit daneben (gemeldet: "abgeschnitten / nur halb da").
+static int gdX0 = 0, gdY0 = 0, gdX1 = 0, gdY1 = 0, gdOut = 0;   // gdX1 > gdX0 = Wache an
+static bool gdWant = false;
+static inline void gdCheck(int x, int y, int w, int h) {
+    if (gdX1 <= gdX0) return;
+    if (x < gdX0 || y < gdY0 || x + w > gdX1 || y + h > gdY1) gdOut++;
+}
+static void gdSet(int x, int y, int w, int h) { if (!gdWant) return; gdX0 = x; gdY0 = y; gdX1 = x + w; gdY1 = y + h; }
+static void gdClear() { gdX1 = gdX0 = 0; }
+
 static void graphBox(int x, int y, int w, int h) {
     rrect(x, y, w, h, 8, C_PANEL);
     for (int i = 1; i < 4; i++) fill(x + 8, y + h * i / 4, w - 16, 1, C_SEL);
@@ -1718,6 +1733,7 @@ static void ring(int cx, int cy, int r, int th, Col c) {
     }
 }
 static void line(int x1, int y1, int x2, int y2, Col c, int th = 1) {
+    gdCheck(x1 < x2 ? x1 : x2, y1 < y2 ? y1 : y2, abs(x2 - x1) + th, abs(y2 - y1) + th);
     setCol(c);
     for (int k = 0; k < th; k++) { drawLine(x1 + k, y1, x2 + k, y2); drawLine(x1, y1 + k, x2, y2 + k); }
 }
@@ -2334,11 +2350,14 @@ static const float* samplePeaks(int idx, int W) {
 // Drums: grosses Symbol (springt beim Trig), Ausklingkurve, Tonhoehen-Sweep
 static void drumGraph(int gx, int gy, int gw, int gh, int m, Col c) {
     graphBox(gx, gy, gw, gh);
-    int s = 46 + (int)(flash[track] * 8);
-    rrect(gx + 8, gy + 4, 54, 54, 12, mix(C_PANEL, c, flash[track] * 0.25f));
-    drawIcon(m, gx + 35 - s / 2, gy + 31 - s / 2, s, mix(c, C_PLAY, flash[track] * 0.5f));
+    // Masse aus dem Kasten: das Bild steht breit wie schmal (die Spalte ist nur 150 px)
+    int is = clampi(gh - 12 < gw / 3 ? gh - 12 : gw / 3, 24, 54);   // Kantenlaenge des Symbolfelds
+    int s = is - 8 + (int)(flash[track] * 8);
+    rrect(gx + 8, gy + 4, is, is, 12, mix(C_PANEL, c, flash[track] * 0.25f));
+    drawIcon(m, gx + 8 + is / 2 - s / 2, gy + 4 + is / 2 - s / 2, s, mix(c, C_PLAY, flash[track] * 0.5f));
     // Ausklingkurve aus DCAY (Index 1 bei allen Drums, Shaker: Attack+Decay)
-    int x0 = gx + 80, W = gw - 200, top = gy + 10, bot = gy + gh - 10;
+    int x0 = gx + is + 18, W = gw - is - 46, top = gy + 10, bot = gy + gh - 10;
+    if (W < 20) { W = 20; x0 = gx + gw - 26 - W; }
     float dc = pv(P_S1) / 127.f;
     static int ys[600];
     if (W > 590) W = 590;
@@ -2352,36 +2371,54 @@ static void drumGraph(int gx, int gy, int gw, int gh, int m, Col c) {
     if (m == M_KICK || m == M_TOM) {   // Tonhoehen-Sweep gestrichelt
         float sw = pv(P_S2) / 127.f;
         for (int i = 0; i < W; i += 4) { float t = (float)i / W; int yy = bot - (int)((0.3f + 0.7f * sw * expf(-t * 18.f)) * (bot - top) * 0.6f); fill(x0 + i, yy, 2, 2, C_LOCK); }
-        text(x0 + W - 70, top - 4, "PITCH", C_LOCK);
+        text(x0 + W - textW("PITCH"), top - 4, "PITCH", C_LOCK);
     }
     // Pegel der Spur
     int lh = clampi((int)(sqrtf(meterV[track]) * (gh - 12)), 0, gh - 12);
     rrect(gx + gw - 26, gy + 6, 10, gh - 12, 4, C_OFF);
     if (lh) rrect(gx + gw - 26, gy + gh - 6 - lh, 10, lh, 4, c);
-    text(gx + gw - 110, gy + gh - 18, MACHINE_LONG[m], C_DIM);
+    if (gw >= 260) {   // Engine-Name nur im breiten Bild; in der schmalen Spalte stuende er auf der Kurve
+        char nb[32]; snprintf(nb, sizeof nb, "%.30s", MACHINE_LONG[m]);
+        while (nb[0] && textW(nb) > gw - 40) nb[strlen(nb) - 1] = 0;
+        text(gx + gw - 30 - textW(nb), gy + gh - 20, nb, C_DIM);
+    }
 }
 
 const float* wavetableFrame(int t, int f);
 
 // Wavetable: Frames perspektivisch gestapelt, aktuelle Position hervorgehoben
+// Wavetable als 3D-Stapel. Alle Masse kommen aus dem Kasten: das Bild steht in der breiten
+// Seitengrafik genauso wie in der 150 px schmalen Spalte (vorher feste 300 px Wellenbreite
+// und 7 px Versatz je Frame - in der Spalte lag mehr als die Haelfte daneben).
 static void wtGraph(int gx, int gy, int gw, int gh, int tab, int pos, Col c) {
     graphBox(gx, gy, gw, gh);
-    int W = 300, x0 = gx + 20, base = gy + gh - 4;
-    int cur = pos * 31 / 127;
+    int top = gy + 22;                       // Platz fuer die zwei Zeilen rechts oben
+    int W = (gw - 16) * 2 / 3;               // Breite einer Welle
+    int sx = gw - 16 - W;                    // gesamte Staffelung nach rechts
+    int A = (gh - 26) / 7;                   // Amplitude
+    int sy = gy + gh - 8 - A - (top + A);    // gesamte Staffelung nach oben
+    if (sy < 0) sy = 0;
+    int base = gy + gh - 8 - A;
+    int cur = pos * 31 / 127, stepX = W / 64 + 1;
     for (int f = 31; f >= 0; f -= 3) {
         const float* fr = wavetableFrame(tab, f);
-        int ox = x0 + f * 7, oy = base - f * 20 / 31 - 10;
+        int ox = gx + 8 + f * sx / 31, oy = base - f * sy / 31;
         Col cc = dimC(c, 0.18f + 0.25f * (1.f - f / 31.f));
-        int px = ox, py = oy - (int)(fr[0] * 9);
-        for (int i = 1; i < W; i += 3) { int nx = ox + i, ny = oy - (int)(fr[i * 256 / W] * 9); line(px, py, nx, ny, cc); px = nx; py = ny; }
+        int px = ox, py = oy - (int)(fr[0] * A * 0.75f);
+        for (int i = stepX; i <= W; i += stepX) { int nx = ox + i, ny = oy - (int)(fr[i * 255 / W] * A * 0.75f); line(px, py, nx, ny, cc); px = nx; py = ny; }
     }
     const float* fr = wavetableFrame(tab, cur);
-    int ox = x0 + cur * 7, oy = base - cur * 20 / 31 - 10, px = ox, py = oy - (int)(fr[0] * 12);
-    for (int i = 1; i < W; i++) { int nx = ox + i, ny = oy - (int)(fr[i * 256 / W] * 12); line(px, py, nx, ny, c, 2); px = nx; py = ny; }
-    const char* tn[4] = {"BASIC: SIN > TRI > SAW > SQR", "PWM: 50 % > 5 %", TR("VOKAL: A > E > I > O > U", "VOWEL: A > E > I > O > U"), TR("OBERTÖNE: 1 > 32", "HARMONICS: 1 > 32")};
-    text(gx + gw - 10 - textW(tn[tab & 3]), gy + 4, tn[tab & 3], dimC(c, 0.8f));
-    char b[24]; snprintf(b, sizeof b, "FRAME %d/32", cur + 1);
-    text(gx + gw - 10 - textW(b), gy + 22, b, c);
+    int ox = gx + 8 + cur * sx / 31, oy = base - cur * sy / 31, px = ox, py = oy - (int)(fr[0] * A);
+    for (int i = 1; i <= W; i++) { int nx = ox + i, ny = oy - (int)(fr[i * 255 / W] * A); line(px, py, nx, ny, c, 2); px = nx; py = ny; }
+    static const char* const LONG_DE[4] = {"BASIC: SIN > TRI > SAW > SQR", "PWM: 50 % > 5 %", "VOKAL: A > E > I > O > U", "OBERTÖNE: 1 > 32"};
+    static const char* const LONG_EN[4] = {"BASIC: SIN > TRI > SAW > SQR", "PWM: 50 % > 5 %", "VOWEL: A > E > I > O > U", "HARMONICS: 1 > 32"};
+    static const char* const SHORT_DE[4] = {"BASIC", "PWM", "VOKAL", "OBERT"};
+    static const char* const SHORT_EN[4] = {"BASIC", "PWM", "VOWEL", "HARM"};
+    const char* tn = (g_lang ? LONG_EN : LONG_DE)[tab & 3];
+    if (textW(tn) > gw - 20) tn = (g_lang ? SHORT_EN : SHORT_DE)[tab & 3];   // schmale Spalte: Kurzname
+    text(gx + gw - 10 - textW(tn), gy + 4, tn, dimC(c, 0.8f));
+    char b[24]; snprintf(b, sizeof b, textW("FRAME 32/32") > gw - 20 ? "%d/32" : "FRAME %d/32", cur + 1);
+    text(gx + gw - 10 - textW(b), gy + 20, b, c);
 }
 
 // Chop: Wellenform mit Scheiben, aktuelle Scheibe hell, Abspielposition
@@ -5703,10 +5740,12 @@ int main(int argc, char** argv) {
             if (shotPage == 77) { track = 4; curP().len[4] = 64; cursor = 35; page = PG_TRG; slot = 0; for (int s2 = 0; s2 < 64; s2 += 3) curP().s[4][s2].on = 1; }
             if (shotPage == 78) { track = 4; page = PG_FLT; slot = 0; cursor = 5; curP().s[4][5].on = 1; holdPat = curPi(); holdTrack = 4; holdStep = 5; aHeld = true; lockLatch = true; }
         }
-        if (shotPage >= 79 && shotPage <= 84) {   // Ansichten ohne die Listen-Zonen (MIX, PRJ), WTBL-Sound, Drum-Sound
+        if ((shotPage >= 79 && shotPage <= 84) || shotPage == 89 || shotPage == 90) {   // Ansichten ohne die Listen-Zonen (MIX, PRJ), WTBL-Sound, Drum-Sound
             if (shotPage == 79) page = PG_MIX;
             if (shotPage == 80) page = PG_PRJ;
             if (shotPage == 81) { track = 5; Engine::setMachine(curP(), 5, M_WTBL); page = PG_SRC; slot = 0; }
+            if (shotPage == 89) { track = 5; Engine::setMachine(curP(), 5, M_WTBL); page = PG_SRC2; slot = 0; }   // Wavetable-Stapel in der Spalte
+            if (shotPage == 90) { track = 0; page = PG_SRC; slot = 1; }                                            // Drum-Bild in der Spalte
             if (shotPage == 82) { track = 0; page = PG_SRC; slot = 2; }
             if (shotPage == 83) { page = PG_FX; slot = 0; }   // EFFEKTE-Liste
             if (shotPage == 84) { page = PG_MST; slot = 0; }   // MASTER-Liste
@@ -5718,7 +5757,7 @@ int main(int argc, char** argv) {
             if (shotPage == 63) { page = PG_FXB; Engine::setBusType(eng.proj, 1, BF_SPRING); slot = 3; }
         }
         refreshDevices();
-        if (page == PG_SRC) { track = 7; slot = 0; }
+        if (page == PG_SRC && shotPage != 90 && shotPage != 81) { track = 7; slot = 0; }
         if (page == PG_SRC || page == PG_SRC2 || shotPage == 27) { }
         if (shotPage == 27) { page = PG_SRC2; track = 6; slot = 0; }   // FM Operator 1
         if (page == PG_INS) { track = 5; curP().p[5][P_ITYP] = getenv("GB_INS") ? (uint8_t)atoi(getenv("GB_INS")) : INS_CHORUS; editAt = getenv("GB_INS") ? 0 : 1; editSlot = 0; slot = 0; }

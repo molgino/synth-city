@@ -1103,6 +1103,33 @@ static void uiScenariosV2() {
         simReset(); simFrame();
     }
 
+    uiCase = "Grafikspalte: Bilder bleiben im Kasten";
+    {   // gemeldet: "die Bilder sind abgeschnitten oder nur halb angezeigt, vor allem beim Wave"
+        // Die Spalte ist 150 px breit; Bilder, die fuer den alten breiten Streifen gebaut waren,
+        // zeichneten daneben. Die Wache zaehlt jeden Strich, der aus dem Kasten faellt.
+        struct Fall { int mach; int pg; const char* nm; };
+        static const Fall F[] = {
+            {M_WTBL,  PG_SRC,  "WTBL Welle"},      {M_WTBL,  PG_SRC2, "WTBL Stapel"},
+            {M_SYNTH, PG_SRC2, "SYNTH Oszillatoren"}, {M_SYNTH, PG_TRG, "Piano-Roll"},
+            {M_SYNTH, PG_FLT,  "Filterkurve"},     {M_SYNTH, PG_FLT2, "Base/Width"},
+            {M_SYNTH, PG_ENV1, "Huellkurve"},      {M_FM,    PG_SRC2, "FM-Operator"},
+            {M_KICK,  PG_SRC,  "Drum"},
+        };
+        int fehler = 0;
+        for (const Fall& f : F) {
+            simReset(); simFrame();
+            lockA(); Engine::setMachine(curP(), track, f.mach); unlockA();
+            goPage(f.pg); simFrame();
+            gdWant = true; gdOut = 0; v2ArtKind = 0;
+            simFrame();
+            gdWant = false; gdClear();
+            if (v2ArtKind == 0) continue;   // dieser Fall zeigt kein Gruppenbild
+            if (gdOut) { fehler++; UCHECK(false, "%s (Bild %d): %d Striche ausserhalb des Kastens", f.nm, v2ArtKind, gdOut); }
+        }
+        UCHECK(fehler == 0, "%d von %d Bildern ragen aus der Spalte", fehler, (int)(sizeof F / sizeof *F));
+        simReset(); simFrame();
+    }
+
     uiCase = "NT2: von AUS geht es bei Unison los";
     {   // gemeldet: der erste Schritt landete bei -24 statt bei +-0
         simReset(); simFrame();

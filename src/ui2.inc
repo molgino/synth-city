@@ -559,11 +559,13 @@ static void v2Help() {   // was die Tasten JETZT tun
 // Grafikspalte rechts: was der gewaehlte Regler tut. Oben die Grafik der Gruppe (Filterkurve,
 // Huellkurve, LFO-Welle, Oszillatoren, FM-Algorithmus, Piano-Roll ...), darunter das animierte
 // Symbol des Reglers, unten das echte Audiosignal - eine Liste allein ist zu nuechtern.
+static int v2ArtKind = 0;   // zuletzt in der Spalte gezeichneter Bildtyp (Selbsttest)
 static void v2Art(int x, int y, int w, int h) {
     Col tc = v2View == V2_FX || v2View == V2_MST ? C_CYAN : TCOL[track];
     rrect(x - 4, y - 2, w + 8, h + 4, 8, C_PANEL);
     int gy = y + 2, gh = 0;
     int gk = trackPage(page) ? graphKind(0) : 0;
+    v2ArtKind = 0;
     if (busOfPage(page) >= 0) gk = 21;   // Bus: die Animation des Effekts, nicht das breite Signalfluss-Bild
     {   // nur Bilder, die in dieser schmalen Spalte lesbar bleiben (die anderen haben Beschriftungen,
         // die bei dieser Breite ineinanderlaufen) - dann bleibt mehr Platz fuer Symbol und Signal
@@ -574,7 +576,10 @@ static void v2Art(int x, int y, int w, int h) {
     }
     if (gk) {   // Grafik der Gruppe
         gh = h * 45 / 100;
+        v2ArtKind = gk;
+        gdSet(x + 2, gy, w - 4, gh);   // Wache (nur im Selbsttest): nichts darf aus dem Kasten ragen
         drawPageGraph(gk, x + 2, gy, w - 4, gh, slot);
+        gdClear();
         gy += gh + 6;
     }
     int p = slotParam(slot);
