@@ -361,11 +361,13 @@ static void uiScenarios() {
     goPage(PG_FLT); goSlot(0);
     curP().s[0][4].on = 0; memset(curP().s[0][4].lock, NO_LOCK, NPARAMS);
     holdDown(BT_A); tap(BT_Y); release(BT_A);
-    UCHECK(curP().s[0][4].on == 1 && curP().s[0][4].lock[P_FREQ] != NO_LOCK, "A halten + Y: kein Lock (on=%d)", curP().s[0][4].on);
-    tap(BT_A);
-    UCHECK(curP().s[0][4].on == 2, "Trig mit Lock antippen -> trigless erwartet (on=%d)", curP().s[0][4].on);
+    // Auf einem LEEREN Step wird daraus ein trigless Step, kein Trig (gemeldet: "da wird mir automatisch
+    // ein Trigger erstellt, das moechte ich nicht") - der Wert gilt, angeschlagen wird nichts.
+    UCHECK(curP().s[0][4].on == 2 && curP().s[0][4].lock[P_FREQ] != NO_LOCK, "A halten + Y: kein trigless Lock (on=%d)", curP().s[0][4].on);
     tap(BT_A);
     UCHECK(curP().s[0][4].on == 1, "trigless antippen -> Trig erwartet (on=%d)", curP().s[0][4].on);
+    tap(BT_A);
+    UCHECK(curP().s[0][4].on == 2, "Trig mit Lock antippen -> trigless erwartet (on=%d)", curP().s[0][4].on);
 
     uiCase = "Lock-Modus";
     simReset(); goPage(PG_FLT);
@@ -378,6 +380,51 @@ static void uiScenarios() {
     goPage(PG_SRC); UCHECK(lockLatch && page == PG_SRC, "im Lock-Modus: Klangseite nicht erreichbar (Seite %d)", page);
     tap(BT_X); UCHECK(holdS().lock[P_S0 + slot] != NO_LOCK || slot > 7, "im Lock-Modus: Lock auf der Klangseite fehlt");
     tap(BT_A); UCHECK(!lockLatch, "A beendet den Lock-Modus nicht");
+
+    uiCase = "Leerer Step + Wert = trigless, kein Trig";
+    {   // gemeldet: "wenn ich im Trig-Lock-Menü auf einem leeren Trigger einen Wert erstelle,
+        // wird mir automatisch ein Trigger erstellt - das möchte ich nicht"
+        // Drei Wege enden ein Halten: loslassen, Lock-Modus verlassen, zu einem anderen Step springen.
+        simReset(); goPage(PG_FLT); goSlot(0); simFrame();
+        int st = 3;
+        auto leer = [&](int k) { Step& x = curP().s[track][k]; x.on = 0; memset(x.lock, NO_LOCK, NPARAMS); };
+
+        // 1. halten, Wert aendern, loslassen
+        leer(st); cursor = st; simFrame();
+        holdDown(BT_A); simWait(60); tap(BT_X); simWait(20); release(BT_A); simFrame();
+        UCHECK(curP().s[track][st].on == 2, "nach dem Loslassen: trigless erwartet, nicht on=%d", curP().s[track][st].on);
+        UCHECK(curP().s[track][st].lock[P_FREQ] != NO_LOCK, "der Wert selbst fehlt");
+
+        // 2. im eingerasteten Lock-Modus aendern und mit A beenden
+        leer(st); cursor = st; simFrame();
+        holdDown(BT_A); simWait(600); release(BT_A); simFrame();
+        UCHECK(lockLatch, "Lock-Modus rastet nicht ein");
+        tap(BT_X); simFrame(); tap(BT_A); simFrame();
+        UCHECK(!lockLatch && curP().s[track][st].on == 2, "nach dem Lock-Modus: trigless erwartet, nicht on=%d", curP().s[track][st].on);
+
+        // 3. im Lock-Modus auf einen anderen Step springen: der verlassene bleibt trigless
+        leer(st); leer(st + 1); cursor = st; simFrame();
+        holdDown(BT_A); simWait(600); release(BT_A); simFrame();
+        tap(BT_X); simFrame(); lockJumpTo(st + 1); simFrame();
+        UCHECK(curP().s[track][st].on == 2, "nach dem Sprung: der verlassene Step muesste trigless sein (on=%d)", curP().s[track][st].on);
+        if (lockLatch) { tap(BT_A); simFrame(); }
+
+        // 4. B (Locks loeschen) auf einem leeren Step darf keinen leeren trigless Step hinterlassen
+        leer(st); cursor = st; simFrame();
+        holdDown(BT_A); simWait(60); tap(BT_B); simWait(20); release(BT_A); simFrame();
+        UCHECK(curP().s[track][st].on == 0, "B auf leerem Step: nichts darf bleiben (on=%d)", curP().s[track][st].on);
+
+        // 5. Gegenprobe: nur antippen (ohne Wert) setzt weiterhin einen echten Trig
+        leer(st); cursor = st; simFrame();
+        tap(BT_A); simFrame();
+        UCHECK(curP().s[track][st].on == 1, "antippen muss weiterhin einen Trig setzen (on=%d)", curP().s[track][st].on);
+        // 6. und ein vorhandener Trig bleibt beim Locken ein Trig
+        { Step& x = curP().s[track][st]; x.on = 1; memset(x.lock, NO_LOCK, NPARAMS); }
+        cursor = st; simFrame();
+        holdDown(BT_A); simWait(60); tap(BT_X); simWait(20); release(BT_A); simFrame();
+        UCHECK(curP().s[track][st].on == 1, "ein echter Trig darf durch einen Lock nicht trigless werden (on=%d)", curP().s[track][st].on);
+        simReset(); simFrame();
+    }
 
     uiCase = "FILL mit START";
     simReset(); tap(BT_START); UCHECK(eng.playing, "START spielt nicht");

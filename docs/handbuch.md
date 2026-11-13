@@ -286,6 +286,7 @@ Die Seite SRC/SR2 lässt sich nur zwischen Spuren mit gleicher Engine übertrage
 
 Ein trigless Step trägt nur Parameter-Locks und schlägt keinen Ton an. Er ändert die Werte des gerade klingenden Tons, z. B. Filter oder Resonanz mitten in einer langen Fläche. Die Werte gelten bis zum nächsten Trig. Im Raster erscheint er als **Umriss mit Punkt**.
 
+* **Leerer Step + Wert = trigless, kein Trig:** Hältst du einen **leeren** Step und änderst einen Wert, entsteht **kein spielender Trigger**, sondern ein trigless Step (Meldung WERT OHNE ANSCHLAG): Der Wert gilt ab dieser Stelle, angeschlagen wird nichts. Nur **antippen** setzt weiterhin einen normalen Trig, und ein vorhandener Trig bleibt einer. Drückst du im Lock-Modus **B** (Locks löschen) auf einem leeren Step, bleibt der Step ganz leer.
 * **Trig mit Locks löschen** (A antippen): Der Ton fällt weg, die Locks bleiben als trigless Step stehen.
 * **Trigless Step antippen:** Er wird wieder ein normaler Trig (Locks bleiben).
 * **Trigless Step halten + Werte drehen:** Locks bearbeiten, der Step bleibt trigless.
