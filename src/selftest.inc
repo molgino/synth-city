@@ -419,14 +419,64 @@ static void uiScenarios() {
         simReset(); goTrack(5);
         lockA(); applyFactory(curP(), 5, factoryByName("DX E-PIANO")); unlockA();
         goPage(PG_SRC3);
-        UCHECK(page == PG_SRC3 && !strcmp(pageLong(page), "OPERATOR 2"), "FM: Operator-2-Seite nicht erreichbar (Seite %d)", page);
-        slot = OP_LVL; int l0 = curP().p[5][FM_OPB[1] + OP_LVL];
+        const char* pl = pageLong(page);
+        UCHECK(page == PG_SRC3 && !strncmp(pl, "OPERATOR 2", 10), "FM: Operator-2-Seite nicht erreichbar (Seite %d, '%s')", page, pl);
+        UCHECK(strlen(pl) > 10, "FM: die Rolle des Operators steht nicht in der Gruppe ('%s')", pl);
+        goSlot(OP_LVL); simFrame();   // wie ein Mensch durch die Liste, nicht slot von Hand setzen
+        UCHECK(slot == OP_LVL, "FM: O.LVL von Operator 2 nicht erreichbar (Regler %d)", slot);
+        int l0 = curP().p[5][FM_OPB[1] + OP_LVL];
         tap(BT_X); UCHECK(curP().p[5][FM_OPB[1] + OP_LVL] == l0 + 1, "FM: X aendert O.LVL nicht");
         tap(BT_DOWN); UCHECK(slot == OP_ATK, "FM: RUNTER -> O.ATK erwartet (Regler %d)", slot + 1);
         goPage(PG_SRC5); UCHECK(page == PG_SRC5, "FM: Operator 4 nicht erreichbar");
         lockA(); Engine::setMachine(curP(), 5, M_KICK); unlockA(); simWait(2);
         simFrame(); UCHECK(!pageAvail(PG_SRC3) && !v2HasPage(PG_SRC3), "Operator-Seiten bei KICK noch in der Liste");
         lockA(); Engine::setMachine(curP(), 5, M_FM); unlockA();
+    }
+
+    uiCase = "FM: Rollen und Übersicht";
+    {   // gemeldet: "der FM-Synth kommt komisch daher, ich habe immer nur einen Pluck-Sound"
+        // Derselbe Regler O.LVL ist beim Traeger Lautstaerke und beim Modulator Helligkeit -
+        // das muss dranstehen, sonst ist FM nicht nachvollziehbar.
+        simReset(); goTrack(5);
+        lockA(); Engine::setMachine(curP(), 5, M_FM); unlockA();
+        curP().p[5][P_S0] = 0;   // Algorithmus 0: OP1 Traeger, OP2-4 Modulatoren
+        simFrame(); v2Dirty();
+        goPage(PG_SRC2); goSlot(OP_LVL); simFrame();
+        ParamDef d; int val, bv; bool lk; char lab[24];
+        UCHECK(knobInfo(slot, d, val, lk, bv, lab, sizeof lab) && !strcmp(d.name, "O.LVL"),
+               "Traeger muesste O.LVL heissen (%s)", d.name);
+        goPage(PG_SRC3); goSlot(OP_LVL); simFrame();
+        UCHECK(knobInfo(slot, d, val, lk, bv, lab, sizeof lab) && !strcmp(d.name, "INDEX"),
+               "Modulator muesste INDEX heissen (%s)", d.name);
+        UCHECK(strstr(pageLong(PG_SRC2), TR("TRÄGER", "CARRIER")) != nullptr, "Traeger steht nicht in der Gruppe (%s)", pageLong(PG_SRC2));
+        UCHECK(strstr(pageLong(PG_SRC3), "OP1") != nullptr, "Das Ziel des Modulators fehlt (%s)", pageLong(PG_SRC3));
+        // Algorithmus 7: alle vier sind Traeger, die Namen muessen umschalten
+        curP().p[5][P_S0] = 7; v2Dirty(); simFrame();
+        goPage(PG_SRC3); goSlot(OP_LVL); simFrame();
+        UCHECK(knobInfo(slot, d, val, lk, bv, lab, sizeof lab) && !strcmp(d.name, "O.LVL"),
+               "Bei Algorithmus 7 ist OP2 Traeger, muesste also O.LVL heissen (%s)", d.name);
+        UCHECK(strstr(pageLong(PG_SRC3), TR("TRÄGER", "CARRIER")) != nullptr, "Rolle folgt dem Algorithmus nicht (%s)", pageLong(PG_SRC3));
+        // Uebersicht: alle vier Operatoren in einer Gruppe, Namen sagen die Rolle
+        v2Build(V2_SOUND);
+        int ov = -1; for (int i = 0; i < v2N; i++) if (v2It[i].hdr && v2It[i].title && strstr(v2It[i].title, TR("ÜBERSICHT", "OVERVIEW"))) ov = i;
+        UCHECK(ov >= 0, "Die FM-Übersicht fehlt in der Liste");
+        if (ov >= 0) {
+            int n = 0; for (int i = ov + 1; i < v2N && !v2It[i].hdr; i++) n++;
+            UCHECK(n == 8, "Die Übersicht muesste 8 Zeilen haben (%d)", n);
+            bool rat = false, lvl = false;
+            for (int i = ov + 1; i < v2N && !v2It[i].hdr; i++) {
+                if (v2It[i].title && !strcmp(v2It[i].title, "OP3 RAT")) rat = true;
+                if (v2It[i].title && !strcmp(v2It[i].title, "OP3 LVL")) lvl = true;
+            }
+            UCHECK(rat && lvl, "OP3 fehlt in der Übersicht (RAT %d, LVL %d)", rat, lvl);
+        }
+        // bei einer anderen Engine darf es die Übersicht nicht geben
+        lockA(); Engine::setMachine(curP(), 5, M_SYNTH); unlockA(); v2Dirty();
+        simFrame(); v2Build(V2_SOUND);
+        int ov2 = 0; for (int i = 0; i < v2N; i++) if (v2It[i].hdr && v2It[i].title && strstr(v2It[i].title, TR("ÜBERSICHT", "OVERVIEW"))) ov2++;
+        UCHECK(ov2 == 0, "Die FM-Übersicht steht auch bei SYNTH in der Liste");
+        lockA(); Engine::setMachine(curP(), 5, M_FM); unlockA();
+        simReset(); simFrame();
     }
 
     uiCase = "SYNTH-Oszillatoren";

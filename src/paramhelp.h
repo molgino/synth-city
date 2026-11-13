@@ -85,7 +85,8 @@ static const ParamHelp PARAM_HELP[] = {
     {"ROOT", "Grundton der Tonleiter", "Root note of the scale"},
     // FM ab v13
     {"RAT", "Frequenzverhältnis (1 = Grundton, 2 = Oktave)", "Frequency ratio (1 = root, 2 = octave)"},
-    {"O.LVL", "Pegel: als Träger Lautstärke, als Modulator Helligkeit", "Level: loudness as carrier, brightness as modulator"},
+    {"O.LVL", "Lautstärke dieses Trägers in der Summe (der Verlauf kommt aus HÜLLKURVE 1)", "Loudness of this carrier in the mix (its shape comes from ENVELOPE 1)"},
+    {"INDEX", "Wie stark dieser Operator den nächsten biegt: mehr = heller und obertonreicher", "How hard this operator bends the next one: more = brighter, richer in harmonics"},
     {"O.ATK", "Einschwingzeit dieses Operators", "Attack time of this operator"}, {"O.DEC", "Abklingzeit dieses Operators", "Decay time of this operator"},
     {"O.SUS", "Haltepegel dieses Operators", "Sustain level of this operator"}, {"O.REL", "Ausklingzeit dieses Operators", "Release time of this operator"},
     {"PITCH", "Tonhöhen-Hüllkurve: Anfangsversatz in Halbtönen", "Pitch envelope: start offset in semitones"}, {"P.DEC", "Dauer der Tonhöhen-Hüllkurve", "Duration of the pitch envelope"},

@@ -1547,16 +1547,16 @@ SRC auf FM | A+SEL+L1 | Trig-Ablage voll; Meldung "LEEREN STEP KOPIERT"
 SRC auf FM | A+SEL+R1 | T1 Step 1 0>1; Meldung "TRIG-ABLAGE LEER (LOCK-MODUS: SELECT + L1)"
 SRC auf FM | Stick R hoch | -
 SRC auf FM | Stick L rechts | -
-SR2 auf FM | HOCH | Seite SR2>SRC; Regler 1>6
+SR2 auf FM | HOCH | Seite SR2>SR5; Regler 1>4
 SR2 auf FM | RUNTER | Regler 1>2
-SR2 auf FM | LINKS | Seite SR2>SRC
+SR2 auf FM | LINKS | -
 SR2 auf FM | RECHTS | Seite SR2>SR3
 SR2 auf FM | A | T1 Step 1 0>1
 SR2 auf FM | B | -
 SR2 auf FM | X | T1.RAT 3>4
 SR2 auf FM | Y | T1.RAT 3>2
-SR2 auf FM | L1 | Seite SR2>SRC; Spur 1>8; Regler 1>8
-SR2 auf FM | R1 | Seite SR2>FLT; Spur 1>2; Regler 1>2
+SR2 auf FM | L1 | Spur 1>8; Regler 1>8
+SR2 auf FM | R1 | Seite SR2>AMP; Spur 1>2; Regler 1>2
 SR2 auf FM | L2 | Ansicht SOUND>SEQ; Seite SR2>TRG
 SR2 auf FM | R2 | Ansicht SOUND>EFFEKTE; Seite SR2>FX A
 SR2 auf FM | START | PLAY
@@ -1566,7 +1566,7 @@ SR2 auf FM | X lang | T1.RAT 3>27
 SR2 auf FM | Y lang | T1.RAT 3>0
 SR2 auf FM | START lang | PLAY
 SR2 auf FM | SELECT lang | -
-SR2 auf FM | SEL+HOCH | Seite SR2>SRC
+SR2 auf FM | SEL+HOCH | -
 SR2 auf FM | SEL+RUNTER | Seite SR2>SR3
 SR2 auf FM | SEL+LINKS | Pattern A01>H16; Pattern H16 geaendert; Meldung "PATTERN H16"
 SR2 auf FM | SEL+RECHTS | Pattern A01>A02; Pattern A02 geaendert; Meldung "PATTERN A02"
@@ -1582,7 +1582,7 @@ SR2 auf FM | SEL+START | Meldung "GESPEICHERT"
 SR2 auf FM | A+B | T1 Step 1 0>1; Meldung "LOCKS GELÖSCHT"
 SR2 auf FM | A+X | T1 Step 1 0>1; T1 Step 1 Lock RAT 255>4
 SR2 auf FM | A+Y | T1 Step 1 0>1; T1 Step 1 Lock RAT 255>2
-SR2 auf FM | A+HOCH | Seite SR2>SRC; Regler 1>6; T1 Step 1 0>1
+SR2 auf FM | A+HOCH | Seite SR2>SR5; Regler 1>4; T1 Step 1 0>1
 SR2 auf FM | A+RUNTER | Regler 1>2; T1 Step 1 0>1
 SR2 auf FM | A+L1 | T1 Step 1 0>1
 SR2 auf FM | A+R1 | T1 Step 1 0>1
@@ -1598,8 +1598,8 @@ SR3 auf FM | A | T1 Step 1 0>1
 SR3 auf FM | B | -
 SR3 auf FM | X | T1.RAT 7>8
 SR3 auf FM | Y | T1.RAT 7>6
-SR3 auf FM | L1 | Seite SR3>SR2; Spur 1>8; Regler 1>8
-SR3 auf FM | R1 | Seite SR3>AMP; Spur 1>2; Regler 1>2
+SR3 auf FM | L1 | Seite SR3>FL2; Spur 1>8; Regler 1>2
+SR3 auf FM | R1 | Seite SR3>INS; Spur 1>2; Regler 1>7
 SR3 auf FM | L2 | Ansicht SOUND>SEQ; Seite SR3>TRG
 SR3 auf FM | R2 | Ansicht SOUND>EFFEKTE; Seite SR3>FX A
 SR3 auf FM | START | PLAY
@@ -1641,8 +1641,8 @@ SR4 auf FM | A | T1 Step 1 0>1
 SR4 auf FM | B | -
 SR4 auf FM | X | T1.RAT 3>4
 SR4 auf FM | Y | T1.RAT 3>2
-SR4 auf FM | L1 | Seite SR4>FL2; Spur 1>8; Regler 1>2
-SR4 auf FM | R1 | Seite SR4>INS; Spur 1>2; Regler 1>7
+SR4 auf FM | L1 | Seite SR4>INS; Spur 1>8; Regler 1>4
+SR4 auf FM | R1 | Seite SR4>EN1; Spur 1>2; Regler 1>3
 SR4 auf FM | L2 | Ansicht SOUND>SEQ; Seite SR4>TRG
 SR4 auf FM | R2 | Ansicht SOUND>EFFEKTE; Seite SR4>FX A
 SR4 auf FM | START | PLAY
@@ -1684,8 +1684,8 @@ SR5 auf FM | A | T1 Step 1 0>1
 SR5 auf FM | B | -
 SR5 auf FM | X | T1.RAT 3>4
 SR5 auf FM | Y | T1.RAT 3>2
-SR5 auf FM | L1 | Seite SR5>INS; Spur 1>8; Regler 1>4
-SR5 auf FM | R1 | Seite SR5>EN1; Spur 1>2; Regler 1>3
+SR5 auf FM | L1 | Seite SR5>EN1; Spur 1>8
+SR5 auf FM | R1 | Seite SR5>EN1; Spur 1>2; Regler 1>12
 SR5 auf FM | L2 | Ansicht SOUND>SEQ; Seite SR5>TRG
 SR5 auf FM | R2 | Ansicht SOUND>EFFEKTE; Seite SR5>FX A
 SR5 auf FM | START | PLAY

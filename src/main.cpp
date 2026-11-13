@@ -955,10 +955,16 @@ static const char* pageLong(int p) {
     int m = curP().machine[track];
     if (m == M_FM) {
         if (p == PG_SRC) return TR("FM: ALGORITHMUS", "FM: ALGORITHM");
-        if (p == PG_SRC2) return "OPERATOR 1";
-        if (p == PG_SRC3) return "OPERATOR 2";
-        if (p == PG_SRC4) return "OPERATOR 3";
-        if (p == PG_SRC5) return "OPERATOR 4";
+        if (p >= PG_SRC2 && p <= PG_SRC5) {   // Rolle dazu: ohne sie sagt O.LVL nicht, was es tut
+            static char b[48];
+            int k = p == PG_SRC2 ? 0 : p - PG_SRC3 + 1, algo = curP().p[track][P_S0];
+            int tg = fmModTargets(algo, k);
+            int n = snprintf(b, sizeof b, "OPERATOR %d", k + 1);
+            if (fmIsCarrier(algo, k)) n += snprintf(b + n, sizeof b - n, TR(" - TRÄGER", " - CARRIER"));
+            if (tg) { n += snprintf(b + n, sizeof b - n, " >"); for (int j = 0; j < 4 && n < (int)sizeof b - 6; j++) if (tg >> j & 1) n += snprintf(b + n, sizeof b - n, " OP%d", j + 1); }
+            if (!fmIsCarrier(algo, k) && !tg) snprintf(b + n, sizeof b - n, TR(" - UNBENUTZT", " - UNUSED"));
+            return b;
+        }
     }
     if (p == PG_SRC2 && m == M_SYNTH) return TR("OSZILLATOREN", "OSCILLATORS");
     if (p == PG_SRC2 && m == M_WTBL) return TR("OSZILLATOR + EIGENE WAVETABLE", "OSCILLATOR + USER WAVETABLE");
@@ -1220,6 +1226,13 @@ static bool knobInfo(int k, ParamDef& d, int& val, bool& locked, int& baseVal, c
         else if (d.kind == K_TLEN) val = P.len[track];
         else if (d.kind == K_TSPD) val = P.speed[track] % 7;
         else if (aHeld && holdS().lock[idx] != NO_LOCK) { val = holdS().lock[idx]; locked = true; }
+        if (P.machine[track] == M_FM) {   // Rolle: beim Traeger ist O.LVL Lautstaerke, beim Modulator Helligkeit
+            int op = fmOpOf(idx);
+            if (op >= 0 && idx == FM_OPB[op] + OP_LVL) {
+                int algo = (aHeld && holdS().lock[P_S0] != NO_LOCK) ? holdS().lock[P_S0] : P.p[track][P_S0];
+                d.name = fmIsCarrier(algo, op) ? "O.LVL" : "INDEX";
+            }
+        }
         if (page == PAGE_INS && k >= 1 && k <= 4) {
             int ty = (aHeld && holdS().lock[P_ITYP] != NO_LOCK) ? holdS().lock[P_ITYP] : P.p[track][P_ITYP];
             if (ty <= 0 || ty >= INS_COUNT || (k <= 3 && INS_PNAMES[ty][k - 1][0] == '-')) d = PDEF_NONE;
@@ -5738,12 +5751,18 @@ int main(int argc, char** argv) {
             if (shotPage == 77) { track = 4; curP().len[4] = 64; cursor = 35; page = PG_TRG; slot = 0; for (int s2 = 0; s2 < 64; s2 += 3) curP().s[4][s2].on = 1; }
             if (shotPage == 78) { track = 4; page = PG_FLT; slot = 0; cursor = 5; curP().s[4][5].on = 1; holdPat = curPi(); holdTrack = 4; holdStep = 5; aHeld = true; lockLatch = true; }
         }
-        if ((shotPage >= 79 && shotPage <= 84) || shotPage == 89 || shotPage == 90) {   // Ansichten ohne die Listen-Zonen (MIX, PRJ), WTBL-Sound, Drum-Sound
+        if ((shotPage >= 79 && shotPage <= 84) || (shotPage >= 89 && shotPage <= 92)) {   // Ansichten ohne die Listen-Zonen (MIX, PRJ), WTBL-Sound, Drum-Sound
             if (shotPage == 79) page = PG_MIX;
             if (shotPage == 80) page = PG_PRJ;
             if (shotPage == 81) { track = 5; Engine::setMachine(curP(), 5, M_WTBL); page = PG_SRC; slot = 0; }
             if (shotPage == 89) { track = 5; Engine::setMachine(curP(), 5, M_WTBL); page = PG_SRC2; slot = 0; }   // Wavetable-Stapel in der Spalte
             if (shotPage == 90) { track = 0; page = PG_SRC; slot = 1; }                                            // Drum-Bild in der Spalte
+            if (shotPage == 91) {   // FM-Uebersicht aufgeklappt: Fokus auf ihre erste Zeile (sie ist ein Verweis,
+                track = 6; Engine::setMachine(curP(), 6, M_FM);   // ueber page/slot allein findet v2Sync die echte Gruppe)
+                v2View = V2_SOUND; page = PG_SRC2; slot = OP_RAT; v2Dirty(); v2Build(V2_SOUND);
+                for (int i = 0; i < v2N; i++) if (v2It[i].title && !strcmp(v2It[i].title, "OP1 RAT")) v2Foc[V2_SOUND] = i;
+            }
+            if (shotPage == 92) { track = 6; Engine::setMachine(curP(), 6, M_FM); page = PG_SRC3; slot = OP_LVL; }      // Operator 2 mit Rolle
             if (shotPage == 82) { track = 0; page = PG_SRC; slot = 2; }
             if (shotPage == 83) { page = PG_FX; slot = 0; }   // EFFEKTE-Liste
             if (shotPage == 84) { page = PG_MST; slot = 0; }   // MASTER-Liste
@@ -5755,7 +5774,7 @@ int main(int argc, char** argv) {
             if (shotPage == 63) { page = PG_FXB; Engine::setBusType(eng.proj, 1, BF_SPRING); slot = 3; }
         }
         refreshDevices();
-        if (page == PG_SRC && shotPage != 90 && shotPage != 81) { track = 7; slot = 0; }
+        if (page == PG_SRC && shotPage != 90 && shotPage != 81 && shotPage != 91) { track = 7; slot = 0; }
         if (page == PG_SRC || page == PG_SRC2 || shotPage == 27) { }
         if (shotPage == 27) { page = PG_SRC2; track = 6; slot = 0; }   // FM Operator 1
         if (page == PG_INS) { track = 5; curP().p[5][P_ITYP] = getenv("GB_INS") ? (uint8_t)atoi(getenv("GB_INS")) : INS_CHORUS; editAt = getenv("GB_INS") ? 0 : 1; editSlot = 0; slot = 0; }
