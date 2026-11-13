@@ -191,31 +191,44 @@ static void wtStackGraph(int gx, int gy, int gw, int gh, Col c) {
     graphBox(gx, gy, gw, gh);
     int tab = pv(P_S0) % 5, pos = pv(P_S1);
     const Sample* us = tab == 4 ? sampleGet(pv(P_X3)) : nullptr;
-    int nf = 12, x0 = gx + 20, W = gw - 120, H = gh - 30;
-    int cur = pos * (nf - 1) / 127;
+    // Alle Masse kommen aus dem Kasten (vorher feste Raender: in der 150 px schmalen Spalte
+    // blieben 26 px Wellenbreite und der Stapel ragte oben heraus).
+    int top = gy + (us ? 40 : 24);               // Platz fuer die Zeilen rechts oben
+    int nf = 12, W = (gw - 16) * 2 / 3;          // Breite einer Welle
+    int sx = gw - 16 - W;                        // gesamte Staffelung nach rechts
+    int A = (gh - 26) / 6;                       // halbe Hoehe einer Welle
+    int base = gy + gh - 8 - A;
+    int sy = base - (top + A); if (sy < 0) sy = 0;
+    int cur = pos * (nf - 1) / 127, stepX = W / 48 + 1;
     float scan = fmodf(animTime * 0.6f, 1.f);
     for (int f = nf - 1; f >= 0; f--) {
-        int ox = x0 + f * 7, oy = gy + gh - 14 - H / 2 - f * 4;
+        int ox = gx + 8 + f * sx / (nf - 1), oy = base - f * sy / (nf - 1);
         bool hl = f == cur;
         Col fc = hl ? C_PLAY : dimC(c, 0.25f + 0.5f * (1.f - f / (float)nf));
         int py = oy;
-        for (int i = 0; i <= W; i += 2) {
+        for (int i = 0; i <= W; i += stepX) {
             float ph = i / (float)W, v;
             if (us && us->data && us->len >= 16) {
                 int F = us->len >= 2048 && us->len % 2048 == 0 ? 2048 : (us->len % 256 == 0 ? 256 : us->len), n = us->len / F;
                 int fr2 = n > 1 ? f * (n - 1) / (nf - 1) : 0;
                 v = us->data[(long)fr2 * F + (int)(ph * (F - 1))];
             } else v = wavetableFrame(tab & 3, f * 31 / (nf - 1))[(int)(ph * 255)];
-            int y = oy - (int)(v * H / 2.4f);
-            if (i) line(ox + i - 2, py, ox + i, y, fc, hl ? 2 : 1);
+            int y = oy - (int)((v > 1.2f ? 1.2f : (v < -1.2f ? -1.2f : v)) * A);
+            if (i) line(ox + i - stepX, py, ox + i, y, fc, hl ? 2 : 1);
             py = y;
         }
-        if (hl) { int sx = ox + (int)(scan * W); fill(sx, oy - H / 2, 2, H, C_PLAY, 120); }
+        if (hl) { int sxp = ox + (int)(scan * W); fill(sxp, oy - A, 2, 2 * A, C_PLAY, 120); }
     }
     char b[40];
     const char* tn[5] = {"BASIC", "PWM", TR("VOKAL", "VOWEL"), TR("OBERT", "HARM"), "USER"};
-    snprintf(b, sizeof b, "%s  POS %d", tn[tab], pos); text(gx + gw - 8 - textW(b), gy + 6, b, c);
-    if (us) { const char* nm = sampleName(pv(P_X3)); const char* sl = strrchr(nm, '/'); text(gx + gw - 8 - textW(sl ? sl + 1 : nm), gy + 24, sl ? sl + 1 : nm, C_DIM); }
+    snprintf(b, sizeof b, textW("BASIC  POS 127") > gw - 16 ? "%s %d" : "%s  POS %d", tn[tab], pos);
+    text(gx + gw - 8 - textW(b), gy + 6, b, c);
+    if (us) {   // Name der eigenen Wavetable, bei schmalem Kasten gekuerzt
+        const char* nm = sampleName(pv(P_X3)); const char* sl = strrchr(nm, '/');
+        char nb[40]; snprintf(nb, sizeof nb, "%.38s", sl ? sl + 1 : nm);
+        while (nb[0] && textW(nb) > gw - 16) nb[strlen(nb) - 1] = 0;
+        text(gx + gw - 8 - textW(nb), gy + 24, nb, C_DIM);
+    }
 }
 
 // ---- INSERT: Animation je Effekt
