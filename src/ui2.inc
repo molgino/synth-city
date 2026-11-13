@@ -94,10 +94,30 @@ static void v2BuildNow(int view) {
         int ns = trackPage(p) ? uiSlots(p) : 8;
         for (int k = 0; k < ns; k++) if (v2Valid(p, k)) add(false, p, k, nullptr);
         if (v2N == first + 1) { v2N = first; v2Groups--; }   // leere Gruppe weglassen
+        if (p == PG_SRC && curP().machine[track] == M_FM) {   // FM: alle vier Operatoren auf einen Blick,
+            // statt zwischen vier Seiten zu springen. Verhaeltnis und Pegel/Index je Operator; die
+            // Huellkurven bleiben auf der Seite des Operators. Die Namen sagen die Rolle (LVL/IDX).
+            static const char* const OV_RAT[4] = {"OP1 RAT", "OP2 RAT", "OP3 RAT", "OP4 RAT"};
+            static const char* const OV_LVL[4] = {"OP1 LVL", "OP2 LVL", "OP3 LVL", "OP4 LVL"};
+            static const char* const OV_IDX[4] = {"OP1 IDX", "OP2 IDX", "OP3 IDX", "OP4 IDX"};
+            int algo = curP().p[track][P_S0];
+            v2Groups++; add(true, -1, -1, TR("FM-ÜBERSICHT", "FM OVERVIEW"));
+            mac = true;   // Verweise: L1/R1 und die Tests landen in der echten Operator-Gruppe
+            for (int k = 0; k < 4; k++) {
+                int op = k == 0 ? PG_SRC2 : PG_SRC3 + k - 1;
+                if (!pageAvail(op)) continue;
+                add(false, op, OP_RAT, OV_RAT[k]);
+                add(false, op, OP_LVL, fmIsCarrier(algo, k) ? OV_LVL[k] : OV_IDX[k]);
+            }
+            mac = false;
+        }
     }
 }
 static void v2Build(int view) {
-    int key = view * 4096 + track * 64 + (curP().machine[track] % M_COUNT);
+    // Der Algorithmus gehoert in den Schluessel: er entscheidet, welcher Operator Traeger ist,
+    // und damit die Namen in der FM-Uebersicht
+    int algo = curP().machine[track] == M_FM ? curP().p[track][P_S0] & 7 : 0;
+    int key = view * 4096 + track * 64 + (curP().machine[track] % M_COUNT) + algo * 65536;
     if (key == v2Key && v2N > 0) return;
     v2Key = key;
     v2BuildNow(view);
@@ -131,8 +151,12 @@ static void v2Sync() {
     v2Build(v2View);
     int f = v2Foc[v2View];
     if (f < 0 || f >= v2N || v2It[f].hdr || v2It[f].pg != page || v2It[f].k != slot) {   // Fokus passt nicht (Seite von aussen gewaehlt)
+        // Verweise (Makros oben, FM-Uebersicht) stehen vor der echten Gruppe: der Fokus gehoert in die
+        // Gruppe, sonst landet man beim Seitenwechsel von aussen im Verweis (vorher half nur ein "i < 10")
         int found = -1;
-        for (int i = 0; i < v2N; i++) if (!v2It[i].hdr && v2It[i].pg == page && v2It[i].k == slot) { found = i; if (!(v2View == V2_SOUND && i < 10)) break; }
+        for (int i = 0; i < v2N; i++) if (!v2It[i].hdr && !v2It[i].mac && v2It[i].pg == page && v2It[i].k == slot) { found = i; break; }
+        if (found < 0) for (int i = 0; i < v2N; i++) if (!v2It[i].hdr && v2It[i].pg == page && v2It[i].k == slot) { found = i; break; }
+        if (found < 0) for (int i = 0; i < v2N; i++) if (!v2It[i].hdr && !v2It[i].mac && v2It[i].pg == page) { found = i; break; }
         if (found < 0) for (int i = 0; i < v2N; i++) if (!v2It[i].hdr && v2It[i].pg == page) { found = i; break; }
         v2Foc[v2View] = v2Clamp(found < 0 ? 0 : found, 1);
     }
@@ -455,10 +479,11 @@ static void v2List(int x, int y0, int w, int h) {
         if (!ok) continue;
         knobText(d, val, vb, sizeof vb, it.k);
         if (sel) { rrect(x, y + 1, w, rh - 2, 6, C_SEL); rrect(x, y + 4, 3, rh - 8, 1, locked ? C_LOCK : tc); }
-        text(x + 12, y + 4, d.name, sel ? C_TEXT : C_DIM);   // immer der Reglername (Sample-/Zielname steht rechts)
-        if (it.mac) {   // Makro: aus welcher Gruppe der Regler stammt (derselbe Regler steht dort nochmal)
+        const char* rn = it.title ? it.title : d.name;   // eigener Name (FM-Uebersicht), sonst der Reglername
+        text(x + 12, y + 4, rn, sel ? C_TEXT : C_DIM);   // Sample-/Zielname steht rechts
+        if (it.mac && !it.title) {   // Makro: aus welcher Gruppe der Regler stammt (derselbe Regler steht dort nochmal)
             int src = v2FindItem2(it.pg, it.k);
-            if (src > 0) { char gn[20]; snprintf(gn, sizeof gn, "%.9s", v2GrpName(src)); text(x + 12 + textW(d.name) + 8, y + 5, gn, dimC(C_CYAN, 0.55f)); }
+            if (src > 0) { char gn[20]; snprintf(gn, sizeof gn, "%.9s", v2GrpName(src)); text(x + 12 + textW(rn) + 8, y + 5, gn, dimC(C_CYAN, 0.55f)); }
         }
         if (label[0]) { char lb[28]; snprintf(lb, sizeof lb, "%.16s", label); strcpy(vb, lb); }   // Sample-/Dateiname statt Nummer
         // Wertbalken (bipolar ab der Mitte) mit Griff am Ende, Wert rechts
@@ -614,6 +639,11 @@ static void drawV2() {
         if (p >= 0) {
             ParamDef d = paramDef(curP().machine[track] % M_COUNT, p);
             const char* hn = d.name;
+            {   // Namen, die vom Zustand abhaengen (FM-Rolle, Insert-Typ), kennt knobInfo - die Hilfe muss
+                // denselben nehmen, sonst steht beim Modulator die Erklaerung des Traegers darunter
+                ParamDef kd; int kv, kb; bool kl; char klab[24];
+                if (knobInfo(slot, kd, kv, kl, kb, klab, sizeof klab) && kd.kind != K_NONE) hn = kd.name;
+            }
             if (p >= P_IP1 && p <= P_IP3) {   // Insert: P1-P3 heissen je nach Typ anders
                 int ity = curP().p[track][P_ITYP];
                 if (ity > 0 && ity < INS_COUNT) hn = INS_PNAMES[ity][p - P_IP1];

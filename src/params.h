@@ -394,10 +394,14 @@ static const ParamDef SRC2_DEFS[M_COUNT][8] = {
 // sind zu kurz"): DEC 75 = 0,46 s statt 0,15 s, REL 70 = 0,32 s. O.SUS bleibt linear - das ist bei
 // einem Modulator ein Index, keine Lautstaerke.
 static const ParamDef FM_OP_DEFS[4][8] = {
+    // OP1 ist in jedem Algorithmus Traeger: seine Huellkurve steht deshalb flach (DEC/SUS/REL am Anschlag).
+    // Die Lautstaerke macht ENV1 - eine Stelle fuer Lautstaerke, wie bei jeder anderen Engine.
     {{"RAT", K_RATIO, 3, 27}, {"FINE", K_BIP, 64, 127}, {"DETN", K_BIP, 64, 127}, {"O.LVL", K_NUM, 127, 127},
-     {"O.ATK", K_NUM, 0, 127}, {"O.DEC", K_NUM, 75, 127}, {"O.SUS", K_NUM, 110, 127}, {"O.REL", K_NUM, 70, 127}},
+     {"O.ATK", K_NUM, 0, 127}, {"O.DEC", K_NUM, 127, 127}, {"O.SUS", K_NUM, 127, 127}, {"O.REL", K_NUM, 127, 127}},
+    // OP2 ist der Modulator: sein Haltepegel war 40, die Helligkeit fiel damit in 100 ms von 1512 auf
+    // 746 Hz zusammen ("immer nur ein Pluck"). 70 haelt sie bei ~1420 Hz.
     {{"RAT", K_RATIO, 7, 27}, {"FINE", K_BIP, 64, 127}, {"DETN", K_BIP, 64, 127}, {"O.LVL", K_NUM, 55, 127},
-     {"O.ATK", K_NUM, 0, 127}, {"O.DEC", K_NUM, 70, 127}, {"O.SUS", K_NUM, 40, 127}, {"O.REL", K_NUM, 65, 127}},
+     {"O.ATK", K_NUM, 0, 127}, {"O.DEC", K_NUM, 85, 127}, {"O.SUS", K_NUM, 70, 127}, {"O.REL", K_NUM, 65, 127}},
     {{"RAT", K_RATIO, 3, 27}, {"FINE", K_BIP, 64, 127}, {"DETN", K_BIP, 64, 127}, {"O.LVL", K_NUM, 0, 127},
      {"O.ATK", K_NUM, 0, 127}, {"O.DEC", K_NUM, 65, 127}, {"O.SUS", K_NUM, 30, 127}, {"O.REL", K_NUM, 60, 127}},
     {{"RAT", K_RATIO, 3, 27}, {"FINE", K_BIP, 64, 127}, {"DETN", K_BIP, 64, 127}, {"O.LVL", K_NUM, 0, 127},
@@ -442,6 +446,15 @@ static const uint8_t FM_MODS[8][4] = {
     {0x2, 0x4, 0x8, 0}, {0x2, 0xC, 0, 0}, {0x6, 0, 0x8, 0}, {0x2, 0, 0x8, 0},
     {0x8, 0x8, 0x8, 0}, {0, 0x4, 0x8, 0}, {0x2, 0, 0, 0}, {0, 0, 0, 0}};
 static const uint8_t FM_CARRIERS[8] = {0x1, 0x1, 0x1, 0x5, 0x7, 0x3, 0xD, 0xF};
+// Rolle eines Operators: Traeger = direkt hoerbar (Lautstaerke), Modulator = biegt einen anderen
+// Operator (Helligkeit). Beides entscheidet allein der Algorithmus - bis v19 stand das nirgends,
+// obwohl derselbe Regler O.LVL dadurch zwei verschiedene Dinge bedeutet.
+inline bool fmIsCarrier(int algo, int k) { return FM_CARRIERS[algo & 7] >> k & 1; }
+inline int fmModTargets(int algo, int k) {   // Bitmaske der Operatoren, die k moduliert
+    int m = 0;
+    for (int j = 0; j < 4; j++) if (FM_MODS[algo & 7][j] >> k & 1) m |= 1 << j;
+    return m;
+}
 // Darstellung: Spalte/Zeile je Operator
 static const uint8_t FM_LAYOUT[8][4][2] = {
     {{3, 1}, {2, 1}, {1, 1}, {0, 1}}, {{2, 1}, {1, 1}, {0, 0}, {0, 2}}, {{2, 1}, {1, 0}, {1, 2}, {0, 2}},
