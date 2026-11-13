@@ -31,9 +31,9 @@ Seite TRG | SEL+R1 | Step 1>5
 Seite TRG | SEL+L2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 Seite TRG | SEL+R2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 Seite TRG | SEL+START | Meldung "GESPEICHERT"
-Seite TRG | A+B | T5 Step 1 0>1; Meldung "LOCKS GELÖSCHT"
-Seite TRG | A+X | T5 Step 1 0>1; T5 Step 1 Lock NOTE 255>37
-Seite TRG | A+Y | T5 Step 1 0>1; T5 Step 1 Lock NOTE 255>35
+Seite TRG | A+B | Meldung "LOCKS GELÖSCHT"
+Seite TRG | A+X | T5 Step 1 0>2; T5 Step 1 Lock NOTE 255>37; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
+Seite TRG | A+Y | T5 Step 1 0>2; T5 Step 1 Lock NOTE 255>35; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
 Seite TRG | A+HOCH | Seite TRG>ARP; Regler 1>6; T5 Step 1 0>1
 Seite TRG | A+RUNTER | Regler 1>2; T5 Step 1 0>1
 Seite TRG | A+L1 | T5 Step 1 0>1
@@ -74,9 +74,9 @@ Seite SEQ | SEL+R1 | Step 1>5
 Seite SEQ | SEL+L2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 Seite SEQ | SEL+R2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 Seite SEQ | SEL+START | Meldung "GESPEICHERT"
-Seite SEQ | A+B | T5 Step 1 0>1; Meldung "LOCKS GELÖSCHT"
-Seite SEQ | A+X | T5 Step 1 0>1; T5 Step 1 Lock DIR 255>1
-Seite SEQ | A+Y | T5 Step 1 0>1; T5 Step 1 Lock DIR 255>0
+Seite SEQ | A+B | Meldung "LOCKS GELÖSCHT"
+Seite SEQ | A+X | T5 Step 1 0>2; T5 Step 1 Lock DIR 255>1; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
+Seite SEQ | A+Y | T5 Step 1 0>2; T5 Step 1 Lock DIR 255>0; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
 Seite SEQ | A+HOCH | Seite SEQ>TRG; Regler 1>12; T5 Step 1 0>1
 Seite SEQ | A+RUNTER | Regler 1>2; T5 Step 1 0>1
 Seite SEQ | A+L1 | T5 Step 1 0>1
@@ -117,9 +117,9 @@ Seite ARP | SEL+R1 | Step 1>5
 Seite ARP | SEL+L2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 Seite ARP | SEL+R2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 Seite ARP | SEL+START | Meldung "GESPEICHERT"
-Seite ARP | A+B | T5 Step 1 0>1; Meldung "LOCKS GELÖSCHT"
-Seite ARP | A+X | T5 Step 1 0>1; T5 Step 1 Lock MODE 255>1
-Seite ARP | A+Y | T5 Step 1 0>1; T5 Step 1 Lock MODE 255>0
+Seite ARP | A+B | Meldung "LOCKS GELÖSCHT"
+Seite ARP | A+X | T5 Step 1 0>2; T5 Step 1 Lock MODE 255>1; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
+Seite ARP | A+Y | T5 Step 1 0>2; T5 Step 1 Lock MODE 255>0; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
 Seite ARP | A+HOCH | Seite ARP>SEQ; Regler 1>8; T5 Step 1 0>1
 Seite ARP | A+RUNTER | Regler 1>2; T5 Step 1 0>1
 Seite ARP | A+L1 | T5 Step 1 0>1
@@ -160,9 +160,9 @@ Seite SRC | SEL+R1 | Step 1>5
 Seite SRC | SEL+L2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 Seite SRC | SEL+R2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 Seite SRC | SEL+START | Meldung "GESPEICHERT"
-Seite SRC | A+B | T5 Step 1 0>1; Meldung "LOCKS GELÖSCHT"
-Seite SRC | A+X | T5 Step 1 0>1; T5 Step 1 Lock WAV1 255>1
-Seite SRC | A+Y | T5 Step 1 0>1; T5 Step 1 Lock WAV1 255>0
+Seite SRC | A+B | Meldung "LOCKS GELÖSCHT"
+Seite SRC | A+X | T5 Step 1 0>2; T5 Step 1 Lock WAV1 255>1; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
+Seite SRC | A+Y | T5 Step 1 0>2; T5 Step 1 Lock WAV1 255>0; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
 Seite SRC | A+HOCH | Seite SRC>TRG; Regler 1>7; T5 Step 1 0>1
 Seite SRC | A+RUNTER | Regler 1>2; T5 Step 1 0>1
 Seite SRC | A+L1 | T5 Step 1 0>1
@@ -203,9 +203,9 @@ Seite SR2 | SEL+R1 | Step 1>5
 Seite SR2 | SEL+L2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 Seite SR2 | SEL+R2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 Seite SR2 | SEL+START | Meldung "GESPEICHERT"
-Seite SR2 | A+B | T5 Step 1 0>1; Meldung "LOCKS GELÖSCHT"
-Seite SR2 | A+X | T5 Step 1 0>1; T5 Step 1 Lock OCT1 255>4
-Seite SR2 | A+Y | T5 Step 1 0>1; T5 Step 1 Lock OCT1 255>2
+Seite SR2 | A+B | Meldung "LOCKS GELÖSCHT"
+Seite SR2 | A+X | T5 Step 1 0>2; T5 Step 1 Lock OCT1 255>4; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
+Seite SR2 | A+Y | T5 Step 1 0>2; T5 Step 1 Lock OCT1 255>2; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
 Seite SR2 | A+HOCH | Seite SR2>SRC; Regler 1>8; T5 Step 1 0>1
 Seite SR2 | A+RUNTER | Regler 1>2; T5 Step 1 0>1
 Seite SR2 | A+L1 | T5 Step 1 0>1
@@ -246,9 +246,9 @@ Seite FLT | SEL+R1 | Step 1>5
 Seite FLT | SEL+L2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 Seite FLT | SEL+R2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 Seite FLT | SEL+START | Meldung "GESPEICHERT"
-Seite FLT | A+B | T5 Step 1 0>1; Meldung "LOCKS GELÖSCHT"
-Seite FLT | A+X | T5 Step 1 0>1; T5 Step 1 Lock FREQ 255>71
-Seite FLT | A+Y | T5 Step 1 0>1; T5 Step 1 Lock FREQ 255>69
+Seite FLT | A+B | Meldung "LOCKS GELÖSCHT"
+Seite FLT | A+X | T5 Step 1 0>2; T5 Step 1 Lock FREQ 255>71; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
+Seite FLT | A+Y | T5 Step 1 0>2; T5 Step 1 Lock FREQ 255>69; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
 Seite FLT | A+HOCH | Seite FLT>SR2; Regler 1>8; T5 Step 1 0>1
 Seite FLT | A+RUNTER | Regler 1>2; T5 Step 1 0>1
 Seite FLT | A+L1 | T5 Step 1 0>1
@@ -289,9 +289,9 @@ Seite FL2 | SEL+R1 | Step 1>5
 Seite FL2 | SEL+L2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 Seite FL2 | SEL+R2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 Seite FL2 | SEL+START | Meldung "GESPEICHERT"
-Seite FL2 | A+B | T5 Step 1 0>1; Meldung "LOCKS GELÖSCHT"
-Seite FL2 | A+X | T5 Step 1 0>1; T5 Step 1 Lock BASE 255>1
-Seite FL2 | A+Y | T5 Step 1 0>1; T5 Step 1 Lock BASE 255>0
+Seite FL2 | A+B | Meldung "LOCKS GELÖSCHT"
+Seite FL2 | A+X | T5 Step 1 0>2; T5 Step 1 Lock BASE 255>1; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
+Seite FL2 | A+Y | T5 Step 1 0>2; T5 Step 1 Lock BASE 255>0; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
 Seite FL2 | A+HOCH | Seite FL2>FLT; Regler 1>5; T5 Step 1 0>1
 Seite FL2 | A+RUNTER | Regler 1>2; T5 Step 1 0>1
 Seite FL2 | A+L1 | T5 Step 1 0>1
@@ -332,9 +332,9 @@ Seite AMP | SEL+R1 | Step 1>5
 Seite AMP | SEL+L2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 Seite AMP | SEL+R2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 Seite AMP | SEL+START | Meldung "GESPEICHERT"
-Seite AMP | A+B | T5 Step 1 0>1; Meldung "LOCKS GELÖSCHT"
-Seite AMP | A+X | T5 Step 1 0>1; T5 Step 1 Lock VOL 255>101
-Seite AMP | A+Y | T5 Step 1 0>1; T5 Step 1 Lock VOL 255>99
+Seite AMP | A+B | Meldung "LOCKS GELÖSCHT"
+Seite AMP | A+X | T5 Step 1 0>2; T5 Step 1 Lock VOL 255>101; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
+Seite AMP | A+Y | T5 Step 1 0>2; T5 Step 1 Lock VOL 255>99; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
 Seite AMP | A+HOCH | Seite AMP>FL2; Regler 1>2; T5 Step 1 0>1
 Seite AMP | A+RUNTER | Regler 1>2; T5 Step 1 0>1
 Seite AMP | A+L1 | T5 Step 1 0>1
@@ -375,9 +375,9 @@ Seite LF1 | SEL+R1 | Step 1>5
 Seite LF1 | SEL+L2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 Seite LF1 | SEL+R2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 Seite LF1 | SEL+START | Meldung "GESPEICHERT"
-Seite LF1 | A+B | T5 Step 1 0>1; Meldung "LOCKS GELÖSCHT"
-Seite LF1 | A+X | T5 Step 1 0>1; T5 Step 1 Lock RATE 255>65
-Seite LF1 | A+Y | T5 Step 1 0>1; T5 Step 1 Lock RATE 255>63
+Seite LF1 | A+B | Meldung "LOCKS GELÖSCHT"
+Seite LF1 | A+X | T5 Step 1 0>2; T5 Step 1 Lock RATE 255>65; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
+Seite LF1 | A+Y | T5 Step 1 0>2; T5 Step 1 Lock RATE 255>63; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
 Seite LF1 | A+HOCH | Seite LF1>EN3; Regler 1>12; T5 Step 1 0>1
 Seite LF1 | A+RUNTER | Regler 1>2; T5 Step 1 0>1
 Seite LF1 | A+L1 | T5 Step 1 0>1
@@ -418,9 +418,9 @@ Seite LF2 | SEL+R1 | Step 1>5
 Seite LF2 | SEL+L2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 Seite LF2 | SEL+R2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 Seite LF2 | SEL+START | Meldung "GESPEICHERT"
-Seite LF2 | A+B | T5 Step 1 0>1; Meldung "LOCKS GELÖSCHT"
-Seite LF2 | A+X | T5 Step 1 0>1; T5 Step 1 Lock RATE 255>65
-Seite LF2 | A+Y | T5 Step 1 0>1; T5 Step 1 Lock RATE 255>63
+Seite LF2 | A+B | Meldung "LOCKS GELÖSCHT"
+Seite LF2 | A+X | T5 Step 1 0>2; T5 Step 1 Lock RATE 255>65; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
+Seite LF2 | A+Y | T5 Step 1 0>2; T5 Step 1 Lock RATE 255>63; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
 Seite LF2 | A+HOCH | Seite LF2>LF1; Regler 1>12; T5 Step 1 0>1
 Seite LF2 | A+RUNTER | Regler 1>2; T5 Step 1 0>1
 Seite LF2 | A+L1 | T5 Step 1 0>1
@@ -461,9 +461,9 @@ Seite LF3 | SEL+R1 | Step 1>5
 Seite LF3 | SEL+L2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 Seite LF3 | SEL+R2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 Seite LF3 | SEL+START | Meldung "GESPEICHERT"
-Seite LF3 | A+B | T5 Step 1 0>1; Meldung "LOCKS GELÖSCHT"
-Seite LF3 | A+X | T5 Step 1 0>1; T5 Step 1 Lock RATE 255>65
-Seite LF3 | A+Y | T5 Step 1 0>1; T5 Step 1 Lock RATE 255>63
+Seite LF3 | A+B | Meldung "LOCKS GELÖSCHT"
+Seite LF3 | A+X | T5 Step 1 0>2; T5 Step 1 Lock RATE 255>65; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
+Seite LF3 | A+Y | T5 Step 1 0>2; T5 Step 1 Lock RATE 255>63; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
 Seite LF3 | A+HOCH | Seite LF3>LF2; Regler 1>12; T5 Step 1 0>1
 Seite LF3 | A+RUNTER | Regler 1>2; T5 Step 1 0>1
 Seite LF3 | A+L1 | T5 Step 1 0>1
@@ -504,9 +504,9 @@ Seite INS | SEL+R1 | Step 1>5
 Seite INS | SEL+L2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 Seite INS | SEL+R2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 Seite INS | SEL+START | Meldung "GESPEICHERT"
-Seite INS | A+B | T5 Step 1 0>1; Meldung "LOCKS GELÖSCHT"
-Seite INS | A+X | T5 Step 1 0>1; T5 Step 1 Lock TYPE 255>1
-Seite INS | A+Y | T5 Step 1 0>1; T5 Step 1 Lock TYPE 255>0
+Seite INS | A+B | Meldung "LOCKS GELÖSCHT"
+Seite INS | A+X | T5 Step 1 0>2; T5 Step 1 Lock TYPE 255>1; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
+Seite INS | A+Y | T5 Step 1 0>2; T5 Step 1 Lock TYPE 255>0; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
 Seite INS | A+HOCH | Seite INS>AMP; Regler 1>3; T5 Step 1 0>1
 Seite INS | A+RUNTER | Regler 1>2; T5 Step 1 0>1
 Seite INS | A+L1 | T5 Step 1 0>1
@@ -590,7 +590,7 @@ Seite FX A | SEL+R1 | Step 1>5
 Seite FX A | SEL+L2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 Seite FX A | SEL+R2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 Seite FX A | SEL+START | Meldung "GESPEICHERT"
-Seite FX A | A+B | T5 Step 1 0>1; Meldung "LOCKS GELÖSCHT"
+Seite FX A | A+B | Meldung "LOCKS GELÖSCHT"
 Seite FX A | A+X | T5 Step 1 0>1; Bus A.0 1>2; Bus A.1 9>7; Bus A.2 50>55; Bus A.3 80>40; Bus A.4 127>50; Bus A.5 10>50
 Seite FX A | A+Y | T5 Step 1 0>1; Bus A.0 1>0; Bus A.1 9>0; Bus A.2 50>0; Bus A.3 80>0; Bus A.4 127>0; Bus A.5 10>0
 Seite FX A | A+HOCH | Seite FX A>FX C; Regler 1>8; T5 Step 1 0>1
@@ -633,7 +633,7 @@ Seite CMP | SEL+R1 | Step 1>5
 Seite CMP | SEL+L2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 Seite CMP | SEL+R2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 Seite CMP | SEL+START | Meldung "GESPEICHERT"
-Seite CMP | A+B | T5 Step 1 0>1; Meldung "LOCKS GELÖSCHT"
+Seite CMP | A+B | Meldung "LOCKS GELÖSCHT"
 Seite CMP | A+X | T5 Step 1 0>1
 Seite CMP | A+Y | T5 Step 1 0>1; Kompr.THR 127>126
 Seite CMP | A+HOCH | Seite CMP>MST; Regler 1>6; T5 Step 1 0>1
@@ -762,7 +762,7 @@ Seite MST | SEL+R1 | Step 1>5
 Seite MST | SEL+L2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 Seite MST | SEL+R2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 Seite MST | SEL+START | Meldung "GESPEICHERT"
-Seite MST | A+B | T5 Step 1 0>1; Meldung "LOCKS GELÖSCHT"
+Seite MST | A+B | Meldung "LOCKS GELÖSCHT"
 Seite MST | A+X | T5 Step 1 0>1; BPM 120>121
 Seite MST | A+Y | T5 Step 1 0>1; BPM 120>119
 Seite MST | A+HOCH | Seite MST>CMP; Regler 1>8; T5 Step 1 0>1
@@ -848,9 +848,9 @@ Seite SR3 | SEL+R1 | Step 1>5
 Seite SR3 | SEL+L2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 Seite SR3 | SEL+R2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 Seite SR3 | SEL+START | Meldung "GESPEICHERT"
-Seite SR3 | A+B | T5 Step 1 0>1; Meldung "LOCKS GELÖSCHT"
-Seite SR3 | A+X | T5 Step 1 0>1; T5 Step 1 Lock NOTE 255>37
-Seite SR3 | A+Y | T5 Step 1 0>1; T5 Step 1 Lock NOTE 255>35
+Seite SR3 | A+B | Meldung "LOCKS GELÖSCHT"
+Seite SR3 | A+X | T5 Step 1 0>2; T5 Step 1 Lock NOTE 255>37; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
+Seite SR3 | A+Y | T5 Step 1 0>2; T5 Step 1 Lock NOTE 255>35; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
 Seite SR3 | A+HOCH | Seite TRG>ARP; Regler 1>6; T5 Step 1 0>1
 Seite SR3 | A+RUNTER | Regler 1>2; T5 Step 1 0>1
 Seite SR3 | A+L1 | T5 Step 1 0>1
@@ -891,9 +891,9 @@ Seite SR4 | SEL+R1 | Step 1>5
 Seite SR4 | SEL+L2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 Seite SR4 | SEL+R2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 Seite SR4 | SEL+START | Meldung "GESPEICHERT"
-Seite SR4 | A+B | T5 Step 1 0>1; Meldung "LOCKS GELÖSCHT"
-Seite SR4 | A+X | T5 Step 1 0>1; T5 Step 1 Lock NOTE 255>37
-Seite SR4 | A+Y | T5 Step 1 0>1; T5 Step 1 Lock NOTE 255>35
+Seite SR4 | A+B | Meldung "LOCKS GELÖSCHT"
+Seite SR4 | A+X | T5 Step 1 0>2; T5 Step 1 Lock NOTE 255>37; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
+Seite SR4 | A+Y | T5 Step 1 0>2; T5 Step 1 Lock NOTE 255>35; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
 Seite SR4 | A+HOCH | Seite TRG>ARP; Regler 1>6; T5 Step 1 0>1
 Seite SR4 | A+RUNTER | Regler 1>2; T5 Step 1 0>1
 Seite SR4 | A+L1 | T5 Step 1 0>1
@@ -934,9 +934,9 @@ Seite SR5 | SEL+R1 | Step 1>5
 Seite SR5 | SEL+L2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 Seite SR5 | SEL+R2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 Seite SR5 | SEL+START | Meldung "GESPEICHERT"
-Seite SR5 | A+B | T5 Step 1 0>1; Meldung "LOCKS GELÖSCHT"
-Seite SR5 | A+X | T5 Step 1 0>1; T5 Step 1 Lock NOTE 255>37
-Seite SR5 | A+Y | T5 Step 1 0>1; T5 Step 1 Lock NOTE 255>35
+Seite SR5 | A+B | Meldung "LOCKS GELÖSCHT"
+Seite SR5 | A+X | T5 Step 1 0>2; T5 Step 1 Lock NOTE 255>37; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
+Seite SR5 | A+Y | T5 Step 1 0>2; T5 Step 1 Lock NOTE 255>35; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
 Seite SR5 | A+HOCH | Seite TRG>ARP; Regler 1>6; T5 Step 1 0>1
 Seite SR5 | A+RUNTER | Regler 1>2; T5 Step 1 0>1
 Seite SR5 | A+L1 | T5 Step 1 0>1
@@ -977,9 +977,9 @@ Seite SND | SEL+R1 | Step 1>5
 Seite SND | SEL+L2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 Seite SND | SEL+R2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 Seite SND | SEL+START | Meldung "GESPEICHERT"
-Seite SND | A+B | T5 Step 1 0>1; Meldung "LOCKS GELÖSCHT"
-Seite SND | A+X | T5 Step 1 0>1; T5 Step 1 Lock SND.A 255>1
-Seite SND | A+Y | T5 Step 1 0>1; T5 Step 1 Lock SND.A 255>0
+Seite SND | A+B | Meldung "LOCKS GELÖSCHT"
+Seite SND | A+X | T5 Step 1 0>2; T5 Step 1 Lock SND.A 255>1; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
+Seite SND | A+Y | T5 Step 1 0>2; T5 Step 1 Lock SND.A 255>0; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
 Seite SND | A+HOCH | Seite SND>INS; Regler 1>8; T5 Step 1 0>1
 Seite SND | A+RUNTER | Regler 1>2; T5 Step 1 0>1
 Seite SND | A+L1 | T5 Step 1 0>1
@@ -1020,7 +1020,7 @@ Seite FX B | SEL+R1 | Step 1>5
 Seite FX B | SEL+L2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 Seite FX B | SEL+R2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 Seite FX B | SEL+START | Meldung "GESPEICHERT"
-Seite FX B | A+B | T5 Step 1 0>1; Meldung "LOCKS GELÖSCHT"
+Seite FX B | A+B | Meldung "LOCKS GELÖSCHT"
 Seite FX B | A+X | T5 Step 1 0>1; Bus B.0 3>4; Bus B.1 80>70; Bus B.2 60>70; Bus B.3 0>70; Bus B.4 100>90; Bus B.5 40>30
 Seite FX B | A+Y | T5 Step 1 0>1; Bus B.0 3>2; Bus B.1 80>7; Bus B.2 60>55; Bus B.3 0>40; Bus B.4 100>50; Bus B.5 40>50
 Seite FX B | A+HOCH | Seite FX B>FX A; Regler 1>8; T5 Step 1 0>1
@@ -1063,7 +1063,7 @@ Seite FX C | SEL+R1 | Step 1>5
 Seite FX C | SEL+L2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 Seite FX C | SEL+R2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 Seite FX C | SEL+START | Meldung "GESPEICHERT"
-Seite FX C | A+B | T5 Step 1 0>1; Meldung "LOCKS GELÖSCHT"
+Seite FX C | A+B | Meldung "LOCKS GELÖSCHT"
 Seite FX C | A+X | T5 Step 1 0>1; Bus C.0 5>6; Bus C.1 40>95; Bus C.2 60>50; Bus C.3 2>70; Bus C.4 110>36; Bus C.5 0>110
 Seite FX C | A+Y | T5 Step 1 0>1; Bus C.0 5>4; Bus C.1 40>70; Bus C.2 60>70; Bus C.3 2>70; Bus C.4 110>90; Bus C.5 0>30
 Seite FX C | A+HOCH | Seite FX C>FX B; Regler 1>8; T5 Step 1 0>1
@@ -1106,9 +1106,9 @@ Seite EN1 | SEL+R1 | Step 1>5
 Seite EN1 | SEL+L2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 Seite EN1 | SEL+R2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 Seite EN1 | SEL+START | Meldung "GESPEICHERT"
-Seite EN1 | A+B | T5 Step 1 0>1; Meldung "LOCKS GELÖSCHT"
-Seite EN1 | A+X | T5 Step 1 0>1; T5 Step 1 Lock ATK 255>1
-Seite EN1 | A+Y | T5 Step 1 0>1; T5 Step 1 Lock ATK 255>0
+Seite EN1 | A+B | Meldung "LOCKS GELÖSCHT"
+Seite EN1 | A+X | T5 Step 1 0>2; T5 Step 1 Lock ATK 255>1; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
+Seite EN1 | A+Y | T5 Step 1 0>2; T5 Step 1 Lock ATK 255>0; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
 Seite EN1 | A+HOCH | Seite EN1>SND; Regler 1>3; T5 Step 1 0>1
 Seite EN1 | A+RUNTER | Regler 1>2; T5 Step 1 0>1
 Seite EN1 | A+L1 | T5 Step 1 0>1
@@ -1149,9 +1149,9 @@ Seite EN2 | SEL+R1 | Step 1>5
 Seite EN2 | SEL+L2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 Seite EN2 | SEL+R2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 Seite EN2 | SEL+START | Meldung "GESPEICHERT"
-Seite EN2 | A+B | T5 Step 1 0>1; Meldung "LOCKS GELÖSCHT"
-Seite EN2 | A+X | T5 Step 1 0>1; T5 Step 1 Lock ATK 255>1
-Seite EN2 | A+Y | T5 Step 1 0>1; T5 Step 1 Lock ATK 255>0
+Seite EN2 | A+B | Meldung "LOCKS GELÖSCHT"
+Seite EN2 | A+X | T5 Step 1 0>2; T5 Step 1 Lock ATK 255>1; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
+Seite EN2 | A+Y | T5 Step 1 0>2; T5 Step 1 Lock ATK 255>0; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
 Seite EN2 | A+HOCH | Seite EN2>EN1; Regler 1>12; T5 Step 1 0>1
 Seite EN2 | A+RUNTER | Regler 1>2; T5 Step 1 0>1
 Seite EN2 | A+L1 | T5 Step 1 0>1
@@ -1192,9 +1192,9 @@ Seite EN3 | SEL+R1 | Step 1>5
 Seite EN3 | SEL+L2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 Seite EN3 | SEL+R2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 Seite EN3 | SEL+START | Meldung "GESPEICHERT"
-Seite EN3 | A+B | T5 Step 1 0>1; Meldung "LOCKS GELÖSCHT"
-Seite EN3 | A+X | T5 Step 1 0>1; T5 Step 1 Lock ATK 255>1
-Seite EN3 | A+Y | T5 Step 1 0>1; T5 Step 1 Lock ATK 255>0
+Seite EN3 | A+B | Meldung "LOCKS GELÖSCHT"
+Seite EN3 | A+X | T5 Step 1 0>2; T5 Step 1 Lock ATK 255>1; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
+Seite EN3 | A+Y | T5 Step 1 0>2; T5 Step 1 Lock ATK 255>0; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
 Seite EN3 | A+HOCH | Seite EN3>EN2; Regler 1>12; T5 Step 1 0>1
 Seite EN3 | A+RUNTER | Regler 1>2; T5 Step 1 0>1
 Seite EN3 | A+L1 | T5 Step 1 0>1
@@ -1278,9 +1278,9 @@ SRC auf KICK | SEL+R1 | Step 1>5
 SRC auf KICK | SEL+L2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 SRC auf KICK | SEL+R2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 SRC auf KICK | SEL+START | Meldung "GESPEICHERT"
-SRC auf KICK | A+B | T1 Step 1 0>1; Meldung "LOCKS GELÖSCHT"
-SRC auf KICK | A+X | T1 Step 1 0>1; T1 Step 1 Lock TUNE 255>41
-SRC auf KICK | A+Y | T1 Step 1 0>1; T1 Step 1 Lock TUNE 255>39
+SRC auf KICK | A+B | Meldung "LOCKS GELÖSCHT"
+SRC auf KICK | A+X | T1 Step 1 0>2; T1 Step 1 Lock TUNE 255>41; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
+SRC auf KICK | A+Y | T1 Step 1 0>2; T1 Step 1 Lock TUNE 255>39; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
 SRC auf KICK | A+HOCH | Seite SRC>TRG; Regler 1>7; T1 Step 1 0>1
 SRC auf KICK | A+RUNTER | Regler 1>2; T1 Step 1 0>1
 SRC auf KICK | A+L1 | T1 Step 1 0>1
@@ -1321,9 +1321,9 @@ SRC auf SNARE | SEL+R1 | Step 1>5
 SRC auf SNARE | SEL+L2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 SRC auf SNARE | SEL+R2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 SRC auf SNARE | SEL+START | Meldung "GESPEICHERT"
-SRC auf SNARE | A+B | T1 Step 1 0>1; Meldung "LOCKS GELÖSCHT"
-SRC auf SNARE | A+X | T1 Step 1 0>1; T1 Step 1 Lock TUNE 255>51
-SRC auf SNARE | A+Y | T1 Step 1 0>1; T1 Step 1 Lock TUNE 255>49
+SRC auf SNARE | A+B | Meldung "LOCKS GELÖSCHT"
+SRC auf SNARE | A+X | T1 Step 1 0>2; T1 Step 1 Lock TUNE 255>51; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
+SRC auf SNARE | A+Y | T1 Step 1 0>2; T1 Step 1 Lock TUNE 255>49; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
 SRC auf SNARE | A+HOCH | Seite SRC>TRG; Regler 1>7; T1 Step 1 0>1
 SRC auf SNARE | A+RUNTER | Regler 1>2; T1 Step 1 0>1
 SRC auf SNARE | A+L1 | T1 Step 1 0>1
@@ -1364,9 +1364,9 @@ SRC auf HAT | SEL+R1 | Step 1>5
 SRC auf HAT | SEL+L2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 SRC auf HAT | SEL+R2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 SRC auf HAT | SEL+START | Meldung "GESPEICHERT"
-SRC auf HAT | A+B | T1 Step 1 0>1; Meldung "LOCKS GELÖSCHT"
-SRC auf HAT | A+X | T1 Step 1 0>1; T1 Step 1 Lock TUNE 255>65
-SRC auf HAT | A+Y | T1 Step 1 0>1; T1 Step 1 Lock TUNE 255>63
+SRC auf HAT | A+B | Meldung "LOCKS GELÖSCHT"
+SRC auf HAT | A+X | T1 Step 1 0>2; T1 Step 1 Lock TUNE 255>65; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
+SRC auf HAT | A+Y | T1 Step 1 0>2; T1 Step 1 Lock TUNE 255>63; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
 SRC auf HAT | A+HOCH | Seite SRC>TRG; Regler 1>7; T1 Step 1 0>1
 SRC auf HAT | A+RUNTER | Regler 1>2; T1 Step 1 0>1
 SRC auf HAT | A+L1 | T1 Step 1 0>1
@@ -1407,9 +1407,9 @@ SRC auf CLAP | SEL+R1 | Step 1>5
 SRC auf CLAP | SEL+L2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 SRC auf CLAP | SEL+R2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 SRC auf CLAP | SEL+START | Meldung "GESPEICHERT"
-SRC auf CLAP | A+B | T1 Step 1 0>1; Meldung "LOCKS GELÖSCHT"
-SRC auf CLAP | A+X | T1 Step 1 0>1; T1 Step 1 Lock TUNE 255>65
-SRC auf CLAP | A+Y | T1 Step 1 0>1; T1 Step 1 Lock TUNE 255>63
+SRC auf CLAP | A+B | Meldung "LOCKS GELÖSCHT"
+SRC auf CLAP | A+X | T1 Step 1 0>2; T1 Step 1 Lock TUNE 255>65; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
+SRC auf CLAP | A+Y | T1 Step 1 0>2; T1 Step 1 Lock TUNE 255>63; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
 SRC auf CLAP | A+HOCH | Seite SRC>TRG; Regler 1>7; T1 Step 1 0>1
 SRC auf CLAP | A+RUNTER | Regler 1>2; T1 Step 1 0>1
 SRC auf CLAP | A+L1 | T1 Step 1 0>1
@@ -1450,9 +1450,9 @@ SRC auf SYNTH | SEL+R1 | Step 1>5
 SRC auf SYNTH | SEL+L2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 SRC auf SYNTH | SEL+R2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 SRC auf SYNTH | SEL+START | Meldung "GESPEICHERT"
-SRC auf SYNTH | A+B | T1 Step 1 0>1; Meldung "LOCKS GELÖSCHT"
-SRC auf SYNTH | A+X | T1 Step 1 0>1; T1 Step 1 Lock WAV1 255>1
-SRC auf SYNTH | A+Y | T1 Step 1 0>1; T1 Step 1 Lock WAV1 255>0
+SRC auf SYNTH | A+B | Meldung "LOCKS GELÖSCHT"
+SRC auf SYNTH | A+X | T1 Step 1 0>2; T1 Step 1 Lock WAV1 255>1; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
+SRC auf SYNTH | A+Y | T1 Step 1 0>2; T1 Step 1 Lock WAV1 255>0; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
 SRC auf SYNTH | A+HOCH | Seite SRC>TRG; Regler 1>7; T1 Step 1 0>1
 SRC auf SYNTH | A+RUNTER | Regler 1>2; T1 Step 1 0>1
 SRC auf SYNTH | A+L1 | T1 Step 1 0>1
@@ -1493,9 +1493,9 @@ SR2 auf SYNTH | SEL+R1 | Step 1>5
 SR2 auf SYNTH | SEL+L2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 SR2 auf SYNTH | SEL+R2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 SR2 auf SYNTH | SEL+START | Meldung "GESPEICHERT"
-SR2 auf SYNTH | A+B | T1 Step 1 0>1; Meldung "LOCKS GELÖSCHT"
-SR2 auf SYNTH | A+X | T1 Step 1 0>1; T1 Step 1 Lock OCT1 255>4
-SR2 auf SYNTH | A+Y | T1 Step 1 0>1; T1 Step 1 Lock OCT1 255>2
+SR2 auf SYNTH | A+B | Meldung "LOCKS GELÖSCHT"
+SR2 auf SYNTH | A+X | T1 Step 1 0>2; T1 Step 1 Lock OCT1 255>4; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
+SR2 auf SYNTH | A+Y | T1 Step 1 0>2; T1 Step 1 Lock OCT1 255>2; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
 SR2 auf SYNTH | A+HOCH | Seite SR2>SRC; Regler 1>8; T1 Step 1 0>1
 SR2 auf SYNTH | A+RUNTER | Regler 1>2; T1 Step 1 0>1
 SR2 auf SYNTH | A+L1 | T1 Step 1 0>1
@@ -1536,9 +1536,9 @@ SRC auf FM | SEL+R1 | Step 1>5
 SRC auf FM | SEL+L2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 SRC auf FM | SEL+R2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 SRC auf FM | SEL+START | Meldung "GESPEICHERT"
-SRC auf FM | A+B | T1 Step 1 0>1; Meldung "LOCKS GELÖSCHT"
-SRC auf FM | A+X | T1 Step 1 0>1; T1 Step 1 Lock ALGO 255>1
-SRC auf FM | A+Y | T1 Step 1 0>1; T1 Step 1 Lock ALGO 255>0
+SRC auf FM | A+B | Meldung "LOCKS GELÖSCHT"
+SRC auf FM | A+X | T1 Step 1 0>2; T1 Step 1 Lock ALGO 255>1; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
+SRC auf FM | A+Y | T1 Step 1 0>2; T1 Step 1 Lock ALGO 255>0; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
 SRC auf FM | A+HOCH | Seite SRC>TRG; Regler 1>7; T1 Step 1 0>1
 SRC auf FM | A+RUNTER | Regler 1>2; T1 Step 1 0>1
 SRC auf FM | A+L1 | T1 Step 1 0>1
@@ -1579,9 +1579,9 @@ SR2 auf FM | SEL+R1 | Step 1>5
 SR2 auf FM | SEL+L2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 SR2 auf FM | SEL+R2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 SR2 auf FM | SEL+START | Meldung "GESPEICHERT"
-SR2 auf FM | A+B | T1 Step 1 0>1; Meldung "LOCKS GELÖSCHT"
-SR2 auf FM | A+X | T1 Step 1 0>1; T1 Step 1 Lock RAT 255>4
-SR2 auf FM | A+Y | T1 Step 1 0>1; T1 Step 1 Lock RAT 255>2
+SR2 auf FM | A+B | Meldung "LOCKS GELÖSCHT"
+SR2 auf FM | A+X | T1 Step 1 0>2; T1 Step 1 Lock RAT 255>4; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
+SR2 auf FM | A+Y | T1 Step 1 0>2; T1 Step 1 Lock RAT 255>2; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
 SR2 auf FM | A+HOCH | Seite SR2>SR5; Regler 1>4; T1 Step 1 0>1
 SR2 auf FM | A+RUNTER | Regler 1>2; T1 Step 1 0>1
 SR2 auf FM | A+L1 | T1 Step 1 0>1
@@ -1622,9 +1622,9 @@ SR3 auf FM | SEL+R1 | Step 1>5
 SR3 auf FM | SEL+L2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 SR3 auf FM | SEL+R2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 SR3 auf FM | SEL+START | Meldung "GESPEICHERT"
-SR3 auf FM | A+B | T1 Step 1 0>1; Meldung "LOCKS GELÖSCHT"
-SR3 auf FM | A+X | T1 Step 1 0>1; T1 Step 1 Lock RAT 255>8
-SR3 auf FM | A+Y | T1 Step 1 0>1; T1 Step 1 Lock RAT 255>6
+SR3 auf FM | A+B | Meldung "LOCKS GELÖSCHT"
+SR3 auf FM | A+X | T1 Step 1 0>2; T1 Step 1 Lock RAT 255>8; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
+SR3 auf FM | A+Y | T1 Step 1 0>2; T1 Step 1 Lock RAT 255>6; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
 SR3 auf FM | A+HOCH | Seite SR3>SR2; Regler 1>8; T1 Step 1 0>1
 SR3 auf FM | A+RUNTER | Regler 1>2; T1 Step 1 0>1
 SR3 auf FM | A+L1 | T1 Step 1 0>1
@@ -1665,9 +1665,9 @@ SR4 auf FM | SEL+R1 | Step 1>5
 SR4 auf FM | SEL+L2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 SR4 auf FM | SEL+R2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 SR4 auf FM | SEL+START | Meldung "GESPEICHERT"
-SR4 auf FM | A+B | T1 Step 1 0>1; Meldung "LOCKS GELÖSCHT"
-SR4 auf FM | A+X | T1 Step 1 0>1; T1 Step 1 Lock RAT 255>4
-SR4 auf FM | A+Y | T1 Step 1 0>1; T1 Step 1 Lock RAT 255>2
+SR4 auf FM | A+B | Meldung "LOCKS GELÖSCHT"
+SR4 auf FM | A+X | T1 Step 1 0>2; T1 Step 1 Lock RAT 255>4; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
+SR4 auf FM | A+Y | T1 Step 1 0>2; T1 Step 1 Lock RAT 255>2; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
 SR4 auf FM | A+HOCH | Seite SR4>SR3; Regler 1>8; T1 Step 1 0>1
 SR4 auf FM | A+RUNTER | Regler 1>2; T1 Step 1 0>1
 SR4 auf FM | A+L1 | T1 Step 1 0>1
@@ -1708,9 +1708,9 @@ SR5 auf FM | SEL+R1 | Step 1>5
 SR5 auf FM | SEL+L2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 SR5 auf FM | SEL+R2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 SR5 auf FM | SEL+START | Meldung "GESPEICHERT"
-SR5 auf FM | A+B | T1 Step 1 0>1; Meldung "LOCKS GELÖSCHT"
-SR5 auf FM | A+X | T1 Step 1 0>1; T1 Step 1 Lock RAT 255>4
-SR5 auf FM | A+Y | T1 Step 1 0>1; T1 Step 1 Lock RAT 255>2
+SR5 auf FM | A+B | Meldung "LOCKS GELÖSCHT"
+SR5 auf FM | A+X | T1 Step 1 0>2; T1 Step 1 Lock RAT 255>4; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
+SR5 auf FM | A+Y | T1 Step 1 0>2; T1 Step 1 Lock RAT 255>2; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
 SR5 auf FM | A+HOCH | Seite SR5>SR4; Regler 1>8; T1 Step 1 0>1
 SR5 auf FM | A+RUNTER | Regler 1>2; T1 Step 1 0>1
 SR5 auf FM | A+L1 | T1 Step 1 0>1
@@ -1751,9 +1751,9 @@ SRC auf SMPL | SEL+R1 | Step 1>5
 SRC auf SMPL | SEL+L2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 SRC auf SMPL | SEL+R2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 SRC auf SMPL | SEL+START | Meldung "GESPEICHERT"
-SRC auf SMPL | A+B | T1 Step 1 0>1; Meldung "LOCKS GELÖSCHT"
+SRC auf SMPL | A+B | Meldung "LOCKS GELÖSCHT"
 SRC auf SMPL | A+X | Liste 7 auf; Step gehalten; T1 Step 1 0>1
-SRC auf SMPL | A+Y | T1 Step 1 0>1; T1 Step 1 Lock SMPL 255>254
+SRC auf SMPL | A+Y | T1 Step 1 0>2; T1 Step 1 Lock SMPL 255>254; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
 SRC auf SMPL | A+HOCH | Seite SRC>TRG; Regler 1>7; T1 Step 1 0>1
 SRC auf SMPL | A+RUNTER | Regler 1>2; T1 Step 1 0>1
 SRC auf SMPL | A+L1 | T1 Step 1 0>1
@@ -1794,9 +1794,9 @@ SR2 auf SMPL | SEL+R1 | Step 1>5
 SR2 auf SMPL | SEL+L2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 SR2 auf SMPL | SEL+R2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 SR2 auf SMPL | SEL+START | Meldung "GESPEICHERT"
-SR2 auf SMPL | A+B | T1 Step 1 0>1; Meldung "LOCKS GELÖSCHT"
-SR2 auf SMPL | A+X | T1 Step 1 0>1; T1 Step 1 Lock TEMPO 255>1
-SR2 auf SMPL | A+Y | T1 Step 1 0>1; T1 Step 1 Lock TEMPO 255>0
+SR2 auf SMPL | A+B | Meldung "LOCKS GELÖSCHT"
+SR2 auf SMPL | A+X | T1 Step 1 0>2; T1 Step 1 Lock TEMPO 255>1; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
+SR2 auf SMPL | A+Y | T1 Step 1 0>2; T1 Step 1 Lock TEMPO 255>0; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
 SR2 auf SMPL | A+HOCH | Seite SR2>SRC; Regler 1>8; T1 Step 1 0>1
 SR2 auf SMPL | A+RUNTER | Regler 1>2; T1 Step 1 0>1
 SR2 auf SMPL | A+L1 | T1 Step 1 0>1
@@ -1837,9 +1837,9 @@ SRC auf TOM | SEL+R1 | Step 1>5
 SRC auf TOM | SEL+L2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 SRC auf TOM | SEL+R2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 SRC auf TOM | SEL+START | Meldung "GESPEICHERT"
-SRC auf TOM | A+B | T1 Step 1 0>1; Meldung "LOCKS GELÖSCHT"
-SRC auf TOM | A+X | T1 Step 1 0>1; T1 Step 1 Lock TUNE 255>51
-SRC auf TOM | A+Y | T1 Step 1 0>1; T1 Step 1 Lock TUNE 255>49
+SRC auf TOM | A+B | Meldung "LOCKS GELÖSCHT"
+SRC auf TOM | A+X | T1 Step 1 0>2; T1 Step 1 Lock TUNE 255>51; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
+SRC auf TOM | A+Y | T1 Step 1 0>2; T1 Step 1 Lock TUNE 255>49; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
 SRC auf TOM | A+HOCH | Seite SRC>TRG; Regler 1>7; T1 Step 1 0>1
 SRC auf TOM | A+RUNTER | Regler 1>2; T1 Step 1 0>1
 SRC auf TOM | A+L1 | T1 Step 1 0>1
@@ -1880,9 +1880,9 @@ SRC auf RIM | SEL+R1 | Step 1>5
 SRC auf RIM | SEL+L2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 SRC auf RIM | SEL+R2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 SRC auf RIM | SEL+START | Meldung "GESPEICHERT"
-SRC auf RIM | A+B | T1 Step 1 0>1; Meldung "LOCKS GELÖSCHT"
-SRC auf RIM | A+X | T1 Step 1 0>1; T1 Step 1 Lock TUNE 255>65
-SRC auf RIM | A+Y | T1 Step 1 0>1; T1 Step 1 Lock TUNE 255>63
+SRC auf RIM | A+B | Meldung "LOCKS GELÖSCHT"
+SRC auf RIM | A+X | T1 Step 1 0>2; T1 Step 1 Lock TUNE 255>65; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
+SRC auf RIM | A+Y | T1 Step 1 0>2; T1 Step 1 Lock TUNE 255>63; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
 SRC auf RIM | A+HOCH | Seite SRC>TRG; Regler 1>7; T1 Step 1 0>1
 SRC auf RIM | A+RUNTER | Regler 1>2; T1 Step 1 0>1
 SRC auf RIM | A+L1 | T1 Step 1 0>1
@@ -1923,9 +1923,9 @@ SRC auf SHKR | SEL+R1 | Step 1>5
 SRC auf SHKR | SEL+L2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 SRC auf SHKR | SEL+R2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 SRC auf SHKR | SEL+START | Meldung "GESPEICHERT"
-SRC auf SHKR | A+B | T1 Step 1 0>1; Meldung "LOCKS GELÖSCHT"
-SRC auf SHKR | A+X | T1 Step 1 0>1; T1 Step 1 Lock TONE 255>91
-SRC auf SHKR | A+Y | T1 Step 1 0>1; T1 Step 1 Lock TONE 255>89
+SRC auf SHKR | A+B | Meldung "LOCKS GELÖSCHT"
+SRC auf SHKR | A+X | T1 Step 1 0>2; T1 Step 1 Lock TONE 255>91; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
+SRC auf SHKR | A+Y | T1 Step 1 0>2; T1 Step 1 Lock TONE 255>89; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
 SRC auf SHKR | A+HOCH | Seite SRC>TRG; Regler 1>7; T1 Step 1 0>1
 SRC auf SHKR | A+RUNTER | Regler 1>2; T1 Step 1 0>1
 SRC auf SHKR | A+L1 | T1 Step 1 0>1
@@ -1966,9 +1966,9 @@ SRC auf WTBL | SEL+R1 | Step 1>5
 SRC auf WTBL | SEL+L2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 SRC auf WTBL | SEL+R2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 SRC auf WTBL | SEL+START | Meldung "GESPEICHERT"
-SRC auf WTBL | A+B | T1 Step 1 0>1; Meldung "LOCKS GELÖSCHT"
-SRC auf WTBL | A+X | T1 Step 1 0>1; T1 Step 1 Lock TABL 255>1
-SRC auf WTBL | A+Y | T1 Step 1 0>1; T1 Step 1 Lock TABL 255>0
+SRC auf WTBL | A+B | Meldung "LOCKS GELÖSCHT"
+SRC auf WTBL | A+X | T1 Step 1 0>2; T1 Step 1 Lock TABL 255>1; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
+SRC auf WTBL | A+Y | T1 Step 1 0>2; T1 Step 1 Lock TABL 255>0; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
 SRC auf WTBL | A+HOCH | Seite SRC>TRG; Regler 1>7; T1 Step 1 0>1
 SRC auf WTBL | A+RUNTER | Regler 1>2; T1 Step 1 0>1
 SRC auf WTBL | A+L1 | T1 Step 1 0>1
@@ -2009,9 +2009,9 @@ SR2 auf WTBL | SEL+R1 | Step 1>5
 SR2 auf WTBL | SEL+L2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 SR2 auf WTBL | SEL+R2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 SR2 auf WTBL | SEL+START | Meldung "GESPEICHERT"
-SR2 auf WTBL | A+B | T1 Step 1 0>1; Meldung "LOCKS GELÖSCHT"
-SR2 auf WTBL | A+X | T1 Step 1 0>1; T1 Step 1 Lock OCT 255>4
-SR2 auf WTBL | A+Y | T1 Step 1 0>1; T1 Step 1 Lock OCT 255>2
+SR2 auf WTBL | A+B | Meldung "LOCKS GELÖSCHT"
+SR2 auf WTBL | A+X | T1 Step 1 0>2; T1 Step 1 Lock OCT 255>4; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
+SR2 auf WTBL | A+Y | T1 Step 1 0>2; T1 Step 1 Lock OCT 255>2; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
 SR2 auf WTBL | A+HOCH | Seite SR2>SRC; Regler 1>8; T1 Step 1 0>1
 SR2 auf WTBL | A+RUNTER | Regler 1>2; T1 Step 1 0>1
 SR2 auf WTBL | A+L1 | T1 Step 1 0>1
@@ -2052,9 +2052,9 @@ SRC auf CHOP | SEL+R1 | Step 1>5
 SRC auf CHOP | SEL+L2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 SRC auf CHOP | SEL+R2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 SRC auf CHOP | SEL+START | Meldung "GESPEICHERT"
-SRC auf CHOP | A+B | T1 Step 1 0>1; Meldung "LOCKS GELÖSCHT"
+SRC auf CHOP | A+B | Meldung "LOCKS GELÖSCHT"
 SRC auf CHOP | A+X | Liste 7 auf; Step gehalten; T1 Step 1 0>1
-SRC auf CHOP | A+Y | T1 Step 1 0>1; T1 Step 1 Lock SMPL 255>254
+SRC auf CHOP | A+Y | T1 Step 1 0>2; T1 Step 1 Lock SMPL 255>254; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
 SRC auf CHOP | A+HOCH | Seite SRC>TRG; Regler 1>7; T1 Step 1 0>1
 SRC auf CHOP | A+RUNTER | Regler 1>2; T1 Step 1 0>1
 SRC auf CHOP | A+L1 | T1 Step 1 0>1
@@ -2095,9 +2095,9 @@ SR2 auf CHOP | SEL+R1 | Step 1>5
 SR2 auf CHOP | SEL+L2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 SR2 auf CHOP | SEL+R2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 SR2 auf CHOP | SEL+START | Meldung "GESPEICHERT"
-SR2 auf CHOP | A+B | T1 Step 1 0>1; Meldung "LOCKS GELÖSCHT"
-SR2 auf CHOP | A+X | T1 Step 1 0>1; T1 Step 1 Lock TEMPO 255>1
-SR2 auf CHOP | A+Y | T1 Step 1 0>1; T1 Step 1 Lock TEMPO 255>0
+SR2 auf CHOP | A+B | Meldung "LOCKS GELÖSCHT"
+SR2 auf CHOP | A+X | T1 Step 1 0>2; T1 Step 1 Lock TEMPO 255>1; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
+SR2 auf CHOP | A+Y | T1 Step 1 0>2; T1 Step 1 Lock TEMPO 255>0; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
 SR2 auf CHOP | A+HOCH | Seite SR2>SRC; Regler 1>8; T1 Step 1 0>1
 SR2 auf CHOP | A+RUNTER | Regler 1>2; T1 Step 1 0>1
 SR2 auf CHOP | A+L1 | T1 Step 1 0>1
@@ -2138,9 +2138,9 @@ SRC auf GRAN | SEL+R1 | Step 1>5
 SRC auf GRAN | SEL+L2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 SRC auf GRAN | SEL+R2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 SRC auf GRAN | SEL+START | Meldung "GESPEICHERT"
-SRC auf GRAN | A+B | T1 Step 1 0>1; Meldung "LOCKS GELÖSCHT"
+SRC auf GRAN | A+B | Meldung "LOCKS GELÖSCHT"
 SRC auf GRAN | A+X | Liste 7 auf; Step gehalten; T1 Step 1 0>1
-SRC auf GRAN | A+Y | T1 Step 1 0>1; T1 Step 1 Lock SMPL 255>254
+SRC auf GRAN | A+Y | T1 Step 1 0>2; T1 Step 1 Lock SMPL 255>254; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
 SRC auf GRAN | A+HOCH | Seite SRC>TRG; Regler 1>7; T1 Step 1 0>1
 SRC auf GRAN | A+RUNTER | Regler 1>2; T1 Step 1 0>1
 SRC auf GRAN | A+L1 | T1 Step 1 0>1
@@ -2181,9 +2181,9 @@ SRC auf PERC | SEL+R1 | Step 1>5
 SRC auf PERC | SEL+L2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 SRC auf PERC | SEL+R2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 SRC auf PERC | SEL+START | Meldung "GESPEICHERT"
-SRC auf PERC | A+B | T1 Step 1 0>1; Meldung "LOCKS GELÖSCHT"
-SRC auf PERC | A+X | T1 Step 1 0>1; T1 Step 1 Lock TUNE 255>41
-SRC auf PERC | A+Y | T1 Step 1 0>1; T1 Step 1 Lock TUNE 255>39
+SRC auf PERC | A+B | Meldung "LOCKS GELÖSCHT"
+SRC auf PERC | A+X | T1 Step 1 0>2; T1 Step 1 Lock TUNE 255>41; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
+SRC auf PERC | A+Y | T1 Step 1 0>2; T1 Step 1 Lock TUNE 255>39; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
 SRC auf PERC | A+HOCH | Seite SRC>TRG; Regler 1>7; T1 Step 1 0>1
 SRC auf PERC | A+RUNTER | Regler 1>2; T1 Step 1 0>1
 SRC auf PERC | A+L1 | T1 Step 1 0>1
@@ -2224,9 +2224,9 @@ SR2 auf PERC | SEL+R1 | Step 1>5
 SR2 auf PERC | SEL+L2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 SR2 auf PERC | SEL+R2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 SR2 auf PERC | SEL+START | Meldung "GESPEICHERT"
-SR2 auf PERC | A+B | T1 Step 1 0>1; Meldung "LOCKS GELÖSCHT"
-SR2 auf PERC | A+X | T1 Step 1 0>1; T1 Step 1 Lock NLVL 255>61
-SR2 auf PERC | A+Y | T1 Step 1 0>1; T1 Step 1 Lock NLVL 255>59
+SR2 auf PERC | A+B | Meldung "LOCKS GELÖSCHT"
+SR2 auf PERC | A+X | T1 Step 1 0>2; T1 Step 1 Lock NLVL 255>61; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
+SR2 auf PERC | A+Y | T1 Step 1 0>2; T1 Step 1 Lock NLVL 255>59; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
 SR2 auf PERC | A+HOCH | Seite SR2>SRC; Regler 1>8; T1 Step 1 0>1
 SR2 auf PERC | A+RUNTER | Regler 1>2; T1 Step 1 0>1
 SR2 auf PERC | A+L1 | T1 Step 1 0>1
@@ -2267,9 +2267,9 @@ SRC auf DRON | SEL+R1 | Step 1>5
 SRC auf DRON | SEL+L2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 SRC auf DRON | SEL+R2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 SRC auf DRON | SEL+START | Meldung "GESPEICHERT"
-SRC auf DRON | A+B | T1 Step 1 0>1; Meldung "LOCKS GELÖSCHT"
-SRC auf DRON | A+X | T1 Step 1 0>1; T1 Step 1 Lock PART 255>4
-SRC auf DRON | A+Y | T1 Step 1 0>1; T1 Step 1 Lock PART 255>2
+SRC auf DRON | A+B | Meldung "LOCKS GELÖSCHT"
+SRC auf DRON | A+X | T1 Step 1 0>2; T1 Step 1 Lock PART 255>4; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
+SRC auf DRON | A+Y | T1 Step 1 0>2; T1 Step 1 Lock PART 255>2; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
 SRC auf DRON | A+HOCH | Seite SRC>TRG; Regler 1>7; T1 Step 1 0>1
 SRC auf DRON | A+RUNTER | Regler 1>2; T1 Step 1 0>1
 SRC auf DRON | A+L1 | T1 Step 1 0>1
@@ -2310,9 +2310,9 @@ SR2 auf DRON | SEL+R1 | Step 1>5
 SR2 auf DRON | SEL+L2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 SR2 auf DRON | SEL+R2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 SR2 auf DRON | SEL+START | Meldung "GESPEICHERT"
-SR2 auf DRON | A+B | T1 Step 1 0>1; Meldung "LOCKS GELÖSCHT"
-SR2 auf DRON | A+X | T1 Step 1 0>1; T1 Step 1 Lock MRAT 255>21
-SR2 auf DRON | A+Y | T1 Step 1 0>1; T1 Step 1 Lock MRAT 255>19
+SR2 auf DRON | A+B | Meldung "LOCKS GELÖSCHT"
+SR2 auf DRON | A+X | T1 Step 1 0>2; T1 Step 1 Lock MRAT 255>21; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
+SR2 auf DRON | A+Y | T1 Step 1 0>2; T1 Step 1 Lock MRAT 255>19; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
 SR2 auf DRON | A+HOCH | Seite SR2>SRC; Regler 1>8; T1 Step 1 0>1
 SR2 auf DRON | A+RUNTER | Regler 1>2; T1 Step 1 0>1
 SR2 auf DRON | A+L1 | T1 Step 1 0>1
@@ -2439,9 +2439,9 @@ TRIG spielt | SEL+R1 | Step 1>5
 TRIG spielt | SEL+L2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 TRIG spielt | SEL+R2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 TRIG spielt | SEL+START | Meldung "GESPEICHERT"
-TRIG spielt | A+B | T5 Step 1 0>1; Meldung "LOCKS GELÖSCHT"
-TRIG spielt | A+X | T5 Step 1 0>1; T5 Step 1 Lock NOTE 255>37
-TRIG spielt | A+Y | T5 Step 1 0>1; T5 Step 1 Lock NOTE 255>35
+TRIG spielt | A+B | Meldung "LOCKS GELÖSCHT"
+TRIG spielt | A+X | T5 Step 1 0>2; T5 Step 1 Lock NOTE 255>37; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
+TRIG spielt | A+Y | T5 Step 1 0>2; T5 Step 1 Lock NOTE 255>35; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
 TRIG spielt | A+HOCH | Seite TRG>ARP; Regler 1>6; T5 Step 1 0>1
 TRIG spielt | A+RUNTER | Regler 1>2; T5 Step 1 0>1
 TRIG spielt | A+L1 | T5 Step 1 0>1
@@ -2482,9 +2482,9 @@ TRIG Spur 32 Steps, Page 2 | SEL+R1 | Step 21>25
 TRIG Spur 32 Steps, Page 2 | SEL+L2 | Step 21>5; Meldung "STEPS 1-16"
 TRIG Spur 32 Steps, Page 2 | SEL+R2 | Step 21>5; Meldung "STEPS 1-16"
 TRIG Spur 32 Steps, Page 2 | SEL+START | Meldung "GESPEICHERT"
-TRIG Spur 32 Steps, Page 2 | A+B | T5 Step 21 0>1; Meldung "LOCKS GELÖSCHT"
-TRIG Spur 32 Steps, Page 2 | A+X | T5 Step 21 0>1; T5 Step 21 Lock NOTE 255>37
-TRIG Spur 32 Steps, Page 2 | A+Y | T5 Step 21 0>1; T5 Step 21 Lock NOTE 255>35
+TRIG Spur 32 Steps, Page 2 | A+B | Meldung "LOCKS GELÖSCHT"
+TRIG Spur 32 Steps, Page 2 | A+X | T5 Step 21 0>2; T5 Step 21 Lock NOTE 255>37; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
+TRIG Spur 32 Steps, Page 2 | A+Y | T5 Step 21 0>2; T5 Step 21 Lock NOTE 255>35; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
 TRIG Spur 32 Steps, Page 2 | A+HOCH | Seite TRG>ARP; Regler 1>6; T5 Step 21 0>1
 TRIG Spur 32 Steps, Page 2 | A+RUNTER | Regler 1>2; T5 Step 21 0>1
 TRIG Spur 32 Steps, Page 2 | A+L1 | T5 Step 21 0>1
@@ -2568,9 +2568,9 @@ NEU SEQ | SEL+R1 | Step 1>5
 NEU SEQ | SEL+L2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 NEU SEQ | SEL+R2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 NEU SEQ | SEL+START | Meldung "GESPEICHERT"
-NEU SEQ | A+B | T5 Step 1 0>1; Meldung "LOCKS GELÖSCHT"
-NEU SEQ | A+X | T5 Step 1 0>1; T5 Step 1 Lock NOTE 255>37
-NEU SEQ | A+Y | T5 Step 1 0>1; T5 Step 1 Lock NOTE 255>35
+NEU SEQ | A+B | Meldung "LOCKS GELÖSCHT"
+NEU SEQ | A+X | T5 Step 1 0>2; T5 Step 1 Lock NOTE 255>37; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
+NEU SEQ | A+Y | T5 Step 1 0>2; T5 Step 1 Lock NOTE 255>35; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
 NEU SEQ | A+HOCH | Seite TRG>ARP; Regler 1>6; T5 Step 1 0>1
 NEU SEQ | A+RUNTER | Regler 1>2; T5 Step 1 0>1
 NEU SEQ | A+L1 | T5 Step 1 0>1
@@ -2654,9 +2654,9 @@ NEU SOUND Makros | SEL+R1 | Step 1>5
 NEU SOUND Makros | SEL+L2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 NEU SOUND Makros | SEL+R2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 NEU SOUND Makros | SEL+START | Meldung "GESPEICHERT"
-NEU SOUND Makros | A+B | T5 Step 1 0>1; Meldung "LOCKS GELÖSCHT"
-NEU SOUND Makros | A+X | T5 Step 1 0>1; T5 Step 1 Lock WAV1 255>1
-NEU SOUND Makros | A+Y | T5 Step 1 0>1; T5 Step 1 Lock WAV1 255>0
+NEU SOUND Makros | A+B | Meldung "LOCKS GELÖSCHT"
+NEU SOUND Makros | A+X | T5 Step 1 0>2; T5 Step 1 Lock WAV1 255>1; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
+NEU SOUND Makros | A+Y | T5 Step 1 0>2; T5 Step 1 Lock WAV1 255>0; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
 NEU SOUND Makros | A+HOCH | Seite SRC>TRG; Regler 1>7; T5 Step 1 0>1
 NEU SOUND Makros | A+RUNTER | Regler 1>2; T5 Step 1 0>1
 NEU SOUND Makros | A+L1 | T5 Step 1 0>1
@@ -2697,9 +2697,9 @@ NEU SOUND Filter | SEL+R1 | Step 1>5
 NEU SOUND Filter | SEL+L2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 NEU SOUND Filter | SEL+R2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 NEU SOUND Filter | SEL+START | Meldung "GESPEICHERT"
-NEU SOUND Filter | A+B | T5 Step 1 0>1; Meldung "LOCKS GELÖSCHT"
-NEU SOUND Filter | A+X | T5 Step 1 0>1; T5 Step 1 Lock FREQ 255>71
-NEU SOUND Filter | A+Y | T5 Step 1 0>1; T5 Step 1 Lock FREQ 255>69
+NEU SOUND Filter | A+B | Meldung "LOCKS GELÖSCHT"
+NEU SOUND Filter | A+X | T5 Step 1 0>2; T5 Step 1 Lock FREQ 255>71; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
+NEU SOUND Filter | A+Y | T5 Step 1 0>2; T5 Step 1 Lock FREQ 255>69; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
 NEU SOUND Filter | A+HOCH | Seite FLT>SR2; Regler 1>8; T5 Step 1 0>1
 NEU SOUND Filter | A+RUNTER | Regler 1>2; T5 Step 1 0>1
 NEU SOUND Filter | A+L1 | T5 Step 1 0>1
@@ -2740,9 +2740,9 @@ NEU SOUND Huellkurve 1 | SEL+R1 | Step 1>5
 NEU SOUND Huellkurve 1 | SEL+L2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 NEU SOUND Huellkurve 1 | SEL+R2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 NEU SOUND Huellkurve 1 | SEL+START | Meldung "GESPEICHERT"
-NEU SOUND Huellkurve 1 | A+B | T5 Step 1 0>1; Meldung "LOCKS GELÖSCHT"
+NEU SOUND Huellkurve 1 | A+B | Meldung "LOCKS GELÖSCHT"
 NEU SOUND Huellkurve 1 | A+X | Liste 4 auf; Step gehalten; T5 Step 1 0>1
-NEU SOUND Huellkurve 1 | A+Y | T5 Step 1 0>1; T5 Step 1 Lock DEST1 255>168
+NEU SOUND Huellkurve 1 | A+Y | T5 Step 1 0>2; T5 Step 1 Lock DEST1 255>168; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
 NEU SOUND Huellkurve 1 | A+HOCH | Regler 5>4; T5 Step 1 0>1
 NEU SOUND Huellkurve 1 | A+RUNTER | Regler 5>6; T5 Step 1 0>1
 NEU SOUND Huellkurve 1 | A+L1 | T5 Step 1 0>1
@@ -2826,7 +2826,7 @@ NEU EFFEKTE Bus A | SEL+R1 | Step 1>5
 NEU EFFEKTE Bus A | SEL+L2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 NEU EFFEKTE Bus A | SEL+R2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 NEU EFFEKTE Bus A | SEL+START | Meldung "GESPEICHERT"
-NEU EFFEKTE Bus A | A+B | T5 Step 1 0>1; Meldung "LOCKS GELÖSCHT"
+NEU EFFEKTE Bus A | A+B | Meldung "LOCKS GELÖSCHT"
 NEU EFFEKTE Bus A | A+X | T5 Step 1 0>1; Bus A.0 1>2; Bus A.1 9>7; Bus A.2 50>55; Bus A.3 80>40; Bus A.4 127>50; Bus A.5 10>50
 NEU EFFEKTE Bus A | A+Y | T5 Step 1 0>1; Bus A.0 1>0; Bus A.1 9>0; Bus A.2 50>0; Bus A.3 80>0; Bus A.4 127>0; Bus A.5 10>0
 NEU EFFEKTE Bus A | A+HOCH | Seite FX A>FX C; Regler 1>8; T5 Step 1 0>1
@@ -2869,7 +2869,7 @@ NEU EFFEKTE Master | SEL+R1 | Step 1>5
 NEU EFFEKTE Master | SEL+L2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 NEU EFFEKTE Master | SEL+R2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 NEU EFFEKTE Master | SEL+START | Meldung "GESPEICHERT"
-NEU EFFEKTE Master | A+B | T5 Step 1 0>1; Meldung "LOCKS GELÖSCHT"
+NEU EFFEKTE Master | A+B | Meldung "LOCKS GELÖSCHT"
 NEU EFFEKTE Master | A+X | T5 Step 1 0>1; BPM 120>121
 NEU EFFEKTE Master | A+Y | T5 Step 1 0>1; BPM 120>119
 NEU EFFEKTE Master | A+HOCH | Seite MST>CMP; Regler 1>8; T5 Step 1 0>1
@@ -3278,15 +3278,15 @@ TRIG mit Trig-Ablage | SEL+R1 | Step 4>8
 TRIG mit Trig-Ablage | SEL+L2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 TRIG mit Trig-Ablage | SEL+R2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 TRIG mit Trig-Ablage | SEL+START | Meldung "GESPEICHERT"
-TRIG mit Trig-Ablage | A+B | T5 Step 4 0>1; Meldung "LOCKS GELÖSCHT"
-TRIG mit Trig-Ablage | A+X | T5 Step 4 0>1; T5 Step 4 Lock NOTE 255>37
-TRIG mit Trig-Ablage | A+Y | T5 Step 4 0>1; T5 Step 4 Lock NOTE 255>35
+TRIG mit Trig-Ablage | A+B | Meldung "LOCKS GELÖSCHT"
+TRIG mit Trig-Ablage | A+X | T5 Step 4 0>2; T5 Step 4 Lock NOTE 255>37; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
+TRIG mit Trig-Ablage | A+Y | T5 Step 4 0>2; T5 Step 4 Lock NOTE 255>35; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
 TRIG mit Trig-Ablage | A+HOCH | Seite TRG>ARP; Regler 1>6; T5 Step 4 0>1
 TRIG mit Trig-Ablage | A+RUNTER | Regler 1>2; T5 Step 4 0>1
 TRIG mit Trig-Ablage | A+L1 | T5 Step 4 0>1
 TRIG mit Trig-Ablage | A+R1 | T5 Step 4 0>1
 TRIG mit Trig-Ablage | A+SEL+L1 | Meldung "LEEREN STEP KOPIERT"
-TRIG mit Trig-Ablage | A+SEL+R1 | T5 Step 4 0>1; T5 Step 4 Lock NOTE 255>48; Meldung "TRIG EINGEFÜGT IN STEP 4"
+TRIG mit Trig-Ablage | A+SEL+R1 | T5 Step 4 0>2; T5 Step 4 Lock NOTE 255>48; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
 TRIG mit Trig-Ablage | Stick R hoch | T5.NOTE 36>7
 TRIG mit Trig-Ablage | Stick L rechts | -
 Seitenkarte mit Seiten-Ablage FILTER1 von T1 | HOCH | Karte FLT>SRC
@@ -3550,9 +3550,9 @@ TRIG mit Undo-Verlauf (Trig gesetzt) | SEL+R1 | Step 1>5
 TRIG mit Undo-Verlauf (Trig gesetzt) | SEL+L2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 TRIG mit Undo-Verlauf (Trig gesetzt) | SEL+R2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 TRIG mit Undo-Verlauf (Trig gesetzt) | SEL+START | Meldung "GESPEICHERT"
-TRIG mit Undo-Verlauf (Trig gesetzt) | A+B | T5 Step 1 0>1; Meldung "LOCKS GELÖSCHT"
-TRIG mit Undo-Verlauf (Trig gesetzt) | A+X | T5 Step 1 0>1; T5 Step 1 Lock NOTE 255>37
-TRIG mit Undo-Verlauf (Trig gesetzt) | A+Y | T5 Step 1 0>1; T5 Step 1 Lock NOTE 255>35
+TRIG mit Undo-Verlauf (Trig gesetzt) | A+B | Meldung "LOCKS GELÖSCHT"
+TRIG mit Undo-Verlauf (Trig gesetzt) | A+X | T5 Step 1 0>2; T5 Step 1 Lock NOTE 255>37; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
+TRIG mit Undo-Verlauf (Trig gesetzt) | A+Y | T5 Step 1 0>2; T5 Step 1 Lock NOTE 255>35; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
 TRIG mit Undo-Verlauf (Trig gesetzt) | A+HOCH | Seite TRG>ARP; Regler 1>6; T5 Step 1 0>1
 TRIG mit Undo-Verlauf (Trig gesetzt) | A+RUNTER | Regler 1>2; T5 Step 1 0>1
 TRIG mit Undo-Verlauf (Trig gesetzt) | A+L1 | T5 Step 1 0>1
@@ -4123,9 +4123,9 @@ Sample-Editor | SEL+R1 | Step 1>5
 Sample-Editor | SEL+L2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 Sample-Editor | SEL+R2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 Sample-Editor | SEL+START | Meldung "GESPEICHERT"
-Sample-Editor | A+B | T8 Step 1 0>1; Meldung "LOCKS GELÖSCHT"
+Sample-Editor | A+B | Meldung "LOCKS GELÖSCHT"
 Sample-Editor | A+X | Liste 7 auf; Step gehalten; T8 Step 1 0>1
-Sample-Editor | A+Y | T8 Step 1 0>1; T8 Step 1 Lock SMPL 255>254
+Sample-Editor | A+Y | T8 Step 1 0>2; T8 Step 1 Lock SMPL 255>254; Meldung "WERT OHNE ANSCHLAG (TRIGLESS)"
 Sample-Editor | A+HOCH | Seite SRC>TRG; Regler 1>7; T8 Step 1 0>1
 Sample-Editor | A+RUNTER | Regler 1>2; T8 Step 1 0>1
 Sample-Editor | A+L1 | T8 Step 1 0>1

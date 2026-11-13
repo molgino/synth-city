@@ -819,9 +819,21 @@ static void setTrackLen(Pattern& P, int t, int n, bool force = false) {
     P.len[t] = (uint8_t)n;
 }
 static Step& holdS() { return eng.proj.pat[holdPat].s[holdTrack][holdStep]; }
+// Ende eines gehaltenen Steps, der vorher LEER war. Gemeldet: "wenn ich im Lock-Modus auf einem leeren
+// Step einen Wert setze, wird mir automatisch ein Trigger erstellt" - genau das passierte, weil das Halten
+// sofort on = 1 setzt und die Wertaenderung den Trig stehen liess. Ein geschriebener Wert macht den Step
+// jetzt **trigless**: der Wert gilt ab hier, aber es wird nichts angeschlagen.
+// keepTap: beim normalen Loslassen ist ein Tipp auf einen leeren Step weiterhin "Trig setzen";
+// beim Verlassen des eingerasteten Lock-Modus und beim Springen gilt das nicht.
+static bool stepHasLock(const Step& s);
+static void lockEndEmpty(Step& s, bool keepTap) {
+    if (aPrevOn != 0) return;                     // war schon Trig oder trigless: nichts erzwingen
+    if (aEdited) { if (s.on == 1) s.on = stepHasLock(s) ? 2 : 0; }   // Wert geschrieben -> trigless
+    else if (!keepTap) { s.on = 0; memset(s.lock, NO_LOCK, NPARAMS); }
+}
 static void lockJumpTo(int st) {   // Lock-Modus: zu einem anderen Step derselben Spur springen, Modus bleibt
     Step& o = holdS();
-    if (aPrevOn == 0 && !aEdited) o.on = 0;
+    lockEndEmpty(o, false);
     cursor = st; holdStep = st;
     Step& s = holdS();
     aPrevOn = s.on; aJustOn = s.on == 0; aEdited = false;
@@ -5157,7 +5169,8 @@ static void handleInput(Uint32 now, float dt) {
         }
         if (I.pressed(BT_A) && lockLatch) {   // Lock-Modus beenden
             Step& s = holdS();
-            if (aPrevOn == 0 && !aEdited) { s.on = 0; memset(s.lock, NO_LOCK, NPARAMS); }
+            lockEndEmpty(s, false);
+            if (aPrevOn == 0 && s.on == 2) toast(TR("WERT OHNE ANSCHLAG (TRIGLESS)", "VALUE WITHOUT HIT (TRIGLESS)"));
             lockLatch = false; aHeld = false;
             toast(TR("LOCK-MODUS AUS", "LOCK MODE OFF"));
         } else if (I.pressed(BT_A)) {
@@ -5257,6 +5270,9 @@ static void handleInput(Uint32 now, float dt) {
                 if (stepHasLock(s)) { s.on = 2; toast(TR("TRIG WEG - LOCKS BLEIBEN (TRIGLESS)", "TRIG REMOVED - LOCKS KEPT (TRIGLESS)")); }
                 else { s.on = 0; memset(s.lock, NO_LOCK, NPARAMS); }
             } else if (aPrevOn == 2) { s.on = 1; toast("TRIGLESS -> TRIG"); }
+        } else if (aPrevOn == 0 && s.on == 1) {   // leerer Step + Wert: trigless, kein Trigger
+            lockEndEmpty(s, true);
+            if (s.on == 2) toast(TR("WERT OHNE ANSCHLAG (TRIGLESS)", "VALUE WITHOUT HIT (TRIGLESS)"));
         }
         aHeld = false;
     }
