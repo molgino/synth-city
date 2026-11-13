@@ -41,6 +41,8 @@ Sie startet als App aus dem Ports-Menü oder auf Wunsch direkt beim Booten statt
 
 **Gruppen klappen sich selbst ein.** In der Liste ist immer nur **die Gruppe offen, in der der Cursor steht** – alle anderen zeigen nur ihre Kopfzeile mit der Anzahl ihrer Regler. Damit siehst du in SOUND statt 132 Zeilen am Stück alle 14 Gruppen auf einen Blick und weißt sofort, was als Nächstes kommt. Du musst dafür nichts drücken: ▲▼ läuft wie gewohnt durch die Regler, am Ende einer Gruppe klappt die nächste auf; ◀▶ springt direkt zur nächsten Gruppe. Die Kopfzeile nennt den **Namen** der Gruppe und ihre Position, also zum Beispiel „INSERT-FX 7/14“. Wer lieber alles offen sieht: SET → SYSTEM → **Gruppen einklappen** auf ALLE OFFEN stellen.
 
+**Kein Vorhören beim Schrauben.** Eine Note, ein Sample oder die Engine zu ändern spielt den Klang **nicht** von selbst an – beim Programmieren eines Patterns kam das ständig dazwischen. Hören willst du trotzdem: **B** auf einem Step spielt ihn vor, im Sample-Explorer hörst du jedes Sample beim Antippen, und im Sample- bzw. Wavetable-Editor liegt das Vorhören auf A bzw. X. Wer das alte Verhalten mag: SET → SYSTEM → **Vorhören beim Ändern** auf AN.
+
 In SEQ, SOUND, EFFEKTE und MASTER bleiben Spuren links und Steps unten sichtbar; die anderen fünf brauchen die ganze Fläche. **A setzt auch in SOUND, EFFEKTE und MASTER einen Trig** der gewählten Spur, du musst also zum Beat-Bauen nicht zurückwechseln.
 
 | Taste | SEQ | SOUND |
@@ -98,7 +100,7 @@ Die 8 Spuren liegen auf dem Bildschirm genau so wie die Tasten: **Steuerkreuz �
 
 Jede Spur spielt bis zu **4 Töne gleichzeitig**. Es gibt zwei Wege dorthin.
 
-**Freie Akkorde (NT2, NT3, NT4).** Auf der TRIG-Seite stehen in der dritten Reihe drei zusätzliche Noten. `---` heißt aus. Sie sind **Intervalle zur Hauptnote NOTE**, nicht feste Tonhöhen: die Anzeige nennt den Abstand in Halbtönen und seinen Namen, also `+4 gr3`, `+7 q5`, `-12 okt`. Von −24 bis +24 Halbtönen ist alles möglich, auch `+0 uni` als Verdopplung.
+**Freie Akkorde (NT2, NT3, NT4).** Auf der TRIG-Seite stehen in der dritten Reihe drei zusätzliche Noten. `---` heißt aus. Sie sind **Intervalle zur Hauptnote NOTE**, nicht feste Tonhöhen: die Anzeige nennt den Abstand in Halbtönen und seinen Namen, also `+4 gr3`, `+7 q5`, `-12 okt`. Von −24 bis +24 Halbtönen ist alles möglich, auch `+0 uni` als Verdopplung. Aus `---` heraus bringt dich **ein Schritt nach oben direkt auf `+0 uni`** – von dort aus suchst du das Intervall nach oben oder unten, statt am unteren Ende bei −24 anzufangen. Zurück auf `---` kommst du, indem du X/Y **gedrückt hältst** (16er-Schritte).
 
 Der Vorteil: **transponierst du NOTE, wandert der ganze Akkord mit.** Ein einmal eingestelltes Dur (`+4`, `+7`) bleibt Dur, egal auf welchem Grundton der Step steht – du baust die Akkordfolge also nur über NOTE, und die Form bleibt. Frei wählbar heißt trotzdem frei: Umkehrungen, weite Lagen oder Quartenschichtungen, die keine Akkordtabelle anbietet. Wie jeder Regler sind sie **pro Step lockbar**: Step halten und den Wert ändern, dann hat dieser eine Step seinen eigenen Akkord.
 
@@ -129,7 +131,7 @@ LEGATO ist der Unterschied zwischen einer stakkato gestochenen Bassline und eine
 | HAT   | TUNE, DCAY, TONE (Hochpass), METL (Metall/Rauschen) |
 | CLAP  | TUNE, DCAY, SPRD (Abstand), RPTS (Anzahl Schläge) |
 | SYNTH | WAV1, WAV2 (SAW/SQR/TRI/SIN), DETN, MIX, SUB, NOIS, PW, GLID. Seite **OSC**: OCT1, OCT2 (±3 Oktaven), LVL1, LVL2 (Pegel je Oszillator), SUB.O (Sub −1/−2 Oktaven), SYNC (Hard-Sync OSC2 → OSC1), XMOD (OSC2 moduliert OSC1), RING (Ringmodulation) |
-| FM    | **4 Operatoren, 8 Algorithmen.** Seite FM: ALGO, FBK (Feedback OP4), VELO (Anschlag → Modulation), PITCH/P.DEC (Tonhöhen-Hüllkurve ±24 Halbtöne), NOIS. Je Operator eine eigene Seite **OPERATOR 1–4**: RAT (0,25–16), FINE (±0,5 für unharmonische Glocken), DETN (±50 Cent), O.LVL (Träger: Lautstärke, Modulator: Helligkeit), O.ATK/O.DEC/O.SUS/O.REL (eigene Hüllkurve) |
+| FM    | **4 Operatoren, 8 Algorithmen.** Seite FM: ALGO, FBK (Feedback OP4), VELO (Anschlag → Modulation), PITCH/P.DEC (Tonhöhen-Hüllkurve ±24 Halbtöne), NOIS. Je Operator eine eigene Seite **OPERATOR 1–4**: RAT (0,25–16), FINE (±0,5 für unharmonische Glocken), DETN (±50 Cent), O.LVL (Träger: Lautstärke, Modulator: Helligkeit), O.ATK/O.DEC/O.SUS/O.REL (eigene Hüllkurve; die Grundwerte sind länger als früher – ein frischer FM-Sound klingt rund 0,45 s aus statt 0,15 s) |
 | PERC  | **Perkussion: ein Klangraum statt vier Nachbildungen.** Seite **KÖRPER**: TUNE (Grundton bei NOTE 60 – die Engine folgt der Note, Toms sind also gestimmte Kicks), DCAY, SWEP (Sweep-Tiefe bis 4 Oktaven), S.TIM, **RISE** (Sweep läuft nach oben statt nach unten – das kann keine der klassischen Drum-Engines), **HARM** (unharmonischer Oberton: aus Fell wird Metall), **FOLD** (Wellenfaltung), BODY (Sättigung). Seite **TRANSIENT**: NLVL, N.DEC, N.ATK (0 = Klick, hoch = anschwellend), N.FRQ, N.WID (schmal = metallisch, weit = Rauschteppich), **RPTS** (Wiederholungen = Clap), SPRD, **GRIT** (zufällige Pegelsprünge wie ein Shaker). Mit NT2–NT4 lassen sich gestimmte Perkussions-Akkorde spielen |
 | DRON  | **Drone: stehende Fläche.** Seite **TEILTÖNE**: PART (1–8 Teiltöne), SPRD (Spreizung), BEAT (Schwebung), WAVE, ODD (nur ungerade Teiltöne = hohl), NOIS, DRFT, GLID. Seite **BEWEGUNG**: MRAT/MDEP (sehr langsame innere Bewegung), SHMR (Schimmer eine Oktave höher), SUB, RAND. Mit LEN auf „halten" und VOICE = **LEGATO** läuft die Fläche ohne Neuanschlag weiter |
 | SMPL  | **Stereo** (Stereo-WAVs bleiben stereo), SMPL (Sample-Auswahl), TUNE (±24 Halbtöne), FINE, STRT, END (END < STRT = rückwärts), LOOP, GAIN. Seite **WARP**: Time-Warp (siehe unten) |
@@ -186,7 +188,7 @@ Jede Spur hat diese Seiten:
 
 * **FL2**: Base-Width-Filter hinter dem ersten Filter: **BASE** ist die untere Kante (Hochpass), **WDTH** die Breite des durchgelassenen Bandes (Tiefpass darüber). BASE 0 / WDTH 127 = aus. Dazu **KEYT** (Keytracking: Cutoff von Filter 1 folgt der Tonhöhe) und **VELF** (Anschlagstärke → Cutoff). Die Grafik zeigt Filter 1 (grau) und die Gesamtkurve mit dem Band.
 * **Symbole statt Balken**: Jede Kachel zeigt ein Symbol, das sich mit dem Wert verändert – Tastatur bei NOTE, Torte bei PROB, Hüllkurvenbogen bei Attack/Decay, Lautsprecher bei Lautstärke, Echos bei Delay, Ringe bei Reverb, Würfel bei CHNG usw.
-* **AMP**: Lautstärke und Panorama; die Grafik zeigt HÜLLKURVE 1 (Standard-Ziel VCA = Lautstärke)
+* **AMP**: Lautstärke und Panorama; die Grafik zeigt HÜLLKURVE 1 (Standard-Ziel VCA = Lautstärke). **VOL** läuft in dB: 100 ist der normale Pegel (0 dB), darüber bis 127 sind knapp 11 dB Luft nach oben, jeder Schritt bringt 0,4 dB. Dasselbe gilt für die Sends SND.A/B/C, die Bus-Pegel LVL und die Summe SUM im MASTER – überall ist der ganze Regelweg gleichmäßig hörbar, statt dass erst die letzten Werte etwas tun.
 * **SND** (Sends): **SND.A, SND.B, SND.C** – Anteil der Spur an den Effekt-Bussen A, B, C (bisher DLY/REV auf der AMP-Seite)
 * **EN1 / EN2 / EN3**: drei Hüllkurven pro Spur mit je 3 Zielen (siehe unten)
 * **LF1 / LF2 / LF3**: drei LFOs pro Spur mit je 3 Zielen (siehe unten)
@@ -334,6 +336,8 @@ Der Song ist eine **Matrix wie in einer Clip-Ansicht**: jede **Zeile** ist eine 
 **Song exportieren (WAV):** Unter der Matrix liegt die Leiste **EXPORT WAV** (in der letzten Zeile ↓ drücken). Mit ←/→ das Feld wählen, mit X/Y **VON** (Anfangszeile) und **BIS** (Schlusszeile) einstellen – Standard ist der ganze Song („ENDE“). Die gewählten Zeilen sind links mit einem cyanfarbenen Strich markiert, die Länge steht daneben. **A** startet den Export: Die Groovebox rechnet die Zeilen samt Wiederholungen offline (schneller als Echtzeit, die Wiedergabe stoppt dafür), lässt Hall und Delay ausklingen und speichert `samples/rec/<Projekt>-song-NN.wav` (Stereo, 44,1 kHz, 24 Bit). B bricht ab. Herunterladen im Browser unter Samples → rec.
 * Projekte ab Version 12 speichern Matrix und Mutes; ältere Songs (Pattern-Kette) werden beim Laden in Zeilen mit demselben Pattern auf allen Spuren umgestellt.
 
+**Projektformat v19** (Pegel in dB, neue Hüllkurven-Zeitkurve): Alle Pegel-Regler (VOL, SUS, SND.A/B/C, Bus-LVL und -FWD, SUM) laufen jetzt gleichmäßig in dB, und die Hüllkurvenzeiten haben eine musikalischere Kurve. Beim Laden werden die gespeicherten Zahlen umgerechnet: **dein Projekt klingt wie vorher**, nur stehen andere Zahlen an den Reglern. Das gilt auch für Sounds (.gbp) und die Werksklänge. Gemessen am Demo-Song: Summenpegel +0,08 dB, Spitze unverändert.
+
 **Projektformat v14** (21 Speicherseiten = 168 Parameter je Spur): Projekte und Sounds aus v13 werden beim Laden umgestellt – HÜLLKURVE 1 bekommt Ziel VCA (wie die bisherige AMP-Hüllkurve), HÜLLKURVE 2 Ziel FREQ mit der bisherigen Filter-ENV-Tiefe; alles klingt gleich, Locks bleiben.
 
 **Projektformat v13** (16 Seiten je Spur): Ältere Projekte und Sounds werden beim Laden umgestellt – Delay und Reverb landen auf Bus A und B mit den bisherigen Werten, die Sends DLY/REV werden zu SND.A/SND.B, FM-Sounds bekommen ihre Operatoren mit gleichem Klang (Ratio, Pegel, Abklingzeit; FINE wird zu DETN), Locks und LFO-Ziele ziehen mit. Gespeichert wird danach im neuen Format; ältere Versionen der Groovebox können es nicht mehr lesen.
@@ -403,7 +407,9 @@ Jede Spur hat drei freie ADSR-Hüllkurven mit je **3 Zielen** (eigene Tiefe je Z
 
 | Regler | Funktion |
 |---|---|
-| ATK, DEC, SUS, REL | Einschwingen, Abklingen, Haltepegel, Ausklingen (Zeiten in ms/s) |
+| ATK, DEC, SUS, REL | Einschwingen, Abklingen, Haltepegel, Ausklingen |
+| | **Zeiten** reichen von 0,5 ms bis 16 s. Die Reglermitte (64) liegt bei etwa **0,2 s** – die Kurve ist absichtlich nicht rein exponentiell, sonst drängen sich alle musikalisch brauchbaren Zeiten in das obere Drittel. |
+| | **SUS** ist ein Pegel und läuft deshalb in dB: jeder Schritt ist gleich viel, 0 = still, 127 = voller Pegel. |
 | ZIEL1–3 | Ziel: jeder Spurparameter, **VCA** (= Lautstärke der Stimme) oder NOTE (±24 Halbtöne bei voller Tiefe) |
 | DEPTH1–3 | Stärke je Ziel (+/−) |
 | CURVE | Form: weich/rund bis knackig |
