@@ -40,7 +40,7 @@ struct Project {
     uint8_t patMute[NPATTERNS];   // Mutes je Pattern (Bit je Spur)
     struct SongRow { uint8_t pat[NTRACKS]; uint8_t rep, mute, pad[2]; } row[64];   // Song als Clip-Matrix; pat = SONG_EMPTY: Spur schweigt
 };
-enum { PROJECT_VERSION = 18, SONG_MAX = 64, SONG_EMPTY = 255 };
+enum { PROJECT_VERSION = 19, SONG_MAX = 64, SONG_EMPTY = 255 };
 // Groessen der Formate v9-v12 (96 Parameter je Spur): danach steht ggf. die Sample-Namensliste
 enum { OLD_PAT_SIZE = 24 + 8 * OLD_NPARAMS + NTRACKS * NSTEPS * (1 + OLD_NPARAMS),
        PROJECT_V11_SIZE = 20 + OLD_NPAT * OLD_PAT_SIZE + 8 + 8 + 128 + 4,
@@ -318,6 +318,11 @@ public:
     static void rowFromPattern(Project& J, Project::SongRow& r, int pat);   // Zeile: alle Spuren pat, Mutes vom Pattern
     static void setBusType(Project& J, int b, int type);   // Effekt-Bus: Typ setzen, Regler auf dessen Grundwerte
     static int mapOldParam(int m, int i);                  // Parameterindex bis v12 -> v13 (-1 = entfaellt)
+    // v18 -> v19: Pegel laufen in dB, Huellkurvenzeiten auf der neuen Kurve. val19 rechnet EINEN
+    // alten Wert klangtreu um, migrateTrack19 eine ganze Spur (lock = NO_LOCK-Eintraege auslassen).
+    static float envSeconds(int v);   // Huellkurvenzeit eines Reglerwerts in Sekunden (Tests/Doku)
+    static uint8_t val19(int machine, int idx, int v);
+    static void migrateTrack19(int machine, uint8_t* p, bool lock);
     static void migrateTrack13(int m, const uint8_t* o, uint8_t* out, bool lock);   // 96 alte Werte/Locks -> 128
     void songStart(int pos);   // ab Eintrag pos (nur Engine-Zustand; Wiedergabe startet mit start())
 

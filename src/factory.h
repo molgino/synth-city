@@ -136,7 +136,10 @@ enum { NFACTORY = sizeof FACTORY / sizeof *FACTORY };
 static inline void applyFactory(Pattern& P, int t, int idx) {
     const FSound& f = FACTORY[idx];
     Engine::initTrack(P, t, f.machine);
-    for (int i = 0; i < 28 && f.set[i].p != 255 && (f.set[i].p || f.set[i].v); i++) P.p[t][f.set[i].p] = f.set[i].v;   // Ende: 255 oder leerer Eintrag
+    // Die Zahlen hier stehen in der alten Skala (bis v18); val19 rechnet Pegel und Huellkurvenzeiten
+    // auf die neuen Kurven um, damit die Werksklaenge klingen wie abgenommen.
+    for (int i = 0; i < 28 && f.set[i].p != 255 && (f.set[i].p || f.set[i].v); i++)   // Ende: 255 oder leerer Eintrag
+        P.p[t][f.set[i].p] = Engine::val19(f.machine, f.set[i].p, f.set[i].v);
 }
 static inline int factoryByName(const char* nm) {
     for (int i = 0; i < NFACTORY; i++) if (!strcmp(FACTORY[i].name, nm)) return i;

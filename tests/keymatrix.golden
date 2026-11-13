@@ -4670,7 +4670,7 @@ SET 66 Alte Sample-Nummern | X | -
 SET 66 Alte Sample-Nummern | Y | -
 SET 66 Alte Sample-Nummern | L1 | SET 66>51
 SET 66 Alte Sample-Nummern | R1 | SET 66>68
-SET 68 Sprache / Language | HOCH | SET 68>75
+SET 68 Sprache / Language | HOCH | SET 68>76
 SET 68 Sprache / Language | RUNTER | SET 68>69
 SET 68 Sprache / Language | LINKS | cfg.lang 0>1
 SET 68 Sprache / Language | RECHTS | cfg.lang 0>1
@@ -4690,36 +4690,46 @@ SET 69 Gruppen einklappen | X | cfg.listFold 1>0
 SET 69 Gruppen einklappen | Y | cfg.listFold 1>0
 SET 69 Gruppen einklappen | L1 | SET 69>63
 SET 69 Gruppen einklappen | R1 | SET 69>7
-SET 70 Bild-Versatz (Lage + Farben) | HOCH | SET 70>69
-SET 70 Bild-Versatz (Lage + Farben) | RUNTER | SET 70>71
-SET 70 Bild-Versatz (Lage + Farben) | LINKS | cfg.dispOff 277>274
-SET 70 Bild-Versatz (Lage + Farben) | RECHTS | cfg.dispOff 277>280
-SET 70 Bild-Versatz (Lage + Farben) | A | cfg.dispOff 277>280
-SET 70 Bild-Versatz (Lage + Farben) | B | SET Bereiche
-SET 70 Bild-Versatz (Lage + Farben) | X | cfg.dispOff 277>280
-SET 70 Bild-Versatz (Lage + Farben) | Y | cfg.dispOff 277>274
-SET 70 Bild-Versatz (Lage + Farben) | L1 | SET 70>63
-SET 70 Bild-Versatz (Lage + Farben) | R1 | SET 70>7
-SET 73 Info | HOCH | SET 73>72
-SET 73 Info | RUNTER | SET 73>74
-SET 73 Info | LINKS | -
-SET 73 Info | RECHTS | -
-SET 73 Info | A | -
-SET 73 Info | B | SET Bereiche
-SET 73 Info | X | -
-SET 73 Info | Y | -
-SET 73 Info | L1 | SET 73>63
-SET 73 Info | R1 | SET 73>7
-SET 74 Akku | HOCH | SET 74>73
-SET 74 Akku | RUNTER | SET 74>75
-SET 74 Akku | LINKS | -
-SET 74 Akku | RECHTS | -
-SET 74 Akku | A | -
-SET 74 Akku | B | SET Bereiche
-SET 74 Akku | X | -
-SET 74 Akku | Y | -
-SET 74 Akku | L1 | SET 74>63
-SET 74 Akku | R1 | SET 74>7
+SET 70 Vorhören beim Ändern | HOCH | SET 70>69
+SET 70 Vorhören beim Ändern | RUNTER | SET 70>71
+SET 70 Vorhören beim Ändern | LINKS | cfg.preview 0>1
+SET 70 Vorhören beim Ändern | RECHTS | cfg.preview 0>1
+SET 70 Vorhören beim Ändern | A | cfg.preview 0>1
+SET 70 Vorhören beim Ändern | B | SET Bereiche
+SET 70 Vorhören beim Ändern | X | cfg.preview 0>1
+SET 70 Vorhören beim Ändern | Y | cfg.preview 0>1
+SET 70 Vorhören beim Ändern | L1 | SET 70>63
+SET 70 Vorhören beim Ändern | R1 | SET 70>7
+SET 71 Bild-Versatz (Lage + Farben) | HOCH | SET 71>70
+SET 71 Bild-Versatz (Lage + Farben) | RUNTER | SET 71>72
+SET 71 Bild-Versatz (Lage + Farben) | LINKS | cfg.dispOff 277>274
+SET 71 Bild-Versatz (Lage + Farben) | RECHTS | cfg.dispOff 277>280
+SET 71 Bild-Versatz (Lage + Farben) | A | cfg.dispOff 277>280
+SET 71 Bild-Versatz (Lage + Farben) | B | SET Bereiche
+SET 71 Bild-Versatz (Lage + Farben) | X | cfg.dispOff 277>280
+SET 71 Bild-Versatz (Lage + Farben) | Y | cfg.dispOff 277>274
+SET 71 Bild-Versatz (Lage + Farben) | L1 | SET 71>63
+SET 71 Bild-Versatz (Lage + Farben) | R1 | SET 71>7
+SET 74 Info | HOCH | SET 74>73
+SET 74 Info | RUNTER | SET 74>75
+SET 74 Info | LINKS | -
+SET 74 Info | RECHTS | -
+SET 74 Info | A | -
+SET 74 Info | B | SET Bereiche
+SET 74 Info | X | -
+SET 74 Info | Y | -
+SET 74 Info | L1 | SET 74>63
+SET 74 Info | R1 | SET 74>7
+SET 75 Akku | HOCH | SET 75>74
+SET 75 Akku | RUNTER | SET 75>76
+SET 75 Akku | LINKS | -
+SET 75 Akku | RECHTS | -
+SET 75 Akku | A | -
+SET 75 Akku | B | SET Bereiche
+SET 75 Akku | X | -
+SET 75 Akku | Y | -
+SET 75 Akku | L1 | SET 75>63
+SET 75 Akku | R1 | SET 75>7
 PRJ Feld 0 | HOCH | PRJ-Feld 0>35
 PRJ Feld 0 | RUNTER | PRJ-Feld 0>5
 PRJ Feld 0 | LINKS | PRJ-Feld 0>4

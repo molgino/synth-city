@@ -175,8 +175,10 @@ function check(ok, what, extra) { if (ok) { pass++; console.log('  OK     ' + wh
     await pg.waitForTimeout(600);
     const wide = await pg.evaluate(() => ({open: document.body.classList.contains('pick'), wide: document.getElementById('tPickL').classList.contains('wide')}));
     check(wide.open && wide.wide, 'die Sample-Liste ist breit (Namen statt Zahlen)');
-    await pg.evaluate(() => { const l = [...document.querySelectorAll('#tPickL .pk')], b = l[l.length - 1], r = b.getBoundingClientRect();
-      b.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, clientX: r.left + 10, clientY: r.top + 10})); });
+    // einen anderen Platz als den aktuellen nehmen - sonst passiert beim zweiten Lauf nichts mehr
+    await pg.evaluate(v => { const l = [...document.querySelectorAll('#tPickL .pk')];
+      const b = l.find(e => +e.dataset.v !== v) || l[l.length - 1], r = b.getBoundingClientRect();
+      b.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, clientX: r.left + 10, clientY: r.top + 10})); }, smp.v);
     await pg.waitForTimeout(900);
     const picked = await pg.evaluate(() => tm.params.find(x => x.n === 'SMPL').v);
     check(picked !== smp.v, 'der gewaehlte Platz landet auf der Spur', `${smp.v} -> ${picked}`);

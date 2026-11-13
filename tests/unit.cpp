@@ -659,9 +659,12 @@ static void testSaveLoad() {
         CHECK(q[FM_OPB[1] + OP_DETN] > 64 && q[FM_OPB[0] + OP_DETN] == 64, "FM: FINE nicht in DETN umgerechnet (%d)", q[FM_OPB[1] + OP_DETN]);
         CHECK(FM_RATIOS[P.s[0][5].lock[FM_OPB[1] + OP_RAT]] == 3.f, "FM: Ratio-Lock falsch (%d)", P.s[0][5].lock[FM_OPB[1] + OP_RAT]);
         const uint8_t* w = P.p[1];
-        CHECK(w[P_DLY] == 50 && w[P_REV] == 60 && w[P_CMPS] == 1 && w[P_A7] == 0, "Sends nicht verschoben (%d %d), COMP %d", w[P_DLY], w[P_REV], w[P_CMPS]);
+        // Sends: Zahl wurde auf die dB-Kurve umgerechnet (v19), der Anteil muss derselbe geblieben sein
+        CHECK(fabsf(levGain(w[P_DLY], 127) / (50 / 127.f) - 1.f) < 0.03f && fabsf(levGain(w[P_REV], 127) / (60 / 127.f) - 1.f) < 0.03f
+              && w[P_CMPS] == 1 && w[P_A7] == 0, "Sends nicht verschoben (%d %d), COMP %d", w[P_DLY], w[P_REV], w[P_CMPS]);
         CHECK(w[P_L1 + LF_DEST] == P_DLY + 1, "LFO-Ziel nicht mitgezogen (%d)", w[P_L1 + LF_DEST]);
-        CHECK(P.s[1][3].lock[P_REV] == 99 && P.s[1][3].lock[OLD_P_REV] == NO_LOCK, "Send-Lock nicht verschoben");
+        CHECK(P.s[1][3].lock[P_REV] != NO_LOCK && fabsf(levGain(P.s[1][3].lock[P_REV], 127) / (99 / 127.f) - 1.f) < 0.03f
+              && P.s[1][3].lock[OLD_P_REV] == NO_LOCK, "Send-Lock nicht verschoben (%d)", P.s[1][3].lock[P_REV]);
         CHECK(w[P_X0] == 3 && w[P_X2] == 127 && w[P_X3] == 127, "SYNTH 2. Seite nicht auf Grundwerte (%d %d)", w[P_X0], w[P_X2]);
         CHECK(E.proj.bus[0][BX_TYPE] == BF_DELAY && E.proj.bus[0][BX_P1] == 6 && E.proj.bus[0][BX_P2] == 70, "Delay nicht auf Bus A");
         CHECK(E.proj.bus[1][BX_TYPE] == BF_REVERB && E.proj.bus[1][BX_P1] == 100, "Reverb nicht auf Bus B");
@@ -978,6 +981,61 @@ static void testShimmerCloud() {   // SHIMMER setzt die Rueckkopplung eine Oktav
         CHECK(late[1] > late[0] * 4.f + 1.f, "CLOUD: FRZ haelt die Wolke nicht (ohne %.1f, mit %.1f)", late[0], late[1]);
         printf("  CLOUD nach 2 s: ohne FRZ %.1f, mit FRZ %.1f\n", late[0], late[1]);
     }
+}
+
+// v19: Pegel laufen in dB, Huellkurvenzeiten auf der gebogenen Kurve.
+// Gemeldet: "es ist immer sehr laut und wird erst sehr spaet leise - nur die letzten 30 Werte
+// bringen etwas" (Haltepegel lief linear) und "die FM-Envelopes sind zu kurz" (Reglermitte 94 ms).
+static void testLevels19() {
+    curTest = "Pegel und Huellkurven (v19)";
+    // 1. gleichmaessig in dB: jeder Schritt bringt denselben Pegelsprung
+    float d1 = 20.f * log10f(levGain(127, 127) / levGain(96, 127));
+    float d2 = 20.f * log10f(levGain(96, 127) / levGain(64, 127));
+    float d3 = 20.f * log10f(levGain(64, 127) / levGain(32, 127));
+    CHECK(fabsf(d1 - 12.4f) < 0.3f && fabsf(d2 - d1) < 0.5f && fabsf(d3 - d1) < 0.5f,
+          "Pegel nicht gleichmaessig in dB (%.1f %.1f %.1f)", d1, d2, d3);
+    // 2. der gemeldete Fall: die obere Reglerhaelfte brachte linear nur 2,9 dB
+    float alt = 20.f * log10f((127 / 127.f) / (64 / 127.f));
+    float neu = 20.f * log10f(levGain(127, 127) / levGain(64, 127));
+    CHECK(alt < 7.f && neu > 15.f, "obere Haelfte bringt zu wenig (alt %.1f dB, neu %.1f dB)", alt, neu);
+    CHECK(levGain(0, 127) == 0.f && fabsf(levGain(127, 127) - 1.f) < 1e-6f && fabsf(levGain(100, 100) - 1.f) < 1e-6f,
+          "0 ist nicht still oder der Einheitswert ist nicht 0 dB");
+    for (int v = 1; v < 127; v++) CHECK(levGain(v, 127) < levGain(v + 1, 127), "Pegelkurve nicht monoton bei %d", v);
+    // 3. Huellkurvenzeiten: Enden wie vorher, Mitte deutlich laenger
+    CHECK(fabsf(Engine::envSeconds(0) - 0.0005f) < 1e-5f && Engine::envSeconds(127) > 15.f,
+          "Zeitbereich verschoben (%.4f .. %.1f s)", Engine::envSeconds(0), Engine::envSeconds(127));
+    CHECK(Engine::envSeconds(64) > 0.15f && Engine::envSeconds(64) < 0.30f,
+          "Reglermitte liegt nicht bei ~0,2 s (%.3f s)", Engine::envSeconds(64));
+    for (int v = 0; v < 127; v++) CHECK(Engine::envSeconds(v) < Engine::envSeconds(v + 1), "Zeitkurve nicht monoton bei %d", v);
+    // 4. die Migration haelt Klang und Zeit: alte Zahl -> neue Zahl mit gleicher Wirkung
+    for (int v = 4; v <= 127; v += 3) {
+        float g = levGain(Engine::val19(M_SYNTH, P_ASUS, v), 127);
+        CHECK(fabsf(g / (v / 127.f) - 1.f) < 0.04f, "Haltepegel %d nicht klangtreu umgerechnet (%.3f statt %.3f)", v, g, v / 127.f);
+        float gv = levGain(Engine::val19(M_SYNTH, P_VOL, v), 100), ov = (v / 100.f) * (v / 100.f);
+        if (ov > 0.011f) CHECK(fabsf(gv / ov - 1.f) < 0.05f, "VOL %d nicht klangtreu umgerechnet (%.3f statt %.3f)", v, gv, ov);
+        else CHECK(gv < 0.012f, "sehr leises VOL %d muesste am unteren Ende landen (%.4f)", v, gv);   // unter -39 dB endet die Kurve
+        float t = Engine::envSeconds(Engine::val19(M_SYNTH, P_ADEC, v)), ot = 0.0005f * powf(2.f, v * (15.f / 127.f));
+        CHECK(fabsf(t / ot - 1.f) < 0.08f, "Zeit %d nicht klangtreu umgerechnet (%.4f statt %.4f s)", v, t, ot);
+    }
+    // 5. FM-Operatoren werden mitgezogen, O.SUS bleibt linear (Index, nicht Pegel)
+    CHECK(Engine::val19(M_FM, FM_OPB[1] + OP_DEC, 60) != 60 && Engine::val19(M_FM, FM_OPB[1] + OP_SUS, 60) == 60,
+          "FM-Operator falsch umgerechnet");
+    CHECK(Engine::val19(M_KICK, P_S4, 25) == 25 && Engine::val19(M_FM, P_S4, 25) != 25,
+          "P_S4 ist nur bei FM eine Huellkurvenzeit");
+    // 6. hoerbar: die Spur klingt bei DEC 64 deutlich laenger als die alten 35 ms
+    fresh(); E.setMachine(E.proj.pat[0], 0, M_SYNTH);
+    E.proj.pat[0].p[0][P_ADEC] = 64; E.proj.pat[0].p[0][P_ASUS] = 0; E.proj.pat[0].p[0][P_AREL] = 0;
+    uint8_t L[NPARAMS]; memset(L, NO_LOCK, NPARAMS);
+    E.v[0].noteOn(M_SYNTH, E.proj.pat[0].p[0], L, 1.f, 1 << 20, 44100.f, false);
+    float pk = 0; int ms20 = -1;
+    for (int blk = 0; blk < 44100 * 2 / 256; blk++) {
+        E.render(buf, 256);
+        float m = 0; for (int i = 0; i < 512; i++) if (fabsf(buf[i]) > m) m = fabsf(buf[i]);
+        if (m > pk) pk = m;
+        if (ms20 < 0 && pk > 0 && m < pk * 0.1f) ms20 = (int)(blk * 256 / 44.1f);
+    }
+    // DEC 64 = 0,2 s bis -60 dB, also ~60 ms bis -20 dB; bis v18 waren es an derselben Stelle 35 ms
+    CHECK(ms20 > 50 && ms20 < 110, "DEC 64 klingt nicht ~0,2 s (bis -20 dB: %d ms, bis v18: 35 ms)", ms20);
 }
 
 static void testCmpRoute() {   // Kompressor-Routing: Spuren mit COMP=AUS gehen am Kompressor vorbei
@@ -1313,6 +1371,7 @@ int main(int argc, char** argv) {
     testWarp();
     testTrackTap();
     testShimmerCloud();
+    testLevels19();
     testCmpRoute();
     testInsDelay();
     testStereoSample();

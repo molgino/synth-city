@@ -150,9 +150,13 @@ static inline float fastTanh(float x) {
     return x * (27.f + x2) / (27.f + 9.f * x2);
 }
 static inline float fastExpE(float x) { return fastExp2(x * 1.4426950f); }
-static inline float envT(int v) { return 0.0005f * fastExp2(v * (15.f / 127.f)); }
+// Huellkurvenzeit 0,5 ms .. 16 s. Bis v18 war das eine reine Exponentiale: die Reglermitte lag
+// bei 94 ms, also klang alles im mittleren Bereich kurz (gemeldet an den FM-Operatoren). Der
+// Exponent ist jetzt gebogen (x^0,8), die Mitte liegt bei ~0,2 s; die Enden bleiben wie gehabt.
+static inline float envTimeOf(int v) { return 0.0005f * fastExp2(15.f * fastPow01(v * (1.f / 127.f), 0.8f)); }
+static inline float envT(int v) { return envTimeOf(v); }
 static inline float decayCo(float t, float sr) { return fastExpE(-6.9f / (t * sr)); }
-static inline float envTime(int v) { return 0.0005f * fastExp2(v * (15.f / 127.f)); }   // Huellkurvenzeit wie AMP/FILTER (0,5 ms .. 16 s)
+static inline float envTime(int v) { return envTimeOf(v); }   // Huellkurvenzeit wie AMP/FILTER
 static inline float blep(float t, float dt) {
     if (t < dt) { t /= dt; return t + t - t * t - 1.f; }
     if (t > 1.f - dt) { t = (t - 1.f) / dt; return t * t + t + t + 1.f; }
@@ -467,10 +471,10 @@ void Voice::update(int n, float sr, float bpm) {
     }
     (void)bpm;
     lfoUpdate(n, sr);
-    aenv.set(envT(P(P_AATK)), envT(P(P_ADEC)), P(P_ASUS) / 127.f, envT(P(P_AREL)), sr);
-    fenv.set(envT(P(P_FATK)), envT(P(P_FDEC)), P(P_FSUS) / 127.f, envT(P(P_FREL)), sr);
+    aenv.set(envT(P(P_AATK)), envT(P(P_ADEC)), levGain(P(P_ASUS), 127), envT(P(P_AREL)), sr);
+    fenv.set(envT(P(P_FATK)), envT(P(P_FDEC)), levGain(P(P_FSUS), 127), envT(P(P_FREL)), sr);
     gateEnv.set(0.f, 0.f, 1.f, 0.01f, sr);
-    if (env3On) env3.set(envT(P(P_E3ATK)), envT(P(P_E3DEC)), P(P_E3SUS) / 127.f, envT(P(P_E3REL)), sr);
+    if (env3On) env3.set(envT(P(P_E3ATK)), envT(P(P_E3DEC)), levGain(P(P_E3SUS), 127), envT(P(P_E3REL)), sr);
     // Filter 1: Key-Tracking (100 % = eine Oktave pro Oktave) und Velocity
     fBase = (float)P(P_FREQ) + P(P_KEYT) / 100.f * (note - 60.f) * (127.f / 10.3f / 12.f)
             + (P(P_VELF) - 64) / 64.f * (vel - 0.5f) * 80.f;
@@ -661,15 +665,14 @@ void Voice::update(int n, float sr, float bpm) {
         break;
     }
 
-    float vg = P(P_VOL) / 100.f;
-    float vol = vg * vg * vel;
+    float vol = levGain(P(P_VOL), 100) * vel;   // VOL laeuft in dB (100 = 0 dB, 127 = +10,8 dB)
     float pan = clampf((P(P_PAN) - 64) / 64.f, -1.f, 1.f);
     float a = (pan + 1.f) * 0.78539816f;
     gainL = vol * cosf(a) * 1.41421356f;
     gainR = vol * sinf(a) * 1.41421356f;
-    snd[0] = vol * P(P_DLY) / 127.f;
-    snd[1] = vol * P(P_REV) / 127.f;
-    snd[2] = vol * P(P_SNDC) / 127.f;
+    snd[0] = vol * levGain(P(P_DLY), 127);
+    snd[1] = vol * levGain(P(P_REV), 127);
+    snd[2] = vol * levGain(P(P_SNDC), 127);
     drive = P(P_DRIV) / 127.f;
     float cr = (float)P(P_CRSH);
     crushQ = cr > 0.5f ? fastExp2(15.f - cr / 127.f * 13.f) : 0.f;
@@ -2092,11 +2095,11 @@ void Engine::processBlock(float* out, int n) {
     {
         double ss = stepSamples();
         for (int b = 0; b < NBUS; b++) {
-            if (b > 0) { float fw = proj.bus[b - 1][BX_FWD] / 127.f; if (fw > 0.f) for (int i = 0; i < n; i++) S[b][i] += (BL[b - 1][i] + BR[b - 1][i]) * 0.5f * fw; }
+            if (b > 0) { float fw = levGain(proj.bus[b - 1][BX_FWD], 127); if (fw > 0.f) for (int i = 0; i < n; i++) S[b][i] += (BL[b - 1][i] + BR[b - 1][i]) * 0.5f * fw; }
             bus[b].process(S[b], BL[b], BR[b], n, proj.bus[b], ss);
         }
     }
-    float mv = proj.mst[MS_VOL] / 100.f; mv *= mv;
+    float mv = levGain(proj.mst[MS_VOL], 100);
     float mdrv = proj.mst[MS_DRIV] / 127.f;
     float outG = 0.6f * mv * (1.f + 3.f * mdrv), outC = 1.f - 0.25f * mdrv;
     float cleanG = 0.6f * mv, satMix = mdrv * 8.f > 1.f ? 1.f : mdrv * 8.f;   // DRIVE 0 = sauber, ab ~16 voller Charakter
@@ -2242,6 +2245,40 @@ int Engine::mapOldParam(int m, int i) {
     return i < OLD_NPARAMS ? i : -1;
 }
 // eine Spur: o = alte 96 Werte (bzw. Locks), out = 128 neue
+// --- v18 -> v19 ---------------------------------------------------------------
+// Bis v18 waren Pegel linear (bzw. VOL quadratisch) und die Huellkurvenzeiten eine reine
+// Exponentiale. Beide Kurven sind jetzt anders; damit nichts anders klingt als vorher, werden
+// die gespeicherten Zahlen umgerechnet - fuer Projekte, Presets und die Werksklaenge, deren
+// Zahlen im Quelltext ebenfalls in der alten Skala stehen.
+float Engine::envSeconds(int v) { return envTimeOf(v < 0 ? 0 : (v > 127 ? 127 : v)); }
+static int time19(int v) {   // gleiche Zeit auf der gebogenen Kurve: v' = 127 * (v/127)^1,25
+    int n = (int)lrintf(127.f * powf(v / 127.f, 1.25f));
+    return n < 1 ? 1 : (n > 127 ? 127 : n);
+}
+uint8_t Engine::val19(int machine, int idx, int v) {
+    if (v <= 0) return 0;
+    for (int e = 0; e < NENV; e++) {
+        if (idx == ENV_ATK[e] || idx == ENV_DEC[e] || idx == ENV_REL[e]) return (uint8_t)time19(v);
+        if (idx == ENV_SUS[e]) return (uint8_t)levFromGain(v / 127.f, 127);   // Haltepegel war linear
+    }
+    if (idx == P_DLY || idx == P_REV || idx == P_SNDC) return (uint8_t)levFromGain(v / 127.f, 127);
+    if (idx == P_VOL) { float g = v / 100.f; return (uint8_t)levFromGain(g * g, 100); }   // VOL war quadratisch
+    if (machine == M_FM) {
+        if (idx == P_S4) return (uint8_t)time19(v);   // P.DEC: Tonhoehen-Huellkurve
+        for (int k = 0; k < 4; k++) {   // Operator-Huellkurven; O.SUS bleibt linear (Index, nicht Pegel)
+            int b = FM_OPB[k];
+            if (idx == b + OP_ATK || idx == b + OP_DEC || idx == b + OP_REL) return (uint8_t)time19(v);
+        }
+    }
+    return (uint8_t)v;
+}
+void Engine::migrateTrack19(int machine, uint8_t* p, bool lock) {
+    for (int i = 0; i < NPARAMS; i++) {
+        if (lock && p[i] == NO_LOCK) continue;
+        p[i] = val19(machine, i, p[i]);
+    }
+}
+
 void Engine::migrateTrack13(int m, const uint8_t* o, uint8_t* out, bool lock) {
     for (int i = 0; i < NPARAMS; i++) out[i] = lock ? NO_LOCK : paramDef(m, i).def;
     for (int i = 0; i < OLD_NPARAMS; i++) {
@@ -2404,7 +2441,7 @@ bool Engine::load(const char* path) {
     long nPat = 24 + 8 * nNp + NTRACKS * 128 * (1 + nNp), nBase = 20 + OLD_NPAT * nPat;
     long nSize = ver <= 8 ? nBase + 16 : projectDataSize(ver);
     Project* np = nullptr;
-    if (ok && (ver == PROJECT_VERSION || ver == 16 || ver == 17)) {   // v16-v18 (gleiches Dateilayout): Kopf, Rest, dann belegte Patterns (RLE); dahinter evtl. Sample-Namensliste
+    if (ok && (ver == PROJECT_VERSION || ver == 16 || ver == 17 || ver == 18)) {   // v16-v19 (gleiches Dateilayout): Kopf, Rest, dann belegte Patterns (RLE); dahinter evtl. Sample-Namensliste
         ok = size >= 20 + PROJECT_TAIL_SIZE + 2;
         if (ok) {
             np = (Project*)malloc(sizeof(Project));
@@ -2584,6 +2621,20 @@ bool Engine::load(const char* path) {
                 int note = sp.lock[P_NOTE] != NO_LOCK ? sp.lock[P_NOTE] : P.p[t][P_NOTE];
                 for (int k = 0; k < NNOTEX; k++) if (sp.lock[P_NTX[k]] != NO_LOCK) sp.lock[P_NTX[k]] = (uint8_t)conv(sp.lock[P_NTX[k]], note);
             }
+        }
+        proj.version = PROJECT_VERSION;
+    }
+    if (ok && ver < 19) {   // bis v18: Pegel liefen linear, Huellkurvenzeiten rein exponentiell
+        for (int pi = 0; pi < NPATTERNS; pi++) for (int t = 0; t < NTRACKS; t++) {
+            Pattern& P = proj.pat[pi];
+            migrateTrack19(P.machine[t], P.p[t], false);
+            for (int st = 0; st < NSTEPS; st++) migrateTrack19(P.machine[t], P.s[t][st].lock, true);
+        }
+        float g = proj.mst[MS_VOL] / 100.f;
+        proj.mst[MS_VOL] = (uint8_t)levFromGain(g * g, 100);
+        for (int b = 0; b < NBUS; b++) {
+            proj.bus[b][BX_LVL] = (uint8_t)levFromGain(proj.bus[b][BX_LVL] / 100.f, 100);
+            proj.bus[b][BX_FWD] = (uint8_t)levFromGain(proj.bus[b][BX_FWD] / 127.f, 127);
         }
         proj.version = PROJECT_VERSION;
     }

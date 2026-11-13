@@ -98,8 +98,8 @@ static bool projDirty();                // genau (rechnet die Pruefsumme, ~10 ms
 static bool projDirtyCached();          // fuer die Anzeige: hoechstens alle 0,5 s neu
 
 // System-Einstellungen (settings.cfg)
-struct Settings { char dev[128]; int buf, midiIn, notesOut, clk, chm, usb, song, dispOff, usbAudio, hwVol, pcIn, usbVol, intUsb, cores, lang, usbNet, uac, uacSendOnly, usbCh, hostMc, usbBint, usbNetOn; signed char usbRoute[NTRACKS + NBUS]; char project[64]; int recPages, newPage, recThr, ui2, listFold; };   // usbRoute: 0 Auto, 1 nur Master, 2+k Paar k (USB 3-4 ...)   // usbNet 0 NCM / 1 RNDIS, uac 2 / 1
-static Settings cfg = {"", 1, 1, 0, 0, 0, 0, 0, 277, 1, 80, 1, 100, 1, 2, 0, 0, 2, 0, 2, 0, 0, 1, {0}, "", 0, 1, -40, 1, 1};   // recPages 0 = FREI, newPage 1 = Kopie der vorigen Page, recThr Start-Schwelle dB (-99 = sofort), listFold 1 = Liste klappt Gruppen zu
+struct Settings { char dev[128]; int buf, midiIn, notesOut, clk, chm, usb, song, dispOff, usbAudio, hwVol, pcIn, usbVol, intUsb, cores, lang, usbNet, uac, uacSendOnly, usbCh, hostMc, usbBint, usbNetOn; signed char usbRoute[NTRACKS + NBUS]; char project[64]; int recPages, newPage, recThr, ui2, listFold, preview; };   // usbRoute: 0 Auto, 1 nur Master, 2+k Paar k (USB 3-4 ...)   // usbNet 0 NCM / 1 RNDIS, uac 2 / 1
+static Settings cfg = {"", 1, 1, 0, 0, 0, 0, 0, 277, 1, 80, 1, 100, 1, 2, 0, 0, 2, 0, 2, 0, 0, 1, {0}, "", 0, 1, -40, 1, 1, 0};   // recPages 0 = FREI, newPage 1 = Kopie der vorigen Page, recThr Start-Schwelle dB (-99 = sofort), listFold 1 = Liste klappt Gruppen zu, preview 0 = kein Vorhoeren beim Aendern
 // Kanaele zum PC (USB-Audio): Mehrkanal nur mit UAC2
 static int usbChannels() { return cfg.uac == 1 ? 2 : (cfg.usbCh == 8 || cfg.usbCh == 18 ? cfg.usbCh : 2); }
 // Kanaele, mit denen gerade gesendet wird (Host-Modus: was das Geraet annimmt), sonst die PC-Einstellung
@@ -223,6 +223,7 @@ static void loadSettings() {
         else if (!strcmp(line, "rec_pages")) cfg.recPages = clampi(atoi(v), 0, 16);
         else if (!strcmp(line, "new_page")) cfg.newPage = clampi(atoi(v), 0, 1);
         else if (!strcmp(line, "list_fold")) cfg.listFold = clampi(atoi(v), 0, 1);
+        else if (!strcmp(line, "preview")) cfg.preview = clampi(atoi(v), 0, 1);
         else if (!strcmp(line, "rec_threshold")) { int t = atoi(v); cfg.recThr = t <= -61 ? -99 : clampi(t, -60, -6); }
     }
     fclose(f);
@@ -230,8 +231,8 @@ static void loadSettings() {
 static void saveSettings() {
     FILE* f = fopen(setPath, "w");
     if (!f) return;
-    fprintf(f, "# Groovebox Systemeinstellungen\naudio_device %s\nbuffer %d\nmidi_in %d\nmidi_notes_out %d\nmidi_clock %d\nmidi_channels %d\nusb_mode %d\nsong %d\ndisplay_offset %d\nusb_audio %d\nhw_volume %d\npc_in %d\nusb_volume %d\ninternal_on_usb %d\naudio_cores %d\nlanguage %d\nusb_net %d\nusb_audio_class %d\nusb_audio_send_only %d\nusb_audio_channels %d\nusb_host_multi %d\nusb_audio_interval %d\nusb_network_on %d\nusb_route %d %d %d %d %d %d %d %d %d %d %d\nproject %s\nrec_pages %d\nnew_page %d\nrec_threshold %d\nlist_fold %d\n",
-            cfg.dev, cfg.buf, cfg.midiIn, cfg.notesOut, cfg.clk, cfg.chm, cfg.usb, cfg.song, cfg.dispOff, cfg.usbAudio, cfg.hwVol, cfg.pcIn, cfg.usbVol, cfg.intUsb, cfg.cores, cfg.lang, cfg.usbNet, cfg.uac, cfg.uacSendOnly, cfg.usbCh, cfg.hostMc, cfg.usbBint, cfg.usbNetOn, cfg.usbRoute[0], cfg.usbRoute[1], cfg.usbRoute[2], cfg.usbRoute[3], cfg.usbRoute[4], cfg.usbRoute[5], cfg.usbRoute[6], cfg.usbRoute[7], cfg.usbRoute[8], cfg.usbRoute[9], cfg.usbRoute[10], cfg.project, cfg.recPages, cfg.newPage, cfg.recThr, cfg.listFold);
+    fprintf(f, "# Groovebox Systemeinstellungen\naudio_device %s\nbuffer %d\nmidi_in %d\nmidi_notes_out %d\nmidi_clock %d\nmidi_channels %d\nusb_mode %d\nsong %d\ndisplay_offset %d\nusb_audio %d\nhw_volume %d\npc_in %d\nusb_volume %d\ninternal_on_usb %d\naudio_cores %d\nlanguage %d\nusb_net %d\nusb_audio_class %d\nusb_audio_send_only %d\nusb_audio_channels %d\nusb_host_multi %d\nusb_audio_interval %d\nusb_network_on %d\nusb_route %d %d %d %d %d %d %d %d %d %d %d\nproject %s\nrec_pages %d\nnew_page %d\nrec_threshold %d\nlist_fold %d\npreview %d\n",
+            cfg.dev, cfg.buf, cfg.midiIn, cfg.notesOut, cfg.clk, cfg.chm, cfg.usb, cfg.song, cfg.dispOff, cfg.usbAudio, cfg.hwVol, cfg.pcIn, cfg.usbVol, cfg.intUsb, cfg.cores, cfg.lang, cfg.usbNet, cfg.uac, cfg.uacSendOnly, cfg.usbCh, cfg.hostMc, cfg.usbBint, cfg.usbNetOn, cfg.usbRoute[0], cfg.usbRoute[1], cfg.usbRoute[2], cfg.usbRoute[3], cfg.usbRoute[4], cfg.usbRoute[5], cfg.usbRoute[6], cfg.usbRoute[7], cfg.usbRoute[8], cfg.usbRoute[9], cfg.usbRoute[10], cfg.project, cfg.recPages, cfg.newPage, cfg.recThr, cfg.listFold, cfg.preview);
     fclose(f);
 }
 static void applyMidiSettings() {
@@ -3703,7 +3704,15 @@ static void editValue(int delta) {
         int oi = 0;
         for (int i = 0; i < M_COUNT; i++) if (MACHINE_ORDER[i] == P.machine[track]) oi = i;
         int m = MACHINE_ORDER[clampi(oi + (delta > 0 ? 1 : -1), 0, M_COUNT - 1)];
-        if (m != P.machine[track]) { lockA(); Engine::setMachine(P, track, m); unlockA(); lockA(); eng.preview(track, nullptr); unlockA(); }
+        if (m != P.machine[track]) { lockA(); Engine::setMachine(P, track, m); unlockA();
+                                    if (cfg.preview) { lockA(); eng.preview(track, nullptr); unlockA(); } }
+        return;
+    }
+    if (d.kind == K_NOTEX) {   // Intervall: von AUS geht es bei +0 (uni) los, nicht bei -24
+        int cur = aHeld && holdS().lock[idx] != NO_LOCK ? holdS().lock[idx] : P.p[track][idx];
+        int nv = cur == 0 ? (delta > 0 ? NOTEX_ZERO + delta - 1 : 0) : cur + delta;
+        nv = clampi(nv, 0, d.max);
+        if (aHeld) { holdS().lock[idx] = (uint8_t)nv; aEdited = true; } else P.p[track][idx] = (uint8_t)nv;
         return;
     }
     if (aHeld) {
@@ -3725,7 +3734,7 @@ static void editValue(int delta) {
         } else
         P.p[track][idx] = (uint8_t)(d.kind == K_SMPL ? smpStep(P.p[track][idx], delta, d.max) : clampi(P.p[track][idx] + delta, 0, d.max));
     }
-    if (idx == P_NOTE || d.kind == K_SMPL) { lockA(); eng.preview(track, aHeld ? &holdS() : nullptr); unlockA(); }
+    if (cfg.preview && (idx == P_NOTE || d.kind == K_SMPL)) { lockA(); eng.preview(track, aHeld ? &holdS() : nullptr); unlockA(); }
 }
 
 static int curMax() {
@@ -3792,6 +3801,7 @@ static int loadPresetPath(int t, const char* p) {   // 1 ok, 0 fehlt, -1 Fehler
     if (hdr[6] == 0 && (hdr[4] == M_SYNTH || hdr[4] == M_WTBL) && P.p[t][P_FTYP] == FT_LP12) P.p[t][P_FTYP] = FT_LP24;   // alte Presets
     if (hdr[6] < 2) { P.p[t][P_FCRV] = 64; P.p[t][P_ACRV] = 64; }
     if (hdr[6] < 4) P.p[t][P_CMPS] = 1;   // vor Format 4 gab es das Kompressor-Routing nicht
+    if (hdr[6] < 5) Engine::migrateTrack19(hdr[4], P.p[t], false);   // vor Format 5: Pegel linear, Zeiten andere Kurve
     if (slot >= 0 && si >= 0) P.p[t][si] = (uint8_t)slot;
     else if (si == P_X3 && P.p[t][P_S0] % 5 == 4) P.p[t][P_S0] = 0;   // eigene Wavetable fehlt: BASIC
     unlockA();
@@ -3879,7 +3889,7 @@ enum SetItem {
     SI_H_UAUD, SI_USBAUDIO, SI_USBCH, SI_UACDIR, SI_UACVER, SI_USBBINT, SI_USBVOL, SI_INTUSB, SI_USBTONE, SI_PCIN, SI_PCREC,
     SI_H_ROUTE, SI_RT0, SI_RT1, SI_RT2, SI_RT3, SI_RT4, SI_RT5, SI_RT6, SI_RT7, SI_RT8, SI_RT9, SI_RT10,
     SI_H_SMP, SI_SAMPLES, SI_WEB, SI_DRIVE, SI_OLDSMP,
-    SI_H_SYS, SI_LANG, SI_LISTFOLD, SI_DISP, SI_LEARN, SI_BENCH, SI_INFO, SI_BAT, SI_QUIT, SI_COUNT
+    SI_H_SYS, SI_LANG, SI_LISTFOLD, SI_PREVIEW, SI_DISP, SI_LEARN, SI_BENCH, SI_INFO, SI_BAT, SI_QUIT, SI_COUNT
 };
 static int setSel = SI_PATTERN, prevPage = PG_TRG;
 static bool setIn = false;   // SET: false = Bereiche links waehlen, true = in den Eintraegen des Bereichs (A rein, B raus)
@@ -3944,6 +3954,8 @@ static const char* setHelp(int i) {
     case SI_CLRTRK: return TR("Löscht alle Steps der gewählten Spur", "Clears all steps of the selected track");
     case SI_PAGEMENU: return TR("Page/Spur kopieren, einfügen, leeren, anhängen (auch: Page-Leiste antippen, SELECT+L1 auf TRIG)", "Copy, paste, clear, add page/track (also: tap the page bar, SELECT+L1 on TRIG)");
     case SI_NEWPAGE: return TR("Wird eine Spur länger: neue Page als Kopie der vorigen oder leer", "When a track gets longer: new page as copy of the previous one or empty");
+    case SI_PREVIEW: return TR("Note, Sample oder Engine ändern spielt den Klang sofort an – im Sequencer meist störend",
+                                "Changing note, sample or engine plays the sound at once - usually in the way while sequencing");
     case SI_LISTFOLD: return TR("Liste: offen bleibt nur die Gruppe mit dem Cursor, der Rest zeigt nur die Kopfzeile", "List: only the group with the cursor stays open, the rest shows just its header");
     case SI_OUT: return TR("Audio-Ausgang (intern, USB-Interface ...)", "Audio output (internal, USB interface ...)");
     case SI_BUF: return TR("Kleiner = weniger Verzögerung, größer = sicherer gegen Aussetzer", "Smaller = less latency, larger = safer against dropouts");
@@ -4018,6 +4030,8 @@ static void setLabel(int i, char* l, int ln, char* v, int vn) {
     case SI_CLRTRK: snprintf(l, ln, TR("Spur leeren", "Clear track")); break;
     case SI_PAGEMENU: snprintf(l, ln, TR("PAGE-Menü öffnen", "Open PAGE menu")); break;
     case SI_NEWPAGE: snprintf(l, ln, TR("Neue Page", "New page")); snprintf(v, vn, "%s", cfg.newPage ? TR("KOPIE DER VORIGEN", "COPY OF PREVIOUS") : TR("LEER", "EMPTY")); break;
+    case SI_PREVIEW: snprintf(l, ln, TR("Vorhören beim Ändern", "Preview while editing"));
+        snprintf(v, vn, "%s", cfg.preview ? TR("AN", "ON") : TR("AUS", "OFF")); break;
     case SI_LISTFOLD: snprintf(l, ln, TR("Gruppen einklappen", "Fold groups")); snprintf(v, vn, "%s", cfg.listFold ? TR("NUR AKTIVE GRUPPE", "ACTIVE GROUP ONLY") : TR("ALLE OFFEN", "ALL OPEN")); break;
     case SI_TMPL: snprintf(l, ln, TR("Rhythmus-Vorlage", "Rhythm template")); snprintf(v, vn, "< %s >", RHY_NAMES[tmplSel]); break;
     case SI_UNDO: snprintf(l, ln, TR("Rückgängig (SELECT + B)", "Undo (SELECT + B)")); snprintf(v, vn, TR("%d Schritte", "%d steps"), undoCnt); break;
@@ -4160,6 +4174,7 @@ static void setChange(int i, int d) {
     case SI_LENALL: { int l = clampi(P.len[track] + d, 1, NSTEPS); for (int t = 0; t < NTRACKS; t++) setTrackLen(P, t, l); } break;
     case SI_SPEED: P.speed[track] = (uint8_t)clampi(P.speed[track] + (d > 0 ? 1 : -1), 0, 6); break;
     case SI_NEWPAGE: cfg.newPage = !cfg.newPage; saveSettings(); break;
+    case SI_PREVIEW: cfg.preview = !cfg.preview; saveSettings(); break;
     case SI_LISTFOLD: cfg.listFold = !cfg.listFold; saveSettings(); break;
     case SI_FILL: eng.fill = !eng.fill; break;
     case SI_BPM: eng.proj.bpm = (uint16_t)clampi(eng.proj.bpm + d, 30, 300); break;

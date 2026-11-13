@@ -1103,6 +1103,46 @@ static void uiScenariosV2() {
         simReset(); simFrame();
     }
 
+    uiCase = "NT2: von AUS geht es bei Unison los";
+    {   // gemeldet: der erste Schritt landete bei -24 statt bei +-0
+        simReset(); simFrame();
+        goPage(PG_TRG); goSlot(8); simFrame();
+        UCHECK(slotParam(slot) == P_NT2, "Regler 8 der TRIG-Seite ist nicht NT2 (%d)", slotParam(slot));
+        curP().p[track][P_NT2] = 0;
+        tap(BT_X);
+        UCHECK(curP().p[track][P_NT2] == NOTEX_ZERO, "aus AUS muss +0 (uni) werden, nicht %+d Halbtoene",
+               curP().p[track][P_NT2] - NOTEX_ZERO);
+        tap(BT_Y);
+        UCHECK(curP().p[track][P_NT2] == NOTEX_ZERO - 1, "von Unison nach unten muss -1 kommen (%+d)",
+               curP().p[track][P_NT2] - NOTEX_ZERO);
+        tap(BT_X); tap(BT_X);
+        UCHECK(curP().p[track][P_NT2] == NOTEX_ZERO + 1, "von Unison nach oben muss +1 kommen (%+d)",
+               curP().p[track][P_NT2] - NOTEX_ZERO);
+        curP().p[track][P_NT2] = 1;   // -24: eine Stufe tiefer ist AUS
+        tap(BT_Y);
+        UCHECK(curP().p[track][P_NT2] == 0, "unter -24 muss AUS liegen (%d)", curP().p[track][P_NT2]);
+        simReset(); simFrame();
+    }
+
+    uiCase = "Vorhoeren beim Aendern bleibt aus";
+    {   // gemeldet: jede Notenaenderung spielte den Klang an
+        simReset(); simFrame();
+        int pv0 = cfg.preview;
+        cfg.preview = 0;
+        goPage(PG_TRG); goSlot(0); simFrame();
+        UCHECK(slotParam(slot) == P_NOTE, "Regler 0 der TRIG-Seite ist nicht NOTE (%d)", slotParam(slot));
+        for (int t = 0; t < NTRACKS; t++) eng.v[t].active = false;
+        tap(BT_X); tap(BT_X);
+        int klingt = 0; for (int t = 0; t < NTRACKS; t++) if (eng.v[t].active) klingt++;
+        UCHECK(klingt == 0, "Note geaendert und %d Stimmen klingen trotz 'Vorhoeren aus'", klingt);
+        cfg.preview = 1;   // eingeschaltet soll es weiter vorhoeren
+        tap(BT_X);
+        klingt = 0; for (int t = 0; t < NTRACKS; t++) if (eng.v[t].active) klingt++;
+        UCHECK(klingt > 0, "mit 'Vorhoeren an' muesste die Note zu hoeren sein");
+        cfg.preview = pv0;
+        simReset(); simFrame();
+    }
+
     uiCase = "Kompressor-Routing (MIX-Zeile CMP)";
     {
         simReset(); simFrame();

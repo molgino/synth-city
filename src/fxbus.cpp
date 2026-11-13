@@ -70,7 +70,7 @@ void FxBus::process(const float* in, float* outL, float* outR, int n, const uint
     if (t == BF_SHIMMER) tail = sr * 12;                       // die versetzte Rueckkopplung klingt lange nach
     if (t == BF_CLOUD) tail = p[BX_P5] >= 64 ? (1 << 30) : sr * 2;   // eingefroren spielt die Wolke ohne Eingang weiter
     if (!any && quiet > tail) { peak = 0; return; }
-    const float lvl = p[BX_LVL] / 100.f;
+    const float lvl = levGain(p[BX_LVL], 100);   // Bus-Pegel in dB (100 = 0 dB)
     float pk = 0.f;
     switch (t) {
     case BF_DELAY: {

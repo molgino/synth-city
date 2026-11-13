@@ -9,6 +9,20 @@
 extern int g_lang;
 #define TR(de, en) (g_lang ? (en) : (de))
 
+// Pegel-Kurve (ab v19): die Werte 0..127 laufen gleichmaessig in dB, 0,4 dB je Schritt, 0 = Stille.
+// Vorher liefen Pegel linear bzw. quadratisch - der halbe Regler brachte nur 3 bis 8 dB, der ganze
+// Hub steckte in den letzten ~30 Werten ("es ist immer sehr laut und wird erst sehr spaet leise").
+// unity = Wert fuer 0 dB: 127 bei Sends und Haltepegeln, 100 bei Lautstaerken mit Luft nach oben.
+static inline float levGain(int v, int unity) {
+    if (v <= 0) return 0.f;
+    return exp2f((v - unity) * (0.4f / 6.0205999f));
+}
+static inline int levFromGain(float g, int unity) {   // Umkehrung: alte Zahl -> neue Zahl mit gleicher Verstaerkung
+    if (!(g > 0.0001f)) return 0;
+    int v = (int)lrintf(unity + 20.f * log10f(g) / 0.4f);
+    return v < 1 ? 1 : (v > 127 ? 127 : v);
+}
+
 enum { NTRACKS = 8, NSTEPS = 128, NPATTERNS = 128, NBANKS = 8, OLD_NPAT = 16, NPAGES = 21, NPARAMS = NPAGES * 8, NLFO = 3, NBUS = 3 };
 enum { OLD_NPARAMS = 96, V13_NPARAMS = 128 };   // bis Projektformat v12: 12 Seiten, v13: 16 Seiten
 enum { NENV = 3, NMODT = 3 };   // Huellkurven je Spur, Ziele je Huellkurve/LFO
@@ -188,9 +202,9 @@ static const ParamDef COMMON_DEFS[NPARAMS] = {
     PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE, PDEF_NONE,
     // FILT
     {"FREQ", K_NUM, 127, 127}, {"RESO", K_NUM, 0, 127}, {"TYPE", K_FTYPE, 0, FT_COUNT - 1}, {"DEPTH1", K_BIP, 64, 127},   // ab v14: Tiefe 1 von ENV2
-    {"ATK", K_NUM, 0, 127}, {"DEC", K_NUM, 60, 127}, {"SUS", K_NUM, 0, 127}, {"REL", K_NUM, 60, 127},      // ENV2 (Filter-Huellkurve)
+    {"ATK", K_NUM, 0, 127}, {"DEC", K_NUM, 50, 127}, {"SUS", K_NUM, 0, 127}, {"REL", K_NUM, 50, 127},      // ENV2 (Filter-Huellkurve)
     // AMP
-    {"ATK", K_NUM, 0, 127}, {"DEC", K_NUM, 80, 127}, {"SUS", K_NUM, 127, 127}, {"REL", K_NUM, 50, 127},
+    {"ATK", K_NUM, 0, 127}, {"DEC", K_NUM, 71, 127}, {"SUS", K_NUM, 127, 127}, {"REL", K_NUM, 40, 127},
     {"VOL", K_NUM, 100, 127}, {"PAN", K_BIP, 64, 127}, {"COMP", K_OFFON, 1, 1}, PDEF_NONE,
     // LFO / FX
     // LFO1
@@ -231,7 +245,7 @@ static const ParamDef COMMON_DEFS[NPARAMS] = {
     {"DEPTH3", K_BIP, 64, 127}, {"VELO", K_PCT, 0, 100},
     {"VOICE", K_VMOD, 0, VM_COUNT - 1}, PDEF_NONE,                               // 142: Stimmen-Modus (Anzeige auf TRIG)
     // ENV3 (frei)
-    {"ATK", K_NUM, 0, 127}, {"DEC", K_NUM, 60, 127}, {"SUS", K_NUM, 0, 127}, {"REL", K_NUM, 60, 127},
+    {"ATK", K_NUM, 0, 127}, {"DEC", K_NUM, 50, 127}, {"SUS", K_NUM, 0, 127}, {"REL", K_NUM, 50, 127},
     {"CURVE", K_BIP, 64, 127}, {"VELO", K_PCT, 0, 100}, {"DEST1", K_EDEST, 0, MOD_VCA}, {"DEPTH1", K_BIP, 64, 127},
     {"DEST2", K_EDEST, 0, MOD_VCA}, {"DEPTH2", K_BIP, 64, 127}, {"DEST3", K_EDEST, 0, MOD_VCA}, {"DEPTH3", K_BIP, 64, 127},
     // LFO1-3: Ziele 2 und 3
@@ -376,15 +390,18 @@ static const ParamDef SRC2_DEFS[M_COUNT][8] = {
      {"RAND", K_NUM, 30, 127}, PDEF_NONE, PDEF_NONE, PDEF_NONE},
 };
 // FM-Operatoren 1-4: Ratio (Tabelle FM_RATIOS), FINE = +-0,5 Ratio, DETN = +-50 Cent, Pegel, eigene Huellkurve
+// Grundwerte der Operatoren. Die Zeiten sind bewusst laenger als bis v18 (gemeldet: "die Envelopes
+// sind zu kurz"): DEC 75 = 0,46 s statt 0,15 s, REL 70 = 0,32 s. O.SUS bleibt linear - das ist bei
+// einem Modulator ein Index, keine Lautstaerke.
 static const ParamDef FM_OP_DEFS[4][8] = {
     {{"RAT", K_RATIO, 3, 27}, {"FINE", K_BIP, 64, 127}, {"DETN", K_BIP, 64, 127}, {"O.LVL", K_NUM, 127, 127},
-     {"O.ATK", K_NUM, 0, 127}, {"O.DEC", K_NUM, 70, 127}, {"O.SUS", K_NUM, 110, 127}, {"O.REL", K_NUM, 55, 127}},
+     {"O.ATK", K_NUM, 0, 127}, {"O.DEC", K_NUM, 75, 127}, {"O.SUS", K_NUM, 110, 127}, {"O.REL", K_NUM, 70, 127}},
     {{"RAT", K_RATIO, 7, 27}, {"FINE", K_BIP, 64, 127}, {"DETN", K_BIP, 64, 127}, {"O.LVL", K_NUM, 55, 127},
-     {"O.ATK", K_NUM, 0, 127}, {"O.DEC", K_NUM, 60, 127}, {"O.SUS", K_NUM, 40, 127}, {"O.REL", K_NUM, 50, 127}},
+     {"O.ATK", K_NUM, 0, 127}, {"O.DEC", K_NUM, 70, 127}, {"O.SUS", K_NUM, 40, 127}, {"O.REL", K_NUM, 65, 127}},
     {{"RAT", K_RATIO, 3, 27}, {"FINE", K_BIP, 64, 127}, {"DETN", K_BIP, 64, 127}, {"O.LVL", K_NUM, 0, 127},
-     {"O.ATK", K_NUM, 0, 127}, {"O.DEC", K_NUM, 55, 127}, {"O.SUS", K_NUM, 30, 127}, {"O.REL", K_NUM, 50, 127}},
+     {"O.ATK", K_NUM, 0, 127}, {"O.DEC", K_NUM, 65, 127}, {"O.SUS", K_NUM, 30, 127}, {"O.REL", K_NUM, 60, 127}},
     {{"RAT", K_RATIO, 3, 27}, {"FINE", K_BIP, 64, 127}, {"DETN", K_BIP, 64, 127}, {"O.LVL", K_NUM, 0, 127},
-     {"O.ATK", K_NUM, 0, 127}, {"O.DEC", K_NUM, 50, 127}, {"O.SUS", K_NUM, 20, 127}, {"O.REL", K_NUM, 50, 127}}};
+     {"O.ATK", K_NUM, 0, 127}, {"O.DEC", K_NUM, 60, 127}, {"O.SUS", K_NUM, 20, 127}, {"O.REL", K_NUM, 60, 127}}};
 inline bool machineHasSrc2(int m) { return m == M_FM || m == M_SYNTH || m == M_WTBL || m == M_SAMPLE || m == M_CHOP
                                            || m == M_PERC || m == M_DRONE; }   // SMPL/CHOP: WARP, PERC: TRANSIENT, DRON: BEWEGUNG
 inline bool machineHasSrc35(int m) { return m == M_FM; }   // Klangseiten 3-5 (FM: Operator 2-4)
@@ -407,7 +424,7 @@ static const ParamDef BUS_DEFS[BF_COUNT][8] = {
     {{"TYPE", K_FXT, 0, BF_COUNT - 1}, {"DECAY", K_NUM, 70, 127}, {"TONE", K_NUM, 70, 127}, {"DRIP", K_NUM, 70, 127}, {"WIDE", K_NUM, 90, 127},
      {"LOCUT", K_NUM, 30, 127}, {"FWD", K_NUM, 0, 127}, {"LVL", K_NUM, 100, 127}},
     {{"TYPE", K_FXT, 0, BF_COUNT - 1}, {"RATE", K_NUM, 40, 127}, {"DEPTH", K_NUM, 60, 127}, {"VOICE", K_CNT, 2, 2}, {"WIDE", K_NUM, 110, 127},
-     {"FBK", K_NUM, 0, 127}, {"FWD", K_NUM, 0, 127}, {"LVL", K_NUM, 110, 127}},
+     {"FBK", K_NUM, 0, 127}, {"FWD", K_NUM, 0, 127}, {"LVL", K_NUM, 102, 127}},
     // SHIMMER: Hall, dessen Rueckkopplung versetzt wird (Standard eine Oktave hoch)
     {{"TYPE", K_FXT, 0, BF_COUNT - 1}, {"SIZE", K_NUM, 95, 127}, {"DAMP", K_NUM, 50, 127}, {"SHIM", K_NUM, 70, 127}, {"PTCH", K_SEMI, 36, 48},
      {"WIDE", K_NUM, 110, 127}, {"FWD", K_NUM, 0, 127}, {"LVL", K_NUM, 100, 127}},

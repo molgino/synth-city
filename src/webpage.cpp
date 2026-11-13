@@ -626,7 +626,7 @@ function tPickOpen(i){const p=tm.params[i];document.body.classList.add('pick');
  $('tPickT').textContent=p.n;const l=$('tPickL');l.innerHTML='';
  const list=p.slots?p.slots:(p.opts||[]).map((o,v)=>({v,n:o}));
  l.classList.toggle('wide',!!p.slots);   // Sample-Namen brauchen Platz
- list.forEach(o=>{const b=document.createElement('div');b.className='pk'+(o.v===p.v?' on':'');b.textContent=o.n;
+ list.forEach(o=>{const b=document.createElement('div');b.className='pk'+(o.v===p.v?' on':'');b.textContent=o.n;b.dataset.v=o.v;
   b.addEventListener('pointerdown',e=>{e.preventDefault();tAct(11,i,o.v);document.body.classList.remove('pick');},{passive:false});
   l.appendChild(b);});
  const on=l.querySelector('.pk.on');if(on)setTimeout(()=>on.scrollIntoView({block:'nearest'}),0);}

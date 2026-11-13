@@ -163,9 +163,10 @@ static void uiActionsRun() {   // Hauptthread: Aktionen aus der Touch-Oberflaech
                     int m = e.b % M_COUNT;
                     if (!aHeld && m != P.machine[track]) {
                         lockA(); Engine::setMachine(P, track, m); unlockA();
-                        lockA(); eng.preview(track, nullptr); unlockA();
+                        if (cfg.preview) { lockA(); eng.preview(track, nullptr); unlockA(); }
                     }
-                } else if (d.kind == K_SMPL) {   // Sample-Platz direkt setzen (editValue zaehlt nur schrittweise)
+                } else if (d.kind == K_NOTEX || d.kind == K_SMPL) {   // direkt setzen: editValue zaehlt bei SMPL nur ueber
+                                                      // belegte Plaetze und springt bei NT2-NT4 von AUS auf Unison
                     int idx = slotParam(slot);
                     if (idx >= 0) {
                         undoTrack(SDL_GetTicks());

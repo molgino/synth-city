@@ -172,6 +172,7 @@ static void kmDiff(const KmSnap& a, const KmSnap& b, int pi0) {
         if (kmCfg.newPage != cfg.newPage) kmAdd("cfg.newPage %d>%d", kmCfg.newPage, cfg.newPage);
         if (kmCfg.recThr != cfg.recThr) kmAdd("cfg.recThr %d>%d", kmCfg.recThr, cfg.recThr);
         if (kmCfg.listFold != cfg.listFold) kmAdd("cfg.listFold %d>%d", kmCfg.listFold, cfg.listFold);
+        if (kmCfg.preview != cfg.preview) kmAdd("cfg.preview %d>%d", kmCfg.preview, cfg.preview);
         if (strcmp(kmCfg.project, cfg.project)) kmAdd("Projekt '%s'", cfg.project);
     }
     if (msg[0]) kmAdd("Meldung \"%s\"", msg);
