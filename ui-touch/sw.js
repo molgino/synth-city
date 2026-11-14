@@ -1,5 +1,5 @@
 // Service Worker der Handy-App: alles aus dem Cache (offline), Updates im Hintergrund (naechster Start)
-const CACHE = 'synthcity-1dc8cad4dd94', FILES = ["./", "index.html", "local.js", "sync.js", "synthcity.js", "synthcity.wasm", "manifest.json", "VERSION", "icon-180.png", "icon-192.png", "icon-512.png"];
+const CACHE = 'synthcity-c5bc96561fa2', FILES = ["./", "index.html", "local.js", "sync.js", "synthcity.js", "synthcity.wasm", "manifest.json", "VERSION", "icon-180.png", "icon-192.png", "icon-512.png"];
 self.addEventListener('install', e => {
   // am HTTP-Cache vorbei laden (GitHub Pages haelt Dateien 10 min: sonst landen alte Dateien in der neuen Version)
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES.map(u => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting()));
