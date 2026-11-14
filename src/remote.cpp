@@ -140,7 +140,7 @@ void remoteAudioPush(const float* st, int frames, int rate) {
 bool remoteAudioWanted() { return g_audClients > 0; }
 
 // ---------------------------------------------------------------- Touch-Oberflaeche: Modell + Aktionen
-static char g_model[16384];
+static char g_model[24576];
 static unsigned g_modelSeq = 0;
 static SDL_mutex* g_mdMx = nullptr;
 static volatile unsigned g_mdWant = 0;   // Zeitpunkt der letzten Anfrage
@@ -362,7 +362,7 @@ static int wsThread(void* arg) {
         if (!alive) break;
         g_wantAt = SDL_GetTicks();   // Hauptschleife soll Bilder liefern
         if (wantModel) {   // Touch-Oberflaeche: neues Modell schicken, sobald eines vorliegt
-            static __thread char mb[16384];
+            static __thread char mb[24576];
             int ml = remoteModelGet(mb + 2, (int)sizeof mb - 2);
             if (ml > 0) { mb[0] = 'm'; mb[1] = ' '; lastSend = SDL_GetTicks(); if (!wsSend(fd, 1, mb, ml + 2)) break; }
         }

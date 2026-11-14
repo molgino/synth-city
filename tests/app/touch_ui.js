@@ -68,8 +68,7 @@ function check(ok, what, extra) { if (ok) { pass++; console.log('  OK     ' + wh
   await tapSel('#tPatD');
 
   // Klang schrauben: Umschalten, Gruppe waehlen, Regler ziehen
-  await pg.evaluate(() => { if (!document.body.classList.contains('snd')) { const e = document.getElementById('tMode'), r = e.getBoundingClientRect();
-    e.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, clientX: r.left + 5, clientY: r.top + 5})); } });
+  await tapSel('#tM1');
   await pg.waitForTimeout(900);
   let snd = await pg.evaluate(() => ({snd: document.body.classList.contains('snd'),
     grps: document.querySelectorAll('#tGrps .tg').length, rows: document.querySelectorAll('#tPar .tr').length}));
@@ -182,6 +181,59 @@ function check(ok, what, extra) { if (ok) { pass++; console.log('  OK     ' + wh
     await pg.waitForTimeout(900);
     const picked = await pg.evaluate(() => tm.params.find(x => x.n === 'SMPL').v);
     check(picked !== smp.v, 'der gewaehlte Platz landet auf der Spur', `${smp.v} -> ${picked}`);
+  }
+
+  // Gemeldet: "die Sequencer-Seite kann ich nicht zuverlaessig abrufen" - der Modus war EIN Knopf
+  // im Kreis, der das Ziel statt des Zustands zeigte. Jetzt drei Knoepfe: jeder Modus mit einem Tipp.
+  for (const [from, to, cls] of [['#tM1', '#tM0', 'tui'], ['#tM2', '#tM0', 'tui'], ['#tM0', '#tM2', 'tui keys'], ['#tM1', '#tM2', 'tui keys'], ['#tM2', '#tM1', 'tui snd']]) {
+    await tapSel(from); await pg.waitForTimeout(450);
+    await tapSel(to); await pg.waitForTimeout(450);
+    const got = await pg.evaluate(() => document.body.className.trim());
+    check(got === cls, `ein Tipp von ${from} auf ${to} reicht`, `body="${got}" statt "${cls}"`);
+  }
+  const marked = await pg.evaluate(() => [0, 1, 2].map(k => document.getElementById('tM' + k).classList.contains('on')));
+  check(marked.filter(Boolean).length === 1, 'genau ein Modus ist markiert', JSON.stringify(marked));
+
+  // Lange Listen (LFO-Ziel): stehen einmal je Modell unter lists, der Regler verweist darauf
+  await tapSel('#tM1'); await pg.waitForTimeout(600);
+  const gi = await pg.evaluate(() => tm.grps.findIndex(g => /LFO 1/.test(g)));
+  check(gi >= 0, 'Gruppe LFO 1 ist da');
+  await pg.evaluate(i => tAct(10, i, 0), gi); await pg.waitForTimeout(900);
+  const dst = await pg.evaluate(() => { const i = tm.params.findIndex(p => p.list === 'dest');
+    return {i, n: i >= 0 ? tm.params[i].n : '', v: i >= 0 ? tm.params[i].v : -1, len: tm.lists && tm.lists.dest ? tm.lists.dest.length : 0}; });
+  check(dst.i >= 0 && dst.len > 50, 'LFO-Ziel bietet die lange Liste an', `${dst.n}, ${dst.len} Eintraege`);
+  if (dst.i >= 0) {
+    await pg.evaluate(i => tPickOpen(i), dst.i); await pg.waitForTimeout(500);
+    const wide = await pg.evaluate(() => ({open: document.body.classList.contains('pick'),
+      wide: document.getElementById('tPickL').classList.contains('wide'),
+      zeilen: document.querySelectorAll('#tPickL .pk').length}));
+    check(wide.open && wide.wide && wide.zeilen === dst.len, 'die Zielliste steht als breite Auswahl da', JSON.stringify(wide));
+    await pg.evaluate(v => { const l = [...document.querySelectorAll('#tPickL .pk')];
+      const b = l.find(e => +e.dataset.v !== v && +e.dataset.v > 0) || l[1], r = b.getBoundingClientRect();
+      b.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, clientX: r.left + 10, clientY: r.top + 10})); }, dst.v);
+    await pg.waitForTimeout(900);
+    const nv = await pg.evaluate(() => tm.params.find(p => p.list === 'dest').v);
+    check(nv !== dst.v && nv > 0, 'das gewaehlte Ziel landet auf dem LFO', `${dst.v} -> ${nv}`);
+  }
+
+  // Gemeldet: "im horizontalen Modus kann ich die oberen Elemente nicht bedienen" - der Picker war das
+  // einzige Element ohne Safe-Area und liess sich nur ueber ein 21 px hohes ABBRECHEN schliessen.
+  {
+    const pi = await pg.evaluate(() => tm.params.findIndex(p => p.opts || p.slots || p.list));
+    await pg.evaluate(i => tPickOpen(i), pi); await pg.waitForTimeout(400);
+    const geo = await pg.evaluate(() => { const x = document.getElementById('tPickX').getBoundingClientRect();
+      const cs = getComputedStyle(document.getElementById('tPick'));
+      return {h: Math.round(x.height), w: Math.round(x.width), padTop: parseInt(cs.paddingTop), padLeft: parseInt(cs.paddingLeft)}; });
+    check(geo.h >= 44 && geo.w >= 44, 'ABBRECHEN ist eine echte Fingerflaeche', `${geo.w}x${geo.h}`);
+    check(geo.padTop >= 10 && geo.padLeft >= 10, 'der Picker haelt Abstand zum Rand (Safe-Area)', JSON.stringify(geo));
+    await pg.evaluate(() => { const e = document.getElementById('tPick');
+      e.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, clientX: innerWidth - 6, clientY: innerHeight - 6})); });
+    await pg.waitForTimeout(400);
+    check(!(await pg.evaluate(() => document.body.classList.contains('pick'))), 'daneben tippen schliesst die Auswahl');
+    // und danach ist die Kopfzeile wieder bedienbar
+    const frei = await pg.evaluate(() => ['tPlay', 'tM0', 'tView'].every(id => { const e = document.getElementById(id), b = e.getBoundingClientRect();
+      const t = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2); return t === e || e.contains(t); }));
+    check(frei, 'danach ist die Kopfzeile wieder frei');
   }
 
   // Gemeldet: scrollen ging nicht - #tui hatte touch-action:none (blockiert jede Geste im Overlay)

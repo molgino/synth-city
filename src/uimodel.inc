@@ -11,7 +11,8 @@ enum { UA_STEP = 1, UA_TRACK, UA_MUTE, UA_PLAY, UA_PATTERN, UA_PAGE, UA_SOLO, UA
 // Geraete-Oberflaeche zeichnet. uiGrpRange liefert den Bereich [a,b) der Eintraege dieser Gruppe.
 // Regler, die am Geraet einen Namen statt einer Zahl zeigen und wenige Werte haben: die bekommen am
 // Handy eine Auswahlliste statt eines Schiebers (zielen auf 15 Engines mit dem Finger geht sonst nicht).
-// Lange Listen (Sample, LFO-Ziel, Trig-Bedingung) laufen weiter ueber das Geraetebild.
+// Lange Listen stehen EINMAL je Modell unter "lists" (ein LFO hat drei DEST-Regler - je Regler
+// waere dieselbe 150-Eintraege-Liste dreimal drin); der Regler verweist mit "list" darauf.
 static bool uiHasOpts(int kind, int mx) {
     if (mx < 1 || mx > 31) return false;
     switch (kind) {
@@ -21,6 +22,39 @@ static bool uiHasOpts(int kind, int mx) {
         return true;
     default: return false;
     }
+}
+
+// Regler mit langer Auswahl: Name der gemeinsamen Liste (nullptr = keine)
+static const char* uiListOf(int kind) {
+    if (kind == K_LDEST) return "dest";
+    if (kind == K_EDEST) return "edest";
+    if (kind == K_COND) return "cond";
+    return nullptr;
+}
+// Eine der gemeinsamen Listen als JSON-Paare {v,n} schreiben
+static int uiListJson(char* b, int n, int w, const char* name, int kind, int mach) {
+    w += snprintf(b + w, n - w, ",\"%s\":[", name);
+    bool first = true;
+    if (kind == K_COND) {
+        ParamDef d = paramDef(mach, P_COND);
+        for (int v = 0; v <= d.max && w < n - 60; v++) {
+            char ob[40]; knobText(d, v, ob, sizeof ob, 0);
+            for (char* c = ob; *c; c++) if (*c == '"' || *c == '\\') *c = '\'';
+            w += snprintf(b + w, n - w, "%s{\"v\":%d,\"n\":\"%s\"}", first ? "" : ",", v, ob); first = false;
+        }
+    } else {   // Modulationsziel: "---", jeder echte Klangparameter mit seiner Seite, bei ENV zusaetzlich VCA
+        w += snprintf(b + w, n - w, "{\"v\":0,\"n\":\"---\"}"); first = false;
+        if (kind == K_EDEST) w += snprintf(b + w, n - w, ",{\"v\":%d,\"n\":\"VCA\"}", MOD_VCA);
+        for (int u = 0; u < NUI_PAGES && w < n - 80; u++) {
+            if (!pageAvail(u)) continue;
+            for (int k = 0; k < uiSlots(u) && w < n - 80; k++) {
+                int pi = uiParam(u, k);
+                if (pi < 0 || !ldestValid(mach, pi) || ldestUiPage(pi) != u) continue;
+                w += snprintf(b + w, n - w, ",{\"v\":%d,\"n\":\"%s %s\"}", pi + 1, PAGE_NAMES[u], paramDef(mach, pi).name);
+            }
+        }
+    }
+    return w + snprintf(b + w, n - w, "]");
 }
 
 static void uiGrpRange(int& from, int& to, int& grpIdx, int& grpCount) {
@@ -89,6 +123,8 @@ static int uiModelJson(char* b, int n) {
                     w += snprintf(b + w, n - w, ",{\"v\":%d,\"n\":\"%s\"}", k, sn);
                 }
                 w += snprintf(b + w, n - w, "]");
+            } else if (uiListOf(d.kind)) {   // lange Liste: nur der Verweis, die Liste steht unter "lists"
+                w += snprintf(b + w, n - w, ",\"list\":\"%s\"", uiListOf(d.kind));
             } else if (uiHasOpts(d.kind, d.max)) {   // Auswahlliste statt Schieber
                 w += snprintf(b + w, n - w, ",\"opts\":[");
                 for (int v = 0; v <= d.max && w < n - 80; v++) {
@@ -101,8 +137,27 @@ static int uiModelJson(char* b, int n) {
             }
             w += snprintf(b + w, n - w, "}");
         }
+        bool need[3] = {false, false, false};   // dest / edest / cond - nur was die Gruppe wirklich braucht
+        for (int i = from; i < to; i++) {
+            page = v2It[i].pg; slot = v2It[i].k;
+            ParamDef d; int val, bv; bool lk; char lab[24];
+            if (!knobInfo(v2It[i].k, d, val, lk, bv, lab, sizeof lab)) continue;
+            if (d.kind == K_LDEST) need[0] = true;
+            else if (d.kind == K_EDEST) need[1] = true;
+            else if (d.kind == K_COND) need[2] = true;
+        }
         page = savePage; slot = saveSlot;
         w += snprintf(b + w, n - w, "]");
+        if (need[0] || need[1] || need[2]) {
+            int mach = P.machine[track] % M_COUNT;
+            w += snprintf(b + w, n - w, ",\"lists\":{");
+            int first = w;
+            if (need[0]) w = uiListJson(b, n, w, "dest", K_LDEST, mach);
+            if (need[1]) w = uiListJson(b, n, w, "edest", K_EDEST, mach);
+            if (need[2]) w = uiListJson(b, n, w, "cond", K_COND, mach);
+            if (b[first] == ',') memmove(b + first, b + first + 1, strlen(b + first + 1) + 1), w--;   // erstes Komma weg
+            w += snprintf(b + w, n - w, "}");
+        }
     }
     w += snprintf(b + w, n - w, "}");
     return w < n ? w : n - 1;
@@ -165,7 +220,7 @@ static void uiActionsRun() {   // Hauptthread: Aktionen aus der Touch-Oberflaech
                         lockA(); Engine::setMachine(P, track, m); unlockA();
                         if (cfg.preview) { lockA(); eng.preview(track, nullptr); unlockA(); }
                     }
-                } else if (d.kind == K_NOTEX || d.kind == K_SMPL) {   // direkt setzen: editValue zaehlt bei SMPL nur ueber
+                } else if (d.kind == K_NOTEX || d.kind == K_SMPL || uiListOf(d.kind)) {   // direkt setzen: editValue zaehlt bei SMPL nur ueber
                                                       // belegte Plaetze und springt bei NT2-NT4 von AUS auf Unison
                     int idx = slotParam(slot);
                     if (idx >= 0) {
@@ -227,7 +282,7 @@ static void uiModelPush() {   // ~10/s aus der Hauptschleife, nur wenn jemand di
     uint32_t now = SDL_GetTicks();
     if (!remoteModelWanted() || now - last < 70) return;
     last = now;
-    static char b[16384];
+    static char b[24576];
     uiModelJson(b, sizeof b);
     remoteModelSet(b);
 }
