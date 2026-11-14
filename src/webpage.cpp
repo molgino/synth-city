@@ -560,8 +560,8 @@ body.nopad #scr{grid-column:1 !important}
  <div id="tWait">warte auf die Groovebox …</div>
  <div id="tPick"><div id="tPickH"><span id="tPickT"></span>
   <span style="flex:1"></span><button class="tb" id="tPickX">ABBRECHEN</button></div><div id="tPickL"></div></div>
- <div id="tBot"><div id="tPages" style="display:flex;gap:6px;flex-wrap:wrap"></div><span style="flex:1"></span><button class="tb" id="tPrj">PROJEKT</button></div>
- <div id="tSheet"><div id="tShH"><span id="tShT">PROJEKT</span><span style="flex:1"></span><button class="tb" id="tShX">ZU</button></div><div id="tShB"></div></div>
+ <div id="tBot"><div id="tPages" style="display:flex;gap:6px;flex-wrap:wrap"></div><span style="flex:1"></span><button class="tb" id="tPrj">MEHR</button></div>
+ <div id="tSheet"><div id="tShH"><span id="tShT">PROJEKT &amp; SAMPLER</span><span style="flex:1"></span><button class="tb" id="tShX">ZU</button></div><div id="tShB"></div></div>
 </div>
 <div id="help"><div><b style="color:#fff">Tastatur</b><br>
 <kbd>←↑→↓</kbd> Steuerkreuz &nbsp; <kbd>Z</kbd>/<kbd>Leertaste</kbd> A &nbsp; <kbd>X</kbd>/<kbd>⌫</kbd> B &nbsp; <kbd>S</kbd> X &nbsp; <kbd>A</kbd> Y<br>
@@ -616,7 +616,7 @@ function tuiModel(j){let m;try{m=typeof j==='string'?JSON.parse(j):j;}catch(e){r
 function tuiRender(m){
  const play=$('tPlay');play.textContent=m.play?'■':'▶';play.classList.toggle('on',!!m.play);
  $('tPat').textContent=m.pat;
- if(m.prj)$('tPrj').textContent=(m.prj.d?'● ':'')+'PROJEKT';$('tBpm').textContent=m.bpm+' BPM'+(m.song?' · SONG':'');
+ if(m.prj)$('tPrj').textContent=(m.prj.d?'● ':'')+'MEHR';$('tBpm').textContent=m.bpm+' BPM'+(m.song?' · SONG':'');
  $('tMsg').textContent=m.msg||'';
  document.body.classList.toggle('hold',m.hold>=0);
  if(document.body.classList.contains('keys')){tKbMark(m.note);
@@ -793,7 +793,7 @@ function tSheetFill(){const b=$('tShB');if(!tm||!tm.prj)return;const p=tm.prj;
  const info=document.createElement('div');info.className='lbl';
  info.textContent='Offen: '+p.n+(p.d?'  ·  ungespeicherte Änderungen':'  ·  gespeichert');b.appendChild(info);
  const row=document.createElement('div');row.className='row';
- const sv=document.createElement('div');sv.className='big'+(p.d?' go':'');sv.textContent='SPEICHERN';
+ const sv=document.createElement('div');sv.className='big'+(p.d?' go':'');sv.textContent='PROJEKT SPEICHERN';
  sv.addEventListener('pointerdown',e=>{e.preventDefault();tAct(16,0,0);setTimeout(tSheetFill,600);},{passive:false});
  const nw=document.createElement('div');nw.className='big';nw.textContent='NEUES PROJEKT';
  nw.addEventListener('pointerdown',e=>{e.preventDefault();tAct(16,2,0);setTimeout(()=>{tSheetFill();tSheetClose();},700);},{passive:false});
@@ -804,7 +804,29 @@ function tSheetFill(){const b=$('tShB');if(!tm||!tm.prj)return;const p=tm.prj;
   d.dataset.i=i;
   d.addEventListener('pointerdown',e=>{e.preventDefault();tAct(16,1,i);setTimeout(()=>{tSheetFill();tSheetClose();},900);},{passive:false});
   pl.appendChild(d);});
- b.appendChild(pl);}
+ b.appendChild(pl);
+ // --- Sampler: Quelle, Aufnahme, Hoeren, Speichern. Trimmen und Chops bleiben am Geraet.
+ const sl=document.createElement('div');sl.className='lbl';sl.style.marginTop='6px';
+ const S=tm.smp||{};
+ sl.textContent='Sampler · Quelle '+(S.srcn||'?')+(S.rec?'  ·  NIMMT AUF':(S.sec?'  ·  '+(S.sec/10).toFixed(1)+' s aufgenommen':'  ·  nichts aufgenommen'));
+ b.appendChild(sl);
+ const sr=document.createElement('div');sr.className='row';
+ const mk=(t,cls,fn)=>{const d=document.createElement('div');d.className='big'+(cls?' '+cls:'');d.textContent=t;
+  d.addEventListener('pointerdown',e=>{e.preventDefault();fn();setTimeout(tSheetFill,500);},{passive:false});return d;};
+ sr.appendChild(mk('QUELLE',''  ,()=>tSmpSrc()));
+ sr.appendChild(mk(S.rec?'STOPP':'AUFNAHME',S.rec?'go':'',()=>tAct(19,0,0)));
+ sr.appendChild(mk('HÖREN','',()=>tAct(19,1,0)));
+ sr.appendChild(mk('SAMPLE SICHERN','',()=>tAct(19,2,0)));
+ b.appendChild(sr);}
+// Quelle waehlen: USB, Master, die acht Spuren
+function tSmpSrc(){document.body.classList.add('pick');
+ $('tPickT').textContent='SAMPLER-QUELLE';
+ const l=$('tPickL');l.innerHTML='';l.classList.add('wide');
+ const n=['USB PC/HANDY','MASTER'];for(let t=0;t<8;t++)n.push('SPUR '+(t+1)+(tm.tracks[t]?' '+tm.tracks[t].n:''));
+ n.forEach((nm,v)=>{const d=document.createElement('div');d.className='pk'+(v===(tm.smp?tm.smp.src:0)?' on':'');
+  d.textContent=nm;d.dataset.v=v;
+  d.addEventListener('pointerdown',e=>{e.preventDefault();tAct(19,3,v);tPickClose();setTimeout(tSheetFill,400);},{passive:false});
+  l.appendChild(d);});}
 $('tPrj').addEventListener('pointerdown',e=>{e.preventDefault();tSheetOpen();},{passive:false});
 $('tShX').addEventListener('pointerdown',e=>{e.preventDefault();tSheetClose();},{passive:false});
 $('tSheet').addEventListener('pointerdown',e=>{if(e.target===$('tSheet')||e.target===$('tShB')){e.preventDefault();tSheetClose();}},{passive:false});

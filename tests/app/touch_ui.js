@@ -285,7 +285,7 @@ function check(ok, what, extra) { if (ok) { pass++; console.log('  OK     ' + wh
     const sh = await pg.evaluate(() => ({offen: document.body.classList.contains('sheet'),
       knoepfe: [...document.querySelectorAll('#tShB .big')].map(e => e.textContent).join(','),
       zeilen: document.querySelectorAll('#tShB .pl div').length}));
-    check(sh.offen && /SPEICHERN/.test(sh.knoepfe) && sh.zeilen === p0.l.length,
+    check(sh.offen && /PROJEKT SPEICHERN/.test(sh.knoepfe) && sh.zeilen === p0.l.length,
           'das Projekt-Blatt zeigt Speichern und alle Projekte', JSON.stringify(sh));
     // speichern
     await pg.evaluate(() => { const b = [...document.querySelectorAll('#tShB .big')][0], r = b.getBoundingClientRect();
@@ -310,6 +310,37 @@ function check(ok, what, extra) { if (ok) { pass++; console.log('  OK     ' + wh
         d.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, clientX: r.left + 5, clientY: r.top + 5})); }, zurueck);
       await pg.waitForTimeout(1600);
       check((await pg.evaluate(() => tm.prj.n)) === p0.n, 'und wieder zurueck');
+    }
+    // Sampler im selben Blatt: Quelle, Aufnahme, Hoeren, Sichern
+    await tapSel('#tPrj'); await pg.waitForTimeout(500);
+    const sb = await pg.evaluate(() => [...document.querySelectorAll('#tShB .big')].map(e => e.textContent));
+    check(sb.includes('QUELLE') && sb.some(t => /AUFNAHME|STOPP/.test(t)) && sb.includes('HÖREN') && sb.includes('SAMPLE SICHERN'),
+          'der Sampler steht im selben Blatt', JSON.stringify(sb));
+    {   // Quelle umstellen - und wieder zurueck, damit der naechste Lauf gleich startet
+      const q0 = await pg.evaluate(() => tm.smp.src);
+      await pg.evaluate(() => { const d = [...document.querySelectorAll('#tShB .big')].find(e => e.textContent === 'QUELLE'), r = d.getBoundingClientRect();
+        d.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, clientX: r.left + 5, clientY: r.top + 5})); });
+      await pg.waitForTimeout(450);
+      const quellen = await pg.evaluate(() => document.querySelectorAll('#tPickL .pk').length);
+      check(quellen === 10, 'die Quelle bietet USB, Master und acht Spuren an', String(quellen));
+      const ziel = q0 === 1 ? 0 : 1;
+      await pg.evaluate(i => { const d = [...document.querySelectorAll('#tPickL .pk')][i], r = d.getBoundingClientRect();
+        d.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, clientX: r.left + 5, clientY: r.top + 5})); }, ziel);
+      await pg.waitForTimeout(800);
+      check((await pg.evaluate(() => tm.smp.src)) === ziel, 'die gewaehlte Quelle kommt an', `${q0} -> ${ziel}`);
+      // Aufnahme an, wieder aus
+      const recBtn = () => pg.evaluate(() => { const d = [...document.querySelectorAll('#tShB .big')].find(e => /AUFNAHME|STOPP/.test(e.textContent)), r = d.getBoundingClientRect();
+        d.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, clientX: r.left + 5, clientY: r.top + 5})); });
+      await recBtn(); await pg.waitForTimeout(800);
+      check((await pg.evaluate(() => tm.smp.rec)) === 1, 'AUFNAHME startet den Sampler');
+      await recBtn(); await pg.waitForTimeout(800);
+      check((await pg.evaluate(() => tm.smp.rec)) === 0, 'und STOPP beendet sie wieder');
+      await pg.evaluate(() => { const d = [...document.querySelectorAll('#tShB .big')].find(e => e.textContent === 'QUELLE'), r = d.getBoundingClientRect();
+        d.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, clientX: r.left + 5, clientY: r.top + 5})); });
+      await pg.waitForTimeout(450);
+      await pg.evaluate(i => { const d = [...document.querySelectorAll('#tPickL .pk')][i], r = d.getBoundingClientRect();
+        d.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, clientX: r.left + 5, clientY: r.top + 5})); }, q0);
+      await pg.waitForTimeout(700);
     }
     await pg.evaluate(() => tSheetClose()); await pg.waitForTimeout(300);
     check(!(await pg.evaluate(() => document.body.classList.contains('sheet'))), 'das Blatt laesst sich schliessen');

@@ -5,7 +5,7 @@
 // Gelesen wird im Hauptthread (uiModelPush, ~10/s), geschickt vom Web-Thread; Aktionen laufen
 // ueber remoteActPush zurueck in den Hauptthread (uiActionsRun in handleInput).
 
-enum { UA_STEP = 1, UA_TRACK, UA_MUTE, UA_PLAY, UA_PATTERN, UA_PAGE, UA_SOLO, UA_TRIGLESS, UA_VIEW, UA_GROUP, UA_PARAM, UA_HOLD, UA_LOCKCLR, UA_NOTE, UA_TRKP, UA_PRJ, UA_SONG, UA_SNGCELL };
+enum { UA_STEP = 1, UA_TRACK, UA_MUTE, UA_PLAY, UA_PATTERN, UA_PAGE, UA_SOLO, UA_TRIGLESS, UA_VIEW, UA_GROUP, UA_PARAM, UA_HOLD, UA_LOCKCLR, UA_NOTE, UA_TRKP, UA_PRJ, UA_SONG, UA_SNGCELL, UA_SMP };
 // Mixer: dieselben Zeilen wie die MIX-Seite am Geraet (MIX_P), damit beide dasselbe zeigen
 enum { UMIX_N = 6 };
 
@@ -122,6 +122,15 @@ static int uiModelJson(char* b, int n) {
         w += snprintf(b + w, n - w, "],\"drum\":%d,\"note\":%d", machineIsDrum(P.machine[track] % M_COUNT) ? 1 : 0, note);
     }
     w += snprintf(b + w, n - w, ",\"now\":%d", eng.playing ? eng.playedStep[track] : -1);
+    {   // Sampler: Zustand, Laenge, Quelle - Aufnehmen, Hoeren und Speichern gehen damit vom Handy
+        const char* sn;
+        char sb[40];
+        if (smpSrc >= 2) { snprintf(sb, sizeof sb, TR("SPUR %d", "TRACK %d"), smpSrc - 1); sn = sb; }
+        else sn = smpSrc ? "MASTER" : TR("USB PC/HANDY", "USB PC/PHONE");
+        w += snprintf(b + w, n - w, ",\"smp\":{\"st\":%d,\"rec\":%d,\"sec\":%d,\"src\":%d,\"srcn\":\"%s\",\"peak\":%d}",
+                      smpState, smpRecording() ? 1 : 0, smpRate > 0 ? smpLen * 10 / smpRate : 0, smpSrc, sn,
+                      (int)(smpPeak * 100.f));
+    }
     {   // Song: die Clip-Matrix als Zeilen, dazu die belegten Patterns zur Auswahl
         const Project& J = eng.proj;
         w += snprintf(b + w, n - w, ",\"sng\":{\"on\":%d,\"len\":%d,\"pos\":%d,\"rows\":[",
@@ -283,6 +292,12 @@ static void uiActionsRun() {   // Hauptthread: Aktionen aus der Touch-Oberflaech
             }
             page = savePage; slot = saveSlot;
             v2Sync();
+        } break;
+        case UA_SMP: {   // Sampler: 0 Aufnahme an/aus, 1 hoeren, 2 speichern, 3 Quelle (b = 0 USB, 1 Master, 2.. Spur)
+            if (e.a == 0) smpRecToggle();
+            else if (e.a == 1) { smpChopPv = -1; smpPreview(smpStart, smpEnd); }
+            else if (e.a == 2) smpSave();
+            else if (e.a == 3 && e.b >= 0 && e.b < 10) smpSrc = e.b;
         } break;
         case UA_SONG: {   // 0 Song an/aus, 1 ab Zeile b spielen, 2 Zeile hinter b einfuegen, 3 Zeile b weg, 4/5 rep +/-
             Project& J = eng.proj;
