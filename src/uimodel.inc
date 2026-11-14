@@ -5,7 +5,9 @@
 // Gelesen wird im Hauptthread (uiModelPush, ~10/s), geschickt vom Web-Thread; Aktionen laufen
 // ueber remoteActPush zurueck in den Hauptthread (uiActionsRun in handleInput).
 
-enum { UA_STEP = 1, UA_TRACK, UA_MUTE, UA_PLAY, UA_PATTERN, UA_PAGE, UA_SOLO, UA_TRIGLESS, UA_VIEW, UA_GROUP, UA_PARAM, UA_HOLD, UA_LOCKCLR, UA_NOTE };
+enum { UA_STEP = 1, UA_TRACK, UA_MUTE, UA_PLAY, UA_PATTERN, UA_PAGE, UA_SOLO, UA_TRIGLESS, UA_VIEW, UA_GROUP, UA_PARAM, UA_HOLD, UA_LOCKCLR, UA_NOTE, UA_TRKP };
+// Mixer: dieselben Zeilen wie die MIX-Seite am Geraet (MIX_P), damit beide dasselbe zeigen
+enum { UMIX_N = 6 };
 
 // Regler der Gruppe, in der der Cursor steht - aus derselben Liste (v2Build/v2It), die auch die
 // Geraete-Oberflaeche zeichnet. uiGrpRange liefert den Bereich [a,b) der Eintraege dieser Gruppe.
@@ -82,9 +84,11 @@ static int uiModelJson(char* b, int n) {
     w += snprintf(b + w, n - w, "\",\"tracks\":[");
     for (int t = 0; t < NTRACKS && w < n - 200; t++) {
         const Col& c = TCOL[t];
-        w += snprintf(b + w, n - w, "%s{\"n\":\"%s\",\"m\":%d,\"s\":%d,\"c\":\"#%02x%02x%02x\",\"len\":%d,\"on\":%d}",
+        w += snprintf(b + w, n - w, "%s{\"n\":\"%s\",\"m\":%d,\"s\":%d,\"c\":\"#%02x%02x%02x\",\"len\":%d,\"on\":%d,\"mix\":[",
                       t ? "," : "", MACHINE_NAMES[P.machine[t] % M_COUNT], eng.muted(t) ? 1 : 0, eng.solo[t] ? 1 : 0,
                       c.r, c.g, c.b, P.len[t] < 1 ? 1 : P.len[t], eng.playing && eng.playedStep[t] >= 0 ? 1 : 0);
+        for (int r = 0; r < UMIX_N; r++) w += snprintf(b + w, n - w, "%s%d", r ? "," : "", P.p[t][MIX_P[r]]);
+        w += snprintf(b + w, n - w, "]}");
     }
     w += snprintf(b + w, n - w, "],\"steps\":[");
     for (int s = 0; s < len && w < n - 40; s++)   // Zustand je Step: 0 leer, 1 Trig, 2 trigless
@@ -232,6 +236,13 @@ static void uiActionsRun() {   // Hauptthread: Aktionen aus der Touch-Oberflaech
             }
             page = savePage; slot = saveSlot;
             v2Sync();
+        } break;
+        case UA_TRKP: {   // Mixer: Wert einer beliebigen Spur setzen (a = Spur*16 + Zeile)
+            int t = (e.a >> 4) & 15, r = e.a & 15;
+            if (t >= NTRACKS || r >= UMIX_N) break;
+            int idx = MIX_P[r], mx = idx == P_CMPS ? 1 : 127;
+            undoTrack(SDL_GetTicks());
+            lockA(); curP().p[t][idx] = (uint8_t)clampi(e.b, 0, mx); unlockA();
         } break;
         case UA_HOLD: {   // P-Lock: Step festhalten; danach schreiben alle Reglerwerte Locks statt Pattern-Werte
             if (e.b) {

@@ -372,6 +372,25 @@ body.tui #app{visibility:hidden}
  background:var(--panel);border:1px solid var(--line);border-radius:10px;color:var(--text);font:inherit;font-size:13px;padding:0 12px}
 #tTop .tb:active,#tBot .tb:active{background:var(--panel2)}
 #tModes{display:flex;gap:4px}
+/* Mixer: 8 Spalten, Zeilen wie die MIX-Seite am Geraet (VOL PAN S.A S.B S.C CMP) */
+#tMix{display:none;grid-row:2;grid-template-columns:repeat(8,1fr);gap:4px;min-height:0}
+body.mix #tMix{display:grid}
+body.mix #tMain{display:none}
+.mxc{display:flex;flex-direction:column;gap:3px;min-width:0;min-height:0;background:var(--panel);border-radius:8px;padding:3px}
+.mxc.sel{outline:1px solid var(--text)}
+.mxh{font-size:11px;text-align:center;color:var(--dim);overflow:hidden;white-space:nowrap;min-height:22px;
+ display:flex;align-items:center;justify-content:center;border-radius:5px;background:var(--panel2)}
+.mxb{display:flex;gap:3px}
+.mxb div{flex:1;min-height:26px;display:flex;align-items:center;justify-content:center;border-radius:5px;
+ background:var(--off);color:var(--dim);font-size:11px}
+.mxb div.on{background:var(--acc);color:var(--bg)}
+.mxb div.so.on{background:var(--cy)}
+.mxf{position:relative;flex:1;min-height:26px;border-radius:5px;background:var(--off);overflow:hidden;touch-action:none}
+.mxf i{position:absolute;left:0;right:0;bottom:0;background:var(--acc);opacity:.55}
+.mxf b{position:absolute;left:3px;top:2px;font-size:10px;font-weight:400;color:var(--dim)}
+.mxf u{position:absolute;right:3px;top:2px;font-size:10px;text-decoration:none;color:var(--text)}
+.mxf.sw{display:flex;align-items:center;justify-content:center}
+@media (orientation:portrait){#tMix{grid-template-columns:repeat(4,1fr)}}
 #tModes .tm{padding:0 10px}
 #tModes .tm.on{background:var(--panel2);border-color:var(--text);color:var(--cy)}
 #tPlay{font-size:20px;min-width:62px}
@@ -495,11 +514,12 @@ body.nopad #scr{grid-column:1 !important}
 </div></div>
 <div id="tui">
  <div id="tTop"><button class="tb" id="tPlay">▶</button><div class="tb" id="tPatD">‹</div><div id="tPat">A01</div><div class="tb" id="tPatU">›</div>
-  <div id="tBpm">120 BPM</div><span id="tMsg"></span><span id="tLock"><span style="color:#ffba40;font-size:12px" id="tLockT">LOCK</span><button class="tb" id="tLockC">LOCKS WEG</button><button class="tb" id="tLockE">FERTIG</button></span><span id="tModes"><button class="tb tm" id="tM0">STEPS</button><button class="tb tm" id="tM1">SOUND</button><button class="tb tm" id="tM2">NOTEN</button></span><button class="tb" id="tView" title="zum gespiegelten Geraetebild">BILD</button></div>
+  <div id="tBpm">120 BPM</div><span id="tMsg"></span><span id="tLock"><span style="color:#ffba40;font-size:12px" id="tLockT">LOCK</span><button class="tb" id="tLockC">LOCKS WEG</button><button class="tb" id="tLockE">FERTIG</button></span><span id="tModes"><button class="tb tm" id="tM0">STEPS</button><button class="tb tm" id="tM1">SOUND</button><button class="tb tm" id="tM2">NOTEN</button><button class="tb tm" id="tM3">MIXER</button></span><button class="tb" id="tView" title="zum gespiegelten Geraetebild">BILD</button></div>
  <div id="tMain"><div id="tTracks"></div>
   <div id="tGrid"></div>
   <div id="tSnd"><div id="tGrps"></div><div id="tPar"></div></div>
   <div id="tKeys"><div id="tOct"><button class="tb" id="tOctD">− OKT</button><span id="tOctT" style="color:var(--cy);min-width:52px;text-align:center"></span><button class="tb" id="tOctU">+ OKT</button><span id="tNoteT" style="color:var(--dim);font-size:12px"></span></div><div id="tKb"></div></div></div>
+ <div id="tMix"></div>
  <div id="tWait">warte auf die Groovebox …</div>
  <div id="tPick"><div id="tPickH"><span id="tPickT"></span>
   <span style="flex:1"></span><button class="tb" id="tPickX">ABBRECHEN</button></div><div id="tPickL"></div></div>
@@ -563,6 +583,7 @@ function tuiRender(m){
  if(document.body.classList.contains('keys')){tKbMark(m.note);
   $('tNoteT').textContent=(m.hold>=0?'Step '+(m.hold+1)+': ':'')+tNoteName(m.note)+(m.drum?' · Drum-Engine: Tonhöhe wirkt kaum':'');}
  if(m.hold>=0)$('tLockT').textContent='LOCK STEP '+(m.hold+1);
+ if(document.body.classList.contains('mix'))tMixPaint();
  // Spuren: nur neu aufbauen, wenn sich die Struktur aendert (sonst flackert es und der Finger verliert das Ziel)
  const key=m.tracks.map(t=>t.n).join(',')+'|'+m.len;
  const tr=$('tTracks');
@@ -664,16 +685,53 @@ $('tLockC').addEventListener('pointerdown',e=>{e.preventDefault();tAct(13,0,0);}
 // Drei Ansichten, drei Knoepfe: STEPS, SOUND, NOTEN. Vorher war das EIN Knopf im Kreis, der das
 // Ziel statt des Zustands zeigte - zu den Steps zurueck brauchte je nach Lage ein oder zwei Treffer
 // (gemeldet "die Sequencer-Seite kann ich nicht zuverlaessig abrufen"). Jetzt: ein Tipp, immer.
-const TMODES=['','snd','keys'];
-function tModeNow(){return document.body.classList.contains('keys')?2:(document.body.classList.contains('snd')?1:0);}
+const TMODES=['','snd','keys','mix'];
+function tModeNow(){const c=document.body.classList;return c.contains('mix')?3:(c.contains('keys')?2:(c.contains('snd')?1:0));}
 function tSetMode(m){const b=document.body;TMODES.forEach(c=>c&&b.classList.remove(c));
  if(TMODES[m])b.classList.add(TMODES[m]);
- for(let k=0;k<3;k++){const e=$('tM'+k);if(e)e.classList.toggle('on',k===m);}
+ for(let k=0;k<TMODES.length;k++){const e=$('tM'+k);if(e)e.classList.toggle('on',k===m);}
  if(TMODES[m]==='snd'&&tm&&tm.view===0)tAct(9,1,0);
  if(TMODES[m]==='keys')tKbBuild();
+ if(TMODES[m]==='mix')tMixBuild();
  try{localStorage.tmode=m;}catch(e){}}
-for(let k=0;k<3;k++)$('tM'+k).addEventListener('pointerdown',e=>{e.preventDefault();tSetMode(k);},{passive:false});
+for(let k=0;k<TMODES.length;k++)$('tM'+k).addEventListener('pointerdown',e=>{e.preventDefault();tSetMode(k);},{passive:false});
 try{const m=+(localStorage.tmode||0);setTimeout(()=>tSetMode(m||0),300);}catch(e){setTimeout(()=>tSetMode(0),300);}
+
+// ---- Mixer: acht Spuren nebeneinander, Zeilen wie die MIX-Seite am Geraet
+const MIXN=['VOL','PAN','S.A','S.B','S.C','CMP'];
+function tMixBuild(){const m=$('tMix');if(!tm||!tm.tracks)return;m.innerHTML='';
+ tm.tracks.forEach((t,i)=>{const c=document.createElement('div');c.className='mxc';c.dataset.t=i;
+  const h=document.createElement('div');h.className='mxh';h.textContent='T'+(i+1)+' '+t.n;
+  h.addEventListener('pointerdown',e=>{e.preventDefault();tAct(2,i,0);},{passive:false});c.appendChild(h);
+  const b=document.createElement('div');b.className='mxb';
+  ['M','S'].forEach((lb,k)=>{const d=document.createElement('div');d.textContent=lb;if(k)d.className='so';
+   d.addEventListener('pointerdown',e=>{e.preventDefault();tAct(k?7:3,i,0);},{passive:false});b.appendChild(d);});
+  c.appendChild(b);
+  for(let r=0;r<MIXN.length;r++){const f=document.createElement('div');f.className='mxf'+(r===5?' sw':'');
+   f.innerHTML='<i></i><b>'+MIXN[r]+'</b><u></u>';tMixDrag(f,i,r);c.appendChild(f);}
+  m.appendChild(c);});
+ tMixPaint();}
+function tMixPaint(){if(!tm||!tm.tracks)return;const m=$('tMix');
+ if(m.childElementCount!==tm.tracks.length){tMixBuild();return;}
+ [...m.children].forEach((c,i)=>{const t=tm.tracks[i];if(!t||!t.mix)return;
+  c.classList.toggle('sel',i===tm.track);
+  const bs=c.querySelector('.mxb').children;bs[0].classList.toggle('on',!!t.m);bs[1].classList.toggle('on',!!t.s);
+  const fs=c.querySelectorAll('.mxf');
+  for(let r=0;r<fs.length;r++){const v=t.mix[r],f=fs[r];if(f.dataset.drag)continue;
+   if(r===5){f.querySelector('i').style.height='0';f.querySelector('u').textContent=v?'AN':'-';
+    f.style.background=v?'var(--panel2)':'var(--off)';continue;}
+   f.querySelector('i').style.height=Math.round(v/127*100)+'%';f.querySelector('u').textContent=v;}});}
+// senkrecht ziehen = Wert (volle Hoehe = ganzer Bereich), CMP ist ein Schalter
+function tMixDrag(f,t,r){let id=null,y0=0,v0=0,cur=0;
+ f.addEventListener('pointerdown',e=>{e.preventDefault();
+  if(r===5){const t2=tm.tracks[t];tAct(15,t*16+r,t2.mix[r]?0:1);return;}
+  id=e.pointerId;y0=e.clientY;v0=cur=tm.tracks[t].mix[r];f.setPointerCapture(id);f.dataset.drag='1';},{passive:false});
+ f.addEventListener('pointermove',e=>{if(id===null||e.pointerId!==id)return;e.preventDefault();
+  const h=f.getBoundingClientRect().height||1;
+  let v=Math.max(0,Math.min(127,Math.round(v0+(y0-e.clientY)/h*127)));
+  if(v!==cur){cur=v;f.querySelector('i').style.height=Math.round(v/127*100)+'%';f.querySelector('u').textContent=v;tAct(15,t*16+r,v);}},{passive:false});
+ const end=e=>{if(id===null||(e&&e.pointerId!==id))return;id=null;delete f.dataset.drag;};
+ f.addEventListener('pointerup',end);f.addEventListener('pointercancel',end);}
 
 // ---- Klaviatur: zwei Oktaven, weisse Tasten als Reihe, schwarze darueber
 let tOct=4;

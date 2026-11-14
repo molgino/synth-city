@@ -185,13 +185,13 @@ function check(ok, what, extra) { if (ok) { pass++; console.log('  OK     ' + wh
 
   // Gemeldet: "die Sequencer-Seite kann ich nicht zuverlaessig abrufen" - der Modus war EIN Knopf
   // im Kreis, der das Ziel statt des Zustands zeigte. Jetzt drei Knoepfe: jeder Modus mit einem Tipp.
-  for (const [from, to, cls] of [['#tM1', '#tM0', 'tui'], ['#tM2', '#tM0', 'tui'], ['#tM0', '#tM2', 'tui keys'], ['#tM1', '#tM2', 'tui keys'], ['#tM2', '#tM1', 'tui snd']]) {
+  for (const [from, to, cls] of [['#tM1', '#tM0', 'tui'], ['#tM2', '#tM0', 'tui'], ['#tM3', '#tM0', 'tui'], ['#tM0', '#tM2', 'tui keys'], ['#tM1', '#tM2', 'tui keys'], ['#tM2', '#tM1', 'tui snd'], ['#tM0', '#tM3', 'tui mix']]) {
     await tapSel(from); await pg.waitForTimeout(450);
     await tapSel(to); await pg.waitForTimeout(450);
     const got = await pg.evaluate(() => document.body.className.trim());
     check(got === cls, `ein Tipp von ${from} auf ${to} reicht`, `body="${got}" statt "${cls}"`);
   }
-  const marked = await pg.evaluate(() => [0, 1, 2].map(k => document.getElementById('tM' + k).classList.contains('on')));
+  const marked = await pg.evaluate(() => [0, 1, 2, 3].map(k => document.getElementById('tM' + k).classList.contains('on')));
   check(marked.filter(Boolean).length === 1, 'genau ein Modus ist markiert', JSON.stringify(marked));
 
   // Lange Listen (LFO-Ziel): stehen einmal je Modell unter lists, der Regler verweist darauf
@@ -235,6 +235,45 @@ function check(ok, what, extra) { if (ok) { pass++; console.log('  OK     ' + wh
       const t = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2); return t === e || e.contains(t); }));
     check(frei, 'danach ist die Kopfzeile wieder frei');
   }
+
+  // Mixer: acht Spuren nebeneinander, dieselben Zeilen wie die MIX-Seite am Geraet
+  await tapSel('#tM3'); await pg.waitForTimeout(900);
+  const mx = await pg.evaluate(() => ({cls: document.body.className.trim(),
+    spalten: document.querySelectorAll('.mxc').length, fader: document.querySelectorAll('.mxc:first-child .mxf').length,
+    werte: tm.tracks[0].mix ? tm.tracks[0].mix.length : 0}));
+  check(mx.cls === 'tui mix' && mx.spalten === 8 && mx.fader === 6 && mx.werte === 6,
+        'Mixer zeigt 8 Spuren mit 6 Zeilen', JSON.stringify(mx));
+  {   // VOL einer anderen Spur ziehen - die Engine muss den Wert DIESER Spur aendern, nicht der gewaehlten.
+    // Erst ganz runter, dann ganz hoch: so haengt der Test an keinem Startwert (der Lauf davor hat ihn veraendert).
+    const zieh = ab => pg.evaluate(a => { const f = [...document.querySelectorAll('.mxc')][2].querySelectorAll('.mxf')[0], b = f.getBoundingClientRect();
+      f.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, pointerId: 31, clientX: b.left + b.width / 2, clientY: b.top + b.height / 2}));
+      f.dispatchEvent(new PointerEvent('pointermove', {bubbles: true, pointerId: 31, clientX: b.left + b.width / 2, clientY: b.top + b.height * (a ? 1.6 : -0.6)}));
+      f.dispatchEvent(new PointerEvent('pointerup', {bubbles: true, pointerId: 31})); }, ab);
+    const t0 = await pg.evaluate(() => tm.tracks[0].mix[0]);
+    await zieh(true); await pg.waitForTimeout(800);
+    const unten = await pg.evaluate(() => tm.tracks[2].mix[0]);
+    check(unten < 20, 'VOL der dritten Spur laesst sich nach unten ziehen', `${unten}`);
+    await zieh(false); await pg.waitForTimeout(800);
+    const oben = await pg.evaluate(() => tm.tracks[2].mix[0]);
+    check(oben > 100, 'und wieder nach oben', `${unten} -> ${oben}`);
+    check((await pg.evaluate(() => tm.tracks[0].mix[0])) === t0, 'dabei bleibt die erste Spur unberuehrt');
+  }
+  {   // CMP ist ein Schalter, kein Schieber
+    const vor = await pg.evaluate(() => tm.tracks[1].mix[5]);
+    await pg.evaluate(() => { const f = [...document.querySelectorAll('.mxc')][1].querySelectorAll('.mxf')[5], b = f.getBoundingClientRect();
+      f.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, clientX: b.left + 5, clientY: b.top + 5})); });
+    await pg.waitForTimeout(800);
+    const nach = await pg.evaluate(() => tm.tracks[1].mix[5]);
+    check(nach !== vor && (nach === 0 || nach === 1), 'CMP schaltet um', `${vor} -> ${nach}`);
+  }
+  {   // Mute aus dem Mixer
+    const vor = await pg.evaluate(() => tm.tracks[4].m);
+    await pg.evaluate(() => { const d = [...document.querySelectorAll('.mxc')][4].querySelector('.mxb').children[0], b = d.getBoundingClientRect();
+      d.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, clientX: b.left + 5, clientY: b.top + 5})); });
+    await pg.waitForTimeout(800);
+    check((await pg.evaluate(() => tm.tracks[4].m)) !== vor, 'Mute geht auch aus dem Mixer');
+  }
+  await tapSel('#tM0'); await pg.waitForTimeout(500);
 
   // Gemeldet: scrollen ging nicht - #tui hatte touch-action:none (blockiert jede Geste im Overlay)
   // und die Reglerliste war gar kein Scrollcontainer.
