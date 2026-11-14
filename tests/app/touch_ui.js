@@ -112,6 +112,25 @@ function check(ok, what, extra) { if (ok) { pass++; console.log('  OK     ' + wh
   const vDown = await val();
   check(vUp > 0, `Regler nach rechts ziehen erhoeht den Wert (Gruppe ${picked})`, 'Wert ' + vUp);
   check(vDown < vUp, 'Regler nach links ziehen senkt ihn wieder', `${vUp} -> ${vDown}`);
+  // Gemeldet: "auf der Sequencer-Seite verstelle ich immer wieder aus Versehen Werte" - die Zeile nahm
+  // den Finger schon beim Aufsetzen. Jetzt entscheidet die erste Bewegung: senkrecht = scrollen.
+  {
+    const vor = await val();
+    await pg.evaluate(() => { const d = document.querySelector('#tPar .tr'), r = d.getBoundingClientRect();
+      const o = (dx, dy) => ({bubbles: true, pointerId: 31, clientX: r.left + r.width * 0.5 + dx, clientY: r.top + r.height / 2 + dy});
+      d.dispatchEvent(new PointerEvent('pointerdown', o(0, 0)));
+      d.dispatchEvent(new PointerEvent('pointermove', o(3, -40)));    // senkrecht gewischt, leicht schief
+      d.dispatchEvent(new PointerEvent('pointermove', o(30, -120)));  // danach zieht es quer - zu spaet
+      d.dispatchEvent(new PointerEvent('pointerup', o(30, -120))); });
+    await pg.waitForTimeout(800);
+    check((await val()) === vor, 'senkrecht wischen laesst den Wert in Ruhe', `Wert ${vor} -> ${await val()}`);
+    // ein Tippen ohne Bewegung aendert auch nichts
+    await pg.evaluate(() => { const d = document.querySelector('#tPar .tr'), r = d.getBoundingClientRect();
+      const o = {bubbles: true, pointerId: 32, clientX: r.left + r.width * 0.5, clientY: r.top + r.height / 2};
+      d.dispatchEvent(new PointerEvent('pointerdown', o)); d.dispatchEvent(new PointerEvent('pointerup', o)); });
+    await pg.waitForTimeout(700);
+    check((await val()) === vor, 'und ein Tippen auf die Zeile auch nicht', 'Wert ' + vor);
+  }
 
   // P-Lock: Pad lange druecken haelt den Step, Reglerwerte werden dann Locks
   await pg.evaluate(() => { const d = [...document.querySelectorAll('.tp')][5], r = d.getBoundingClientRect();
@@ -246,8 +265,9 @@ function check(ok, what, extra) { if (ok) { pass++; console.log('  OK     ' + wh
     // ueber die Zeile, nicht ueber tPickOpen: genau dort fehlte der Fall "lange Liste" und am Handy
     // passierte beim Antippen nichts
     await pg.evaluate(i => { const d = [...document.querySelectorAll('#tPar .tr')][i], b = d.getBoundingClientRect();
-      d.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, pointerId: 44, clientX: b.left + b.width / 2, clientY: b.top + b.height / 2}));
-      d.dispatchEvent(new PointerEvent('pointerup', {bubbles: true, pointerId: 44})); }, dst.i);
+      const o = {bubbles: true, pointerId: 44, clientX: b.left + b.width / 2, clientY: b.top + b.height / 2};
+      d.dispatchEvent(new PointerEvent('pointerdown', o));
+      d.dispatchEvent(new PointerEvent('pointerup', o)); }, dst.i);   // ein echter Finger meldet beim Abheben wieder seine Stelle
     await pg.waitForTimeout(500);
     const wide = await pg.evaluate(() => ({open: document.body.classList.contains('pick'),
       wide: document.getElementById('tPickL').classList.contains('wide'),
@@ -287,6 +307,14 @@ function check(ok, what, extra) { if (ok) { pass++; console.log('  OK     ' + wh
               zeilen: [...h.nextElementSibling.querySelectorAll('.pk')].map(e => +e.dataset.v)}; });
     check(auf.ok && auf.offen && auf.zeilen.length > 0, 'eine Gruppe antippen klappt sie auf', JSON.stringify(auf).slice(0, 90));
     await pg.waitForTimeout(200);
+    // Gemeldet mit Bild: die Ziele der offenen Gruppe waren nur noch Striche. Das aeussere Raster
+    // (grid-auto-rows 52px) presste den ganzen Gruppenkasten auf EINE Zeilenhoehe zusammen.
+    const masse = await pg.evaluate(() => { const box = document.querySelector('#tPickL .pgi.open');
+      const r = [...box.querySelectorAll('.pk')].map(e => ({h: Math.round(e.getBoundingClientRect().height), t: e.textContent}));
+      return {min: Math.min(...r.map(x => x.h)), leer: r.filter(x => !x.t).length, n: r.length,
+              boxH: Math.round(box.getBoundingClientRect().height)}; });
+    check(masse.min >= 44, 'die Ziele der offenen Gruppe sind fingergross', `kleinste ${masse.min} px, Kasten ${masse.boxH} px`);
+    check(masse.leer === 0, 'und jedes traegt seinen Namen', masse.leer + ' von ' + masse.n + ' ohne Text');
     // und ein Ziel daraus landet auf dem LFO
     const ziel = await pg.evaluate(v => { const l = document.getElementById('tPickL');
       const b = [...l.querySelectorAll('.pgi.open .pk')].find(e => +e.dataset.v !== v && +e.dataset.v > 0 && e.offsetParent);
@@ -299,6 +327,23 @@ function check(ok, what, extra) { if (ok) { pass++; console.log('  OK     ' + wh
     await pg.waitForTimeout(900);
     const nv = await pg.evaluate(() => tm.params.find(p => p.list === 'dest').v);
     check(nv === ziel, 'das gewaehlte Ziel landet auf dem LFO', `${dst.v} -> ${nv} (erwartet ${ziel})`);
+  }
+
+  // Die Trig-Bedingung ist ebenso ein Menue (Gruppen x:2 .. x:8 wie am Geraet)
+  {
+    await goView(0); await pg.waitForTimeout(700);
+    const ci = await pg.evaluate(() => tm.params.findIndex(p => p.list === 'cond'));
+    check(ci >= 0, 'die Trig-Bedingung liegt in der Ansicht SEQUENZ', 'Regler ' + ci);
+    if (ci >= 0) {
+      await pg.evaluate(i => tPickOpen(i), ci); await pg.waitForTimeout(400);
+      const cm = await pg.evaluate(() => { const l = document.getElementById('tPickL');
+        return {grp: [...l.querySelectorAll('.pg')].map(e => e.textContent.replace(/[^x:0-9]/g, '')),
+                frei: [...l.children].filter(e => e.classList.contains('pk')).length}; });
+      check(cm.grp.length === 7 && /x:2/.test(cm.grp[0]), 'die Zyklus-Bedingungen stehen als Gruppen x:2 bis x:8', cm.grp.join(' '));
+      check(cm.frei >= 9, 'die einfachen Bedingungen stehen ohne Gruppe oben', cm.frei + ' Zeilen');
+      await pg.evaluate(() => tPickClose()); await pg.waitForTimeout(300);
+    }
+    await goView(1); await pg.waitForTimeout(700);
   }
 
   // Gemeldet: "im horizontalen Modus kann ich die oberen Elemente nicht bedienen" - der Picker war das

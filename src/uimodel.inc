@@ -59,12 +59,27 @@ static const char* uiListOf(int kind) {
 static int uiListJson(char* b, int n, int w, const char* name, int kind, int mach) {
     w += snprintf(b + w, n - w, ",\"%s\":[", name);
     bool first = true;
-    if (kind == K_COND) {
+    if (kind == K_COND) {   // wie am Geraet (FB_COND): erst die einfachen, dann je Zyklus eine Gruppe x:2 .. x:8
         ParamDef d = paramDef(mach, P_COND);
-        for (int v = 0; v <= d.max && w < n - 60; v++) {
+        auto ent = [&](int v, const char* g) {
             char ob[40]; knobText(d, v, ob, sizeof ob, 0);
             for (char* c = ob; *c; c++) if (*c == '"' || *c == '\\') *c = '\'';
-            w += snprintf(b + w, n - w, "%s{\"v\":%d,\"n\":\"%s\"}", first ? "" : ",", v, ob); first = false;
+            if (!ob[0]) snprintf(ob, sizeof ob, "%s", TR("IMMER", "ALWAYS"));
+            w += snprintf(b + w, n - w, "%s{\"v\":%d,\"n\":\"%s\"%s%s%s}",
+                          first ? "" : ",", v, ob, g ? ",\"g\":\"" : "", g ? g : "", g ? "\"" : "");
+            first = false;
+        };
+        for (int v = CND_NONE; v < CND_AB && v <= d.max && w < n - 80; v++) ent(v, nullptr);
+        if (CND_LAST <= d.max) { ent(CND_LAST, nullptr); ent(CND_NLAST, nullptr); }
+        for (int bb = 2; bb <= 8 && w < n - 80; bb++) {
+            char g[8]; snprintf(g, sizeof g, "x:%d", bb);
+            bool firstOfGroup = true;
+            for (int ng = 0; ng < 2; ng++)
+                for (int v = CND_AB; v < CND_AB_END && v <= d.max && w < n - 80; v++) {
+                    int a, b2; bool n2; condDecode(v, a, b2, n2);
+                    if (b2 != bb || (int)n2 != ng) continue;
+                    ent(v, firstOfGroup ? g : nullptr); firstOfGroup = false;
+                }
         }
     } else {   // Modulationsziel: "---", jeder echte Klangparameter mit seiner Seite, bei ENV zusaetzlich VCA
         w += snprintf(b + w, n - w, "{\"v\":0,\"n\":\"---\"}"); first = false;
