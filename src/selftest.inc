@@ -1256,6 +1256,38 @@ static void uiScenariosV2() {
       UCHECK(true, "knobInfo mit zu grossem Index"); }   // darf nicht abstuerzen (Sanitizer)
     simReset(); simFrame();
 
+    uiCase = "DEST zeigt das gewaehlte Ziel";
+    {   // gemeldet: "bei der Destination wird mir der Text immer als ziel1 angezeigt" - rechts stand
+        // der uebersetzte Reglername statt des Ziels, das Ziel selbst sah man nur als 6-Zeichen-Wert.
+        simReset(); simFrame();
+        goPage(PG_LFO1); simFrame();
+        int sl = -1;
+        for (int k = 0; k < nSlots(); k++) { int pi = slotParam(k); if (pi >= 0 && paramDef(curP().machine[track], pi).kind == K_LDEST) { sl = k; break; } }
+        UCHECK(sl >= 0, "LFO 1 hat keinen DEST-Regler");
+        if (sl >= 0) {
+            ParamDef d; int val, bv; bool lk; char lab[24];
+            int pi = slotParam(sl);
+            curP().p[track][pi] = 0; simFrame();
+            slot = sl;
+            UCHECK(knobInfo(sl, d, val, lk, bv, lab, sizeof lab) && !strcmp(lab, "---"), "ohne Ziel muesste \"---\" stehen (%s)", lab);
+            curP().p[track][pi] = (uint8_t)(P_FREQ + 1); simFrame();
+            knobInfo(sl, d, val, lk, bv, lab, sizeof lab);
+            UCHECK(strstr(lab, "FREQ") != nullptr, "das Ziel FREQ steht nicht in der Zeile (%s)", lab);
+            UCHECK(strstr(lab, "FLT") != nullptr, "die Seite des Ziels fehlt (%s)", lab);
+            UCHECK(!strstr(lab, "ZIEL") && !strstr(lab, "DEST"), "rechts steht weiter der Reglername (%s)", lab);
+            curP().p[track][pi] = 0;
+        }
+        // Huellkurve: VCA ist ein eigenes Ziel und muss als solches dastehen
+        goPage(PG_ENV1); simFrame();
+        for (int k = 0; k < nSlots(); k++) { int pi = slotParam(k); if (pi >= 0 && paramDef(curP().machine[track], pi).kind == K_EDEST) {
+            ParamDef d; int val, bv; bool lk; char lab[24];
+            curP().p[track][pi] = MOD_VCA; slot = k; simFrame();
+            knobInfo(k, d, val, lk, bv, lab, sizeof lab);
+            UCHECK(!strcmp(lab, "VCA"), "VCA muesste als Ziel dastehen (%s)", lab);
+            break; } }
+        simReset(); simFrame();
+    }
+
     uiCase = "Liste: Gruppen einklappen";
     {
         simReset(); simFrame();

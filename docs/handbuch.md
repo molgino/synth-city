@@ -465,7 +465,7 @@ Jede Spur hat drei freie ADSR-Hüllkurven mit je **3 Zielen** (eigene Tiefe je Z
 ![LFO 1 mit drei Zielen](shot:8)
 ![Ziel-Liste (X auf ZIEL)](shot:55)
 
-Jede Spur hat drei LFOs mit je **3 Zielen** (DEST/DEPTH, ZIEL2/DEPTH2, ZIEL3/DEPTH3 in der dritten Reihe). Jedes Ziel kann **jeder Parameter der Spur** sein, auch die Regler eines anderen LFOs oder einer Hüllkurve.
+Jede Spur hat drei LFOs mit je **3 Zielen** (DEST/DEPTH, DEST2/DEPTH2, DEST3/DEPTH3). In der Zeile steht rechts das **gewählte Ziel** mit seiner Seite, z. B. `FLT FREQ`, bei Hüllkurven auch `VCA`; ohne Ziel steht dort `---`. Jedes Ziel kann **jeder Parameter der Spur** sein, auch die Regler eines anderen LFOs oder einer Hüllkurve.
 
 | Regler | Funktion |
 |---|---|

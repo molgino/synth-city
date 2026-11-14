@@ -261,6 +261,13 @@ function check(ok, what, extra) { if (ok) { pass++; console.log('  OK     ' + wh
   const dst = await pg.evaluate(() => { const i = tm.params.findIndex(p => p.list === 'dest');
     return {i, n: i >= 0 ? tm.params[i].n : '', v: i >= 0 ? tm.params[i].v : -1, len: tm.lists && tm.lists.dest ? tm.lists.dest.length : 0}; });
   check(dst.i >= 0 && dst.len > 50, 'LFO-Ziel bietet die lange Liste an', `${dst.n}, ${dst.len} Eintraege`);
+  // Gemeldet (Handy UND Geraet): "bei der Destination steht als Text immer ziel1" - rechts stand der
+  // uebersetzte Reglername statt des gewaehlten Ziels.
+  if (dst.i >= 0) {
+    const txt = await pg.evaluate(i => tm.params[i].t, dst.i);
+    check(!/ZIEL|DEST\d/.test(txt), 'die DEST-Zeile zeigt nicht mehr den Reglernamen', 'Text "' + txt + '"');
+    check(txt === '---' || /[A-Z]/.test(txt), 'sondern das Ziel selbst', 'Text "' + txt + '"');
+  }
   if (dst.i >= 0) {
     // ueber die Zeile, nicht ueber tPickOpen: genau dort fehlte der Fall "lange Liste" und am Handy
     // passierte beim Antippen nichts

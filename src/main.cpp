@@ -779,6 +779,7 @@ static void animate() {
 static int curPi() { return eng.patOf(track); }   // Pattern der gewaehlten Spur (im Song: aus der laufenden Zeile)
 static Pattern& curP() { return eng.proj.pat[curPi()]; }
 static void toast(const char* fmt, ...);
+static int ldestUiPage(int pi);   // steht in filedlg.inc, wird aber schon in knobInfo fuer den Zielnamen gebraucht
 static void lockA();
 static void unlockA();
 // Pattern wechseln (am Pattern-Ende, falls es laeuft). Im Song-Modus: Song aus, dann wechseln
@@ -1273,9 +1274,14 @@ static bool knobInfo(int k, ParamDef& d, int& val, bool& locked, int& baseVal, c
         if (idx == P_NOTE) {   // Note in die Skala der Spur einrasten
             val = quantizeNote(val, curScale());
         }
-        if (d.kind == K_LDEST || d.kind == K_EDEST) {   // DEST/DEST2.. -> ZIEL/ZIEL2..
-            size_t nl = strlen(d.name); char dg = nl && d.name[nl - 1] >= '1' && d.name[nl - 1] <= '9' ? d.name[nl - 1] : 0;
-            if (dg) snprintf(label, ln, TR("ZIEL%c", "DEST%c"), dg); else snprintf(label, ln, "%s", TR("ZIEL", "DEST"));
+        if (d.kind == K_LDEST || d.kind == K_EDEST) {
+            // Rechts steht das GEWAEHLTE ZIEL, nicht noch einmal der Reglername - dort stand bisher
+            // immer "ZIEL1" (gemeldet: "bei der Destination wird mir der Text immer als ziel1 angezeigt").
+            int u = val > 0 && val <= NPARAMS ? ldestUiPage(val - 1) : -1;
+            if (val == MOD_VCA) snprintf(label, ln, "VCA");
+            else if (val > 0 && val <= NPARAMS)
+                snprintf(label, ln, u >= 0 ? "%s %s" : "%.0s%s", u >= 0 ? PAGE_NAMES[u] : "", paramDef(P.machine[track], val - 1).name);
+            else snprintf(label, ln, "---");
         }
         if (d.kind == K_SCALE && val > 0) snprintf(label, ln, "%s", SCALE_LONG[((val - 1) / 12) % NSCALES]);
         if (d.kind == K_ROOT) snprintf(label, ln, TR("GRUNDTON", "ROOT"));
