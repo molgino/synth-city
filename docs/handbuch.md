@@ -112,6 +112,8 @@ Was Stufe 1 kann:
 
 **P-Locks am Handy.** Ein Pad **lange gedrückt halten** hält den Step fest – die Oberfläche springt zu den Reglern, und was du jetzt änderst, gilt nur für diesen einen Step (die Werte stehen gelb). Oben steht, welcher Step hängt; **FERTIG** beendet, **LOCKS WEG** räumt sie wieder ab. War der Step leer, wird er dabei zu einem trigless Step – die Werte wirken also, ohne dass neu angeschlagen wird. Kurz antippen bleibt wie gehabt: Trig an und aus.
 
+**Projekte am Handy (PROJEKT).** Der Knopf unten rechts öffnet ein Blatt mit **SPEICHERN**, **NEUES PROJEKT** und der Liste aller Projekte – ein Tipp auf eine Zeile lädt sie. Solange etwas ungespeichert ist, trägt der Knopf einen Punkt. Namen tippst du am Gerät oder über die Web-Seite; „neues Projekt" vergibt selbst einen freien Namen.
+
 **Mixer (MIXER).** Alle acht Spuren nebeneinander, mit denselben Zeilen wie die MIX-Seite am Gerät: **VOL, PAN, S.A, S.B, S.C** und **CMP**. Senkrecht ziehen stellt den Wert ein (die ganze Höhe = der ganze Bereich), CMP ist ein Schalter, **M** und **S** über jeder Spalte sind Mute und Solo. Die Spaltenköpfe wählen die Spur. Im Querformat stehen alle acht nebeneinander, hochkant vier und vier.
 
 **Noten eingeben (NOTEN).** Der Modus-Knopf geht im Kreis: STEPS → SOUND → NOTEN. Die Klaviatur zeigt zwei Oktaven, **− OKT** und **+ OKT** verschieben den Bereich. Eine Taste antippen hört die Note vor. Hältst du vorher einen Step gedrückt (P-Lock), schreibt die Taste die **Note dieses Steps** – so baust du eine Melodie Schritt für Schritt: Step halten, Note antippen, nächster Step. Die Note des Steps ist auf der Klaviatur umrandet. Bei Drum-Engines steht ein Hinweis, dass die Tonhöhe dort kaum wirkt.

@@ -236,6 +236,44 @@ function check(ok, what, extra) { if (ok) { pass++; console.log('  OK     ' + wh
     check(frei, 'danach ist die Kopfzeile wieder frei');
   }
 
+  // Projekt: speichern, laden, neu - ohne das kam man am Handy nicht an seine Projekte
+  {
+    const p0 = await pg.evaluate(() => tm.prj);
+    check(p0 && typeof p0.n === 'string' && Array.isArray(p0.l), 'das Modell nennt Projekt und Liste', JSON.stringify(p0));
+    await tapSel('#tPrj'); await pg.waitForTimeout(500);
+    const sh = await pg.evaluate(() => ({offen: document.body.classList.contains('sheet'),
+      knoepfe: [...document.querySelectorAll('#tShB .big')].map(e => e.textContent).join(','),
+      zeilen: document.querySelectorAll('#tShB .pl div').length}));
+    check(sh.offen && /SPEICHERN/.test(sh.knoepfe) && sh.zeilen === p0.l.length,
+          'das Projekt-Blatt zeigt Speichern und alle Projekte', JSON.stringify(sh));
+    // speichern
+    await pg.evaluate(() => { const b = [...document.querySelectorAll('#tShB .big')][0], r = b.getBoundingClientRect();
+      b.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, clientX: r.left + 5, clientY: r.top + 5})); });
+    await pg.waitForTimeout(1200);
+    check((await pg.evaluate(() => tm.prj.d)) === 0, 'nach SPEICHERN meldet das Modell keine Aenderungen mehr');
+    // ein anderes Projekt laden und wieder zurueck
+    if (p0.l.length > 1) {
+      const andere = p0.l.findIndex(n => n !== p0.n);
+      await pg.evaluate(() => { const b = document.getElementById('tPrj'), r = b.getBoundingClientRect();
+        b.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, clientX: r.left + 5, clientY: r.top + 5})); });
+      await pg.waitForTimeout(400);
+      await pg.evaluate(i => { const d = [...document.querySelectorAll('#tShB .pl div')][i], r = d.getBoundingClientRect();
+        d.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, clientX: r.left + 5, clientY: r.top + 5})); }, andere);
+      await pg.waitForTimeout(1600);
+      const jetzt = await pg.evaluate(() => tm.prj.n);
+      check(jetzt === p0.l[andere], 'ein Tipp auf die Zeile laedt genau dieses Projekt', `${p0.n} -> ${jetzt} (erwartet ${p0.l[andere]})`);
+      // zurueck auf das Ausgangsprojekt, damit der naechste Lauf gleich startet
+      await tapSel('#tPrj'); await pg.waitForTimeout(400);
+      const zurueck = await pg.evaluate(n => [...document.querySelectorAll('#tShB .pl div')].findIndex(d => d.textContent === n), p0.n);
+      await pg.evaluate(i => { const d = [...document.querySelectorAll('#tShB .pl div')][i], r = d.getBoundingClientRect();
+        d.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, clientX: r.left + 5, clientY: r.top + 5})); }, zurueck);
+      await pg.waitForTimeout(1600);
+      check((await pg.evaluate(() => tm.prj.n)) === p0.n, 'und wieder zurueck');
+    }
+    await pg.evaluate(() => tSheetClose()); await pg.waitForTimeout(300);
+    check(!(await pg.evaluate(() => document.body.classList.contains('sheet'))), 'das Blatt laesst sich schliessen');
+  }
+
   // Mixer: acht Spuren nebeneinander, dieselben Zeilen wie die MIX-Seite am Geraet
   await tapSel('#tM3'); await pg.waitForTimeout(900);
   const mx = await pg.evaluate(() => ({cls: document.body.className.trim(),

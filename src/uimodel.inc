@@ -5,7 +5,7 @@
 // Gelesen wird im Hauptthread (uiModelPush, ~10/s), geschickt vom Web-Thread; Aktionen laufen
 // ueber remoteActPush zurueck in den Hauptthread (uiActionsRun in handleInput).
 
-enum { UA_STEP = 1, UA_TRACK, UA_MUTE, UA_PLAY, UA_PATTERN, UA_PAGE, UA_SOLO, UA_TRIGLESS, UA_VIEW, UA_GROUP, UA_PARAM, UA_HOLD, UA_LOCKCLR, UA_NOTE, UA_TRKP };
+enum { UA_STEP = 1, UA_TRACK, UA_MUTE, UA_PLAY, UA_PATTERN, UA_PAGE, UA_SOLO, UA_TRIGLESS, UA_VIEW, UA_GROUP, UA_PARAM, UA_HOLD, UA_LOCKCLR, UA_NOTE, UA_TRKP, UA_PRJ };
 // Mixer: dieselben Zeilen wie die MIX-Seite am Geraet (MIX_P), damit beide dasselbe zeigen
 enum { UMIX_N = 6 };
 
@@ -24,6 +24,28 @@ static bool uiHasOpts(int kind, int mx) {
         return true;
     default: return false;
     }
+}
+
+// Projekte des Geraets, alphabetisch. Modell UND Aktion lesen dieselbe Liste, sonst laedt ein Tipp
+// auf "Zeile 3" je nach Reihenfolge ein anderes Projekt.
+enum { UPRJ_MAX = 60 };
+static int uiProjects(char out[UPRJ_MAX][64]) {
+    char d[700]; snprintf(d, sizeof d, "%sprojects", basePath);
+    DIR* dd = opendir(d);
+    if (!dd) return 0;
+    int n = 0;
+    struct dirent* e;
+    while ((e = readdir(dd)) && n < UPRJ_MAX) {
+        size_t l = strlen(e->d_name);
+        if (l <= 4 || strcasecmp(e->d_name + l - 4, ".gbx")) continue;
+        snprintf(out[n], 64, "%.*s", (int)(l - 4), e->d_name);
+        n++;
+    }
+    closedir(dd);
+    for (int i = 1; i < n; i++) { char t[64]; snprintf(t, sizeof t, "%s", out[i]);
+        int j = i - 1; while (j >= 0 && strcasecmp(out[j], t) > 0) { snprintf(out[j + 1], 64, "%s", out[j]); j--; }
+        snprintf(out[j + 1], 64, "%s", t); }
+    return n;
 }
 
 // Regler mit langer Auswahl: Name der gemeinsamen Liste (nullptr = keine)
@@ -100,6 +122,17 @@ static int uiModelJson(char* b, int n) {
         w += snprintf(b + w, n - w, "],\"drum\":%d,\"note\":%d", machineIsDrum(P.machine[track] % M_COUNT) ? 1 : 0, note);
     }
     w += snprintf(b + w, n - w, ",\"now\":%d", eng.playing ? eng.playedStep[track] : -1);
+    {   // Projekt: Name, ungespeicherte Aenderungen, Liste zum Laden
+        static char pl[UPRJ_MAX][64];
+        int pn = uiProjects(pl);
+        w += snprintf(b + w, n - w, ",\"prj\":{\"n\":\"%.40s\",\"d\":%d,\"l\":[", cfg.project, projDirtyCached() ? 1 : 0);
+        for (int i = 0; i < pn && w < n - 90; i++) {
+            char nm[64]; snprintf(nm, sizeof nm, "%.56s", pl[i]);
+            for (char* c = nm; *c; c++) if (*c == '"' || *c == '\\') *c = '\'';
+            w += snprintf(b + w, n - w, "%s\"%s\"", i ? "," : "", nm);
+        }
+        w += snprintf(b + w, n - w, "]}");
+    }
     // Klang schrauben: Gruppen der Ansicht und die Regler der aktuellen Gruppe
     if (v2Active()) {
         int from, to, gi, gc;
@@ -236,6 +269,17 @@ static void uiActionsRun() {   // Hauptthread: Aktionen aus der Touch-Oberflaech
             }
             page = savePage; slot = saveSlot;
             v2Sync();
+        } break;
+        case UA_PRJ: {   // 0 speichern, 1 laden (b = Zeile der Liste), 2 neues Projekt mit freiem Namen
+            if (e.a == 0) { toast(saveProject() ? TR("PROJEKT GESPEICHERT", "PROJECT SAVED") : TR("SPEICHERN FEHLGESCHLAGEN", "SAVING FAILED")); break; }
+            if (e.a == 1) {
+                static char pl[UPRJ_MAX][64];
+                int pn = uiProjects(pl);
+                if (e.b >= 0 && e.b < pn) doLoadProject(pl[e.b]);
+            } else if (e.a == 2) {
+                char nm[64]; freeProjectName(TR("Projekt", "Project"), nm, sizeof nm);
+                doNewProject(nm);
+            }
         } break;
         case UA_TRKP: {   // Mixer: Wert einer beliebigen Spur setzen (a = Spur*16 + Zeile)
             int t = (e.a >> 4) & 15, r = e.a & 15;
