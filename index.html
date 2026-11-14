@@ -99,12 +99,179 @@ body.full.fleft #fbar{right:auto;left:max(6px,env(safe-area-inset-left))}
 #fbar.mini{width:30px;height:30px;border-radius:15px;background:#20283acc;border:1px solid var(--line);
  align-items:center;justify-content:center;opacity:.5}
 #fbar.mini::after{content:'···';color:var(--dim);font-size:15px;line-height:1}
+/* ---- Touch-Oberflaeche: eigenes UI statt des gespiegelten 4:3-Bildes. Fuellt jede Aufloesung,
+   die Flaechen sind so gross, wie der Schirm hergibt, und nichts ist an 640x480 gebunden. */
+#tui{display:none;position:fixed;inset:0;z-index:6;background:var(--bg);
+ padding:max(6px,env(safe-area-inset-top)) max(6px,env(safe-area-inset-right)) max(6px,env(safe-area-inset-bottom)) max(6px,env(safe-area-inset-left));
+ grid-template-rows:auto minmax(0,1fr) auto;gap:6px;touch-action:manipulation;user-select:none}
+body.tui #tui{display:grid}
+body.tui #app{visibility:hidden}
+#tTop,#tBot{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+#tTop .tb,#tBot .tb{min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center;
+ background:var(--panel);border:1px solid var(--line);border-radius:10px;color:var(--text);font:inherit;font-size:13px;padding:0 12px}
+#tTop .tb:active,#tBot .tb:active{background:var(--panel2)}
+#tModes{display:flex;gap:4px}
+/* Mixer: 8 Spalten, Zeilen wie die MIX-Seite am Geraet (VOL PAN S.A S.B S.C CMP) */
+#tMix{display:none;grid-row:2;grid-template-columns:repeat(8,1fr);gap:4px;min-height:0}
+body.mix #tMix{display:grid}
+body.mix #tMain{display:none}
+.mxc{display:flex;flex-direction:column;gap:3px;min-width:0;min-height:0;background:var(--panel);border-radius:8px;padding:3px}
+.mxc.sel{outline:1px solid var(--text)}
+.mxh{font-size:11px;text-align:center;color:var(--dim);overflow:hidden;white-space:nowrap;min-height:22px;
+ display:flex;align-items:center;justify-content:center;border-radius:5px;background:var(--panel2)}
+.mxb{display:flex;gap:3px}
+.mxb div{flex:1;min-height:26px;display:flex;align-items:center;justify-content:center;border-radius:5px;
+ background:var(--off);color:var(--dim);font-size:11px}
+.mxb div.on{background:var(--acc);color:var(--bg)}
+.mxb div.so.on{background:var(--cy)}
+.mxf{position:relative;flex:1;min-height:26px;border-radius:5px;background:var(--off);overflow:hidden;touch-action:none}
+.mxf i{position:absolute;left:0;right:0;bottom:0;background:var(--acc);opacity:.55}
+.mxf b{position:absolute;left:3px;top:2px;font-size:10px;font-weight:400;color:var(--dim)}
+.mxf u{position:absolute;right:3px;top:2px;font-size:10px;text-decoration:none;color:var(--text)}
+.mxf.sw{display:flex;align-items:center;justify-content:center}
+@media (orientation:portrait){#tMix{grid-template-columns:repeat(4,1fr)}}
+/* Song: eine Zeile je Song-Zeile, darin die acht Spuren als Zellen */
+#tSong{display:none;grid-row:2;grid-template-rows:auto minmax(0,1fr);gap:6px;min-height:0}
+body.song #tSong{display:grid}
+body.song #tMain{display:none}
+#tSgBar{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+#tSgL{overflow-y:auto;overscroll-behavior:contain;display:flex;flex-direction:column;gap:4px}
+.sgr{display:flex;gap:3px;align-items:stretch;background:var(--panel);border-radius:8px;padding:3px;border:1px solid var(--line)}
+.sgr.now{border-color:var(--cy)}
+.sgr>.nr{min-width:34px;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--dim);border-radius:5px;background:var(--panel2)}
+.sgr>.cs{flex:1;display:grid;grid-template-columns:repeat(8,1fr);gap:3px;min-width:0}
+.sgr .cl{min-height:40px;display:flex;align-items:center;justify-content:center;border-radius:5px;
+ background:var(--off);font-size:11px;color:var(--text);overflow:hidden}
+.sgr .cl.off{color:var(--dim);background:var(--bg)}
+.sgr>.rp{display:flex;gap:2px;align-items:stretch}
+.sgr>.rp div{min-width:30px;display:flex;align-items:center;justify-content:center;border-radius:5px;background:var(--off);font-size:12px}
+.sgr>.rp div.v{min-width:34px;background:var(--panel2);color:var(--cy)}
+.sgr>.del{min-width:34px;display:flex;align-items:center;justify-content:center;border-radius:5px;background:var(--off);color:var(--dim)}
+@media (orientation:portrait){.sgr .cl{min-height:34px;font-size:10px}.sgr>.nr{min-width:26px}}
+#tModes .tm{padding:0 10px}
+#tModes .tm.on{background:var(--panel2);border-color:var(--text);color:var(--cy)}
+#tPlay{font-size:20px;min-width:62px}
+#tPlay.on{background:var(--gr);color:#06240f;border-color:var(--gr)}
+#tPat{font-size:18px;font-weight:bold;color:var(--cy);min-width:62px;text-align:center}
+#tBpm{color:var(--dim);font-size:13px}
+#tMsg{color:var(--acc);font-size:12px;flex:1;text-align:right;overflow:hidden;white-space:nowrap}
+#tMain{display:grid;grid-template-columns:minmax(96px,18%) minmax(0,1fr);gap:6px;min-height:0}
+#tTracks{display:grid;grid-auto-rows:minmax(0,1fr);gap:4px;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none}
+.ttr{display:flex;align-items:center;gap:4px;background:var(--panel);border:1px solid var(--line);
+ border-left-width:5px;border-radius:9px;padding:0 6px;overflow:hidden;min-height:0}
+.ttr.sel{background:var(--panel2);border-color:var(--text)}
+.ttr .tn{flex:1;font-size:12px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.ttr .tm{width:30px;min-height:30px;display:flex;align-items:center;justify-content:center;border-radius:7px;
+ background:var(--panel2);color:var(--dim);font-size:11px}
+.ttr .tm.on{background:var(--acc);color:#fff}
+.ttr.play .tn{color:var(--text)}
+#tGrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-template-rows:repeat(4,minmax(0,1fr));gap:5px;min-height:0}
+/* quer: 8x2 wie die Step-Leiste am Geraet (nutzt die Breite), hoch: 4x4 wie ein Pad-Raster */
+@media (orientation:landscape) and (min-aspect-ratio:13/10){
+ #tGrid{grid-template-columns:repeat(8,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr))}
+ #tTop .tb,#tBot .tb{min-height:38px}}
+.tp{position:relative;touch-action:none;border-radius:10px;background:var(--panel);border:1px solid var(--line);min-height:0;
+ display:flex;align-items:flex-end;justify-content:flex-start;padding:4px 6px;font-size:11px;color:var(--dim)}
+.tp.on{background:var(--acc);border-color:transparent;color:#fff}
+.tp.tl{background:var(--panel2);box-shadow:inset 0 0 0 2px var(--acc)}
+.tp.now{outline:3px solid var(--text);outline-offset:-3px}
+.tp.beat::after{content:'';position:absolute;top:5px;right:6px;width:5px;height:5px;border-radius:50%;background:var(--line)}
+@media (orientation:portrait){#tMain{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)}
+ #tTracks{grid-auto-rows:auto;grid-template-columns:repeat(4,1fr)}
+ .ttr{min-height:42px;padding:0 4px}
+ .ttr .tn{font-size:11px}.ttr .tnr{display:none}}   /* hochkant ist kein Platz fuer die Nummer: die Farbe sagt es */
+#tBot:empty,#tBot.hide{display:none}
+/* Klang schrauben: Gruppenleiste zum Wischen + Regler als breite Zeilen (waagerecht ziehen = Wert) */
+#tSnd{display:none;grid-template-rows:auto minmax(0,1fr);gap:6px;min-height:0}
+body.tui.snd #tSnd{display:grid}
+body.tui.snd #tGrid{display:none}
+#tGrps{display:flex;gap:6px;overflow-x:auto;overflow-y:hidden;padding-bottom:2px;scrollbar-width:none}
+#tGrps::-webkit-scrollbar{display:none}
+#tGrps .tg{flex:none;min-height:38px;display:flex;align-items:center;padding:0 14px;border-radius:10px;
+ background:var(--panel);border:1px solid var(--line);color:var(--dim);font-size:12px;white-space:nowrap}
+#tGrps .tg.on{background:var(--panel2);color:var(--text);border-color:var(--text)}
+#tPar{display:grid;grid-auto-rows:minmax(52px,1fr);gap:5px;min-height:0;overflow-y:auto;overscroll-behavior:contain;
+ -webkit-overflow-scrolling:touch;scrollbar-width:thin}
+#tPar.many{grid-auto-rows:minmax(52px,auto)}   /* mehr Regler als Platz: feste Hoehe, dafuer scrollbar */
+.tr{position:relative;display:flex;align-items:center;gap:8px;padding:0 12px;border-radius:10px;
+ background:var(--panel);border:1px solid var(--line);overflow:hidden;touch-action:pan-y}
+.tr .bar{position:absolute;left:0;top:0;bottom:0;background:var(--panel2);pointer-events:none}
+.tr .nm{position:relative;flex:1;font-size:13px;color:var(--text)}
+.tr .vl{position:relative;font-size:15px;color:var(--cy);font-weight:bold;min-width:68px;text-align:right}
+.tr.lk .vl{color:var(--lock,#ffba40)}
+.tr.act{border-color:var(--text)}
+/* P-Lock: Pad lange druecken haelt den Step fest, danach sind alle Reglerwerte Locks (gelb) */
+#tLock{display:none;align-items:center;gap:8px}
+body.tui.hold #tLock{display:flex}
+#tLock .tb{background:var(--lk,#2a2317);border-color:#ffba40;color:#ffba40}
+.tp.hold{outline:3px solid #ffba40;outline-offset:-3px}
+body.tui.hold .tr .vl{color:#ffba40}
+/* Klaviatur: haengt ein Step im P-Lock, schreibt die Taste dessen Note - sonst hoert man nur vor */
+#tKeys{display:none;grid-template-rows:auto minmax(0,1fr);gap:6px;min-height:0}
+body.tui.keys #tKeys{display:grid}
+body.tui.keys #tGrid,body.tui.keys #tSnd{display:none}
+#tOct{display:flex;align-items:center;gap:8px}
+#tKb{position:relative;min-height:0;touch-action:none;display:flex;gap:3px}
+#tKb .wk{flex:1;position:relative;border-radius:0 0 8px 8px;background:#e8ecf2;border:1px solid #2a2d35;
+ display:flex;align-items:flex-end;justify-content:center;padding-bottom:6px;color:#2a2d35;font-size:11px}
+#tKb .wk.on{background:var(--cy);color:#06242c}
+#tKb .wk.cur{box-shadow:inset 0 0 0 3px var(--acc)}
+#tKb .bk{position:absolute;top:0;height:62%;border-radius:0 0 6px 6px;background:#1a1d24;border:1px solid #000;
+ z-index:2;display:flex;align-items:flex-end;justify-content:center;padding-bottom:4px;color:#aeb6c2;font-size:10px}
+#tKb .bk.on{background:var(--cy);color:#06242c}
+#tKb .bk.cur{box-shadow:inset 0 0 0 3px var(--acc)}
+/* Auswahl (ENGINE, Filtertyp, Bus-Effekt ...): auf 15 Engines mit dem Finger zu zielen geht nicht
+   mit einem Schieber - antippen oeffnet eine Liste mit grossen Zeilen. */
+.tr.sel .vl::after{content:' ›';color:var(--dim)}
+/* Der Picker war das einzige Element ohne Safe-Area: im Querformat lagen Kopfzeile und ABBRECHEN
+   auf dem iPhone unter der Notch und waren nicht zu treffen (gemeldet "obere Elemente nicht bedienbar"). */
+#tPick{display:none;position:fixed;inset:0;z-index:9;background:#0e0f12ee;
+ padding:max(10px,env(safe-area-inset-top)) max(10px,env(safe-area-inset-right)) max(10px,env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left));
+ grid-template-rows:auto minmax(0,1fr);gap:10px}
+#tPickH,#tShH{display:flex;align-items:center;gap:10px;min-height:44px}
+/* Projekt-Blatt: gleicher Bau wie der Picker (Safe-Area, 44-px-Flaechen) */
+#tSheet{display:none;position:fixed;inset:0;z-index:9;background:#0e0f12f2;
+ padding:max(10px,env(safe-area-inset-top)) max(10px,env(safe-area-inset-right)) max(10px,env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left));
+ grid-template-rows:auto minmax(0,1fr);gap:10px}
+body.sheet #tSheet{display:grid}
+#tSheet .tb{min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center;
+ border-radius:10px;background:var(--panel);border:1px solid var(--off2);color:var(--text);padding:0 14px;font:inherit}
+#tShT{font-size:15px;color:var(--cy)}
+#tShB{overflow-y:auto;overscroll-behavior:contain;display:flex;flex-direction:column;gap:8px}
+#tShB .row{display:flex;gap:8px;flex-wrap:wrap}
+#tShB .big{flex:1;min-height:52px;display:flex;align-items:center;justify-content:center;border-radius:10px;
+ background:var(--panel);border:1px solid var(--off2);color:var(--text);font-size:14px}
+#tShB .big.go{background:var(--acc);border-color:var(--acc);color:var(--bg)}
+#tShB .lbl{color:var(--dim);font-size:12px}
+#tShB .pl{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px}
+#tShB .pl div{min-height:48px;display:flex;align-items:center;padding:0 12px;border-radius:9px;
+ background:var(--panel);border:1px solid var(--line);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+#tShB .pl div.on{border-color:var(--text);color:var(--cy)}
+#tPick .tb{min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center;
+ border-radius:10px;background:var(--panel);border:1px solid var(--off2);color:var(--text);padding:0 14px;font:inherit}
+body.pick #tPick{display:grid}
+#tPickT{font-size:15px;color:var(--cy)}
+#tPickL.wide{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
+#tPickL.wide .pk{justify-content:flex-start;font-size:13px;padding:0 12px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;display:block;line-height:52px}
+#tPickL{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));grid-auto-rows:minmax(52px,auto);
+ gap:8px;overflow-y:auto;overscroll-behavior:contain;align-content:start}
+#tPickL .pk{display:flex;align-items:center;justify-content:center;border-radius:10px;background:var(--panel);
+ border:1px solid var(--line);color:var(--text);font-size:14px;padding:0 8px;text-align:center}
+#tPickL .pk.on{background:var(--panel2);border-color:var(--text);color:var(--cy)}
+/* schmal (Handy hochkant): die Kopfzeile darf nicht umbrechen - Meldung weg, Schrift kleiner */
+@media (max-width:560px){#tMsg{display:none}#tBpm{font-size:11px}#tTop .tb{padding:0 9px;font-size:12px}
+ #tPat{font-size:16px;min-width:48px}#tPlay{min-width:52px}}
+/* Solange kein Modell da ist, bleibt die Flaeche sonst einfach leer - dann weiss niemand, was los ist */
+#tWait{display:none;position:absolute;inset:54px 6px 6px 6px;align-items:center;justify-content:center;
+ text-align:center;color:var(--dim);font-size:14px;line-height:1.7;padding:16px}
+body.tui.twait #tWait{display:flex}
+body.tui.twait #tMain{visibility:hidden}
 body.nopad #ctl{display:none}
 body.nopad #stage{grid-template-columns:1fr !important}
 body.nopad #scr{grid-column:1 !important}
 </style></head><body><div id="app">
 <header><span id="dot"></span><h1>SYNTH CITY</h1><span id="stat">…</span><span class="sp"></span>
-<button class="hb" id="bAud" title="Ton im Browser">🔈 Ton</button><input id="vol" type="range" min="0" max="100" value="80" style="width:70px;display:none"><button class="hb" id="zo" title="Verkleinern (−)">−</button><button class="hb" id="zl" title="Zoom zurücksetzen (0)">100%</button><button class="hb" id="zi" title="Vergrößern (+)">+</button><button class="hb" id="bPad">Tasten</button><button class="hb" id="bSt">Sticks</button><button class="hb" id="bHelp">?</button><button class="hb" id="bFull" title="Nur das Bild, so groß wie möglich (V)">Vollbild</button><button class="hb" id="bFs" title="Browser-Vollbild">⛶</button><a href="/" class="hb" style="text-decoration:none">Dateien</a></header>
+<button class="hb" id="bAud" title="Ton im Browser">🔈 Ton</button><input id="vol" type="range" min="0" max="100" value="80" style="width:70px;display:none"><button class="hb" id="zo" title="Verkleinern (−)">−</button><button class="hb" id="zl" title="Zoom zurücksetzen (0)">100%</button><button class="hb" id="zi" title="Vergrößern (+)">+</button><button class="hb" id="bPad">Tasten</button><button class="hb" id="bSt">Sticks</button><button class="hb" id="bHelp">?</button><button class="hb" id="bTui" title="Touch-Oberfläche (für Finger ausgelegt)">Touch</button><button class="hb" id="bFull" title="Nur das Bild, so groß wie möglich (V)">Vollbild</button><button class="hb" id="bFs" title="Browser-Vollbild">⛶</button><a href="/" class="hb" style="text-decoration:none">Dateien</a></header>
 <div id="fbar"><div class="btn" data-b="SELECT">SEL</div><div class="btn" data-b="START">START</div><div class="btn" id="fPad" title="Bedienung an den Seiten ein-/ausblenden">TASTEN</div><div class="btn" id="fSide" title="Leiste auf die andere Seite">⇆</div><div class="btn" id="fExit" title="Vollbild beenden (V)">✕</div></div>
 <div id="stage">
  <div id="scr"><div id="cvw"><canvas id="cv" width="640" height="480" tabindex="0"></canvas><div id="lost"><div><div class="spin"></div><b>Verbindung verloren</b><br><span id="lostT">verbinde neu …</span><br><button id="lostR">Neu laden</button></div></div></div>
@@ -120,6 +287,21 @@ body.nopad #scr{grid-column:1 !important}
    <div class="btn ms" data-b="START">START</div></div>
  </div>
 </div></div>
+<div id="tui">
+ <div id="tTop"><button class="tb" id="tPlay">▶</button><div class="tb" id="tPatD">‹</div><div id="tPat">A01</div><div class="tb" id="tPatU">›</div>
+  <div id="tBpm">120 BPM</div><span id="tMsg"></span><span id="tLock"><span style="color:#ffba40;font-size:12px" id="tLockT">LOCK</span><button class="tb" id="tLockC">LOCKS WEG</button><button class="tb" id="tLockE">FERTIG</button></span><span id="tModes"><button class="tb tm" id="tM0">STEPS</button><button class="tb tm" id="tM1">SOUND</button><button class="tb tm" id="tM2">NOTEN</button><button class="tb tm" id="tM3">MIXER</button><button class="tb tm" id="tM4">SONG</button></span><button class="tb" id="tView" title="zum gespiegelten Geraetebild">BILD</button></div>
+ <div id="tMain"><div id="tTracks"></div>
+  <div id="tGrid"></div>
+  <div id="tSnd"><div id="tGrps"></div><div id="tPar"></div></div>
+  <div id="tKeys"><div id="tOct"><button class="tb" id="tOctD">− OKT</button><span id="tOctT" style="color:var(--cy);min-width:52px;text-align:center"></span><button class="tb" id="tOctU">+ OKT</button><span id="tNoteT" style="color:var(--dim);font-size:12px"></span></div><div id="tKb"></div></div></div>
+ <div id="tMix"></div>
+ <div id="tSong"><div id="tSgBar"><button class="tb" id="tSgOn">SONG AN</button><button class="tb" id="tSgAdd">+ ZEILE</button><span id="tSgI" style="color:var(--dim);font-size:12px"></span></div><div id="tSgL"></div></div>
+ <div id="tWait">warte auf die Groovebox …</div>
+ <div id="tPick"><div id="tPickH"><span id="tPickT"></span>
+  <span style="flex:1"></span><button class="tb" id="tPickX">ABBRECHEN</button></div><div id="tPickL"></div></div>
+ <div id="tBot"><div id="tPages" style="display:flex;gap:6px;flex-wrap:wrap"></div><span style="flex:1"></span><button class="tb" id="tPrj">MEHR</button></div>
+ <div id="tSheet"><div id="tShH"><span id="tShT">PROJEKT &amp; SAMPLER</span><span style="flex:1"></span><button class="tb" id="tShX">ZU</button></div><div id="tShB"></div></div>
+</div>
 <div id="help"><div><b style="color:#fff">Tastatur</b><br>
 <kbd>←↑→↓</kbd> Steuerkreuz &nbsp; <kbd>Z</kbd>/<kbd>Leertaste</kbd> A &nbsp; <kbd>X</kbd>/<kbd>⌫</kbd> B &nbsp; <kbd>S</kbd> X &nbsp; <kbd>A</kbd> Y<br>
 <kbd>Q</kbd> L1 &nbsp; <kbd>W</kbd> R1 &nbsp; <kbd>1</kbd> L2 &nbsp; <kbd>2</kbd> R2 &nbsp; <kbd>Shift</kbd>/<kbd>Tab</kbd> SELECT &nbsp; <kbd>Enter</kbd> START (halten = FILL)<br>
@@ -160,6 +342,303 @@ $('fbar').addEventListener('pointerdown',e=>{const fb=$('fbar');if(!fb.classList
  e.stopPropagation();e.preventDefault();fb.classList.remove('mini');fb.dataset.open='1';
  clearTimeout(fb._t);fb._t=setTimeout(()=>{delete fb.dataset.open;placeBar(fw);},5000);},true);
 addEventListener('resize',fit);if(window.ResizeObserver)new ResizeObserver(fit).observe($('scr'));setTimeout(fit,0);
+// ---- Touch-Oberflaeche: eigenes UI aus dem Modell der Groovebox (keine 4:3-Bindung, grosse Flaechen)
+let tuiOn=false,tm=null,tPads=[],tTrks=[],tLastKey='';
+function tuiSet(on){tuiOn=on;document.body.classList.toggle('tui',on);try{localStorage.tui=on?1:'';}catch(e){}
+ if(on){document.body.classList.toggle('twait',!tm);tSend('M');tuiPoll();
+  clearTimeout(tuiSet._t);tuiSet._t=setTimeout(()=>{if(tuiOn&&!tm)
+   $('tWait').innerHTML='Die Groovebox meldet kein Modell.<br>Beim Gerät: es braucht die neue Version (nightly).<br>In der App: Seite neu laden.<br><br>Mit <b>BILD</b> geht es zur gewohnten Ansicht.';},3000);}
+ else setTimeout(fit,30);}
+function tuiPoll(){if(!tuiOn)return;
+ if(window.GB_LOCAL&&GB_LOCAL.model){const j=GB_LOCAL.model();if(j)tuiModel(j);}else tSend('M');
+ setTimeout(tuiPoll,window.GB_LOCAL?90:1500);}
+function tAct(k,a,b){tSend('k '+k+' '+(a|0)+' '+(b|0));}
+function tuiModel(j){let m;try{m=typeof j==='string'?JSON.parse(j):j;}catch(e){return;}tm=m;window.tm=m;/* Tests lesen den Zustand hier */
+ document.body.classList.remove('twait');tuiRender(m);}
+function tuiRender(m){
+ const play=$('tPlay');play.textContent=m.play?'■':'▶';play.classList.toggle('on',!!m.play);
+ $('tPat').textContent=m.pat;
+ if(m.prj)$('tPrj').textContent=(m.prj.d?'● ':'')+'MEHR';$('tBpm').textContent=m.bpm+' BPM'+(m.song?' · SONG':'');
+ $('tMsg').textContent=m.msg||'';
+ document.body.classList.toggle('hold',m.hold>=0);
+ if(document.body.classList.contains('keys')){tKbMark(m.note);
+  $('tNoteT').textContent=(m.hold>=0?'Step '+(m.hold+1)+': ':'')+tNoteName(m.note)+(m.drum?' · Drum-Engine: Tonhöhe wirkt kaum':'');}
+ if(m.hold>=0)$('tLockT').textContent='LOCK STEP '+(m.hold+1);
+ if(document.body.classList.contains('mix'))tMixPaint();
+ if(document.body.classList.contains('song'))tSongPaint();
+ // Spuren: nur neu aufbauen, wenn sich die Struktur aendert (sonst flackert es und der Finger verliert das Ziel)
+ const key=m.tracks.map(t=>t.n).join(',')+'|'+m.len;
+ const tr=$('tTracks');
+ if(key!==tLastKey){tLastKey=key;tr.innerHTML='';tTrks=[];
+  m.tracks.forEach((t,i)=>{const d=document.createElement('div');d.className='ttr';
+   d.innerHTML='<span class="tnr" style="color:var(--dim);font-size:11px"></span><span class="tn"></span><span class="tm">M</span>';
+   d.addEventListener('pointerdown',e=>{e.preventDefault();
+    if(e.target.classList.contains('tm'))tAct(3,i,0);else tAct(2,i,0);},{passive:false});
+   tr.appendChild(d);tTrks.push(d);});}
+ m.tracks.forEach((t,i)=>{const d=tTrks[i];if(!d)return;
+  d.style.borderLeftColor=t.c;d.classList.toggle('sel',i===m.track);
+  d.querySelector('.tnr').textContent=(i+1);d.querySelector('.tn').textContent=t.n;
+  d.querySelector('.tm').classList.toggle('on',!!t.m);});
+ // Pads: 16 je Seite
+ const base=m.page*16,n=Math.min(16,m.len-base),g=$('tGrid');
+ if(tPads.length!==16){g.innerHTML='';tPads=[];
+  for(let i=0;i<16;i++){const d=document.createElement('div');d.className='tp';
+   // kurz = Trig an/aus, lange halten = P-Lock fuer diesen Step (wie A halten am Geraet)
+   // Ein Pad muss sofort reagieren, darum wird beim Druecken getoggelt. Wird daraus ein langes
+   // Halten, nimmt der zweite Toggle das zurueck und der Step haengt im P-Lock (wie A halten am Geraet).
+   let ht=null;
+   d.addEventListener('pointerdown',e=>{e.preventDefault();const s=(tm?tm.page:0)*16+i;
+    if(!tm||s>=tm.len||document.body.classList.contains('hold'))return;
+    d.classList.toggle('on');tAct(1,s,0);
+    ht=setTimeout(()=>{ht=null;tAct(1,s,0);tAct(12,s,1);
+     // nur aus der Pad-Ansicht zu den Reglern springen - wer von der Klaviatur kommt, will dort bleiben
+     if(!document.body.classList.contains('snd')&&!document.body.classList.contains('keys'))tSetMode(1);
+     if(navigator.vibrate)navigator.vibrate(12);},350);},{passive:false});
+   const up=()=>{if(ht){clearTimeout(ht);ht=null;}};
+   d.addEventListener('pointerup',up);d.addEventListener('pointercancel',up);
+   g.appendChild(d);tPads.push(d);}}
+ for(let i=0;i<16;i++){const d=tPads[i],s=base+i,st=s<m.len?m.steps[s]:-1;
+  d.style.display=s<m.len?'':'none';
+  d.className='tp'+(st===1?' on':'')+(st===2?' tl':'')+(s===m.now?' now':'')+(i%4===0?' beat':'')+(s===m.hold?' hold':'');
+  d.style.background=st===1?m.tracks[m.track].c:'';
+  d.textContent=s+1;}
+ // Klang: Gruppenleiste und Regler
+ if(m.grps){
+  const gb=$('tGrps');
+  if(gb.childElementCount!==m.grps.length||gb.dataset.v!=m.view){gb.dataset.v=m.view;gb.innerHTML='';
+   m.grps.forEach((g,i)=>{const d=document.createElement('div');d.className='tg';d.textContent=g;
+    d.addEventListener('pointerdown',e=>{e.preventDefault();tAct(10,i,0);},{passive:false});gb.appendChild(d);});}
+  [...gb.children].forEach((d,i)=>{const on=i===m.grp;d.classList.toggle('on',on);
+   if(on&&!gb.dataset.scr){gb.dataset.scr=1;d.scrollIntoView({block:'nearest',inline:'center'});setTimeout(()=>delete gb.dataset.scr,400);}});
+  const pr=$('tPar'),ps=m.params||[];
+  pr.classList.toggle('many',ps.length*57>pr.clientHeight);
+  if(pr.childElementCount!==ps.length){pr.innerHTML='';
+   ps.forEach((p,i)=>{const d=document.createElement('div');d.className='tr';
+    d.innerHTML='<div class="bar"></div><span class="nm"></span><span class="vl"></span>';
+    tParDrag(d,i);pr.appendChild(d);});}
+  ps.forEach((p,i)=>{const d=pr.children[i];if(!d||d.dataset.drag)return;
+   d.querySelector('.nm').textContent=p.n;d.querySelector('.vl').textContent=p.t;
+   d.querySelector('.bar').style.width=Math.round(100*p.v/(p.mx||1))+'%';
+   const pick=!!(p.opts||p.slots||p.list);
+   d.classList.toggle('lk',!!p.lk);d.classList.toggle('sel',pick);
+   if(pick)d.querySelector('.bar').style.width='0';});
+ }
+ // Seiten
+ const pb=$('tPages');
+ $('tBot').classList.toggle('hide',m.pages<2);
+ if(pb.childElementCount!==m.pages){pb.innerHTML='';
+  for(let p=0;p<m.pages;p++){const b=document.createElement('div');b.className='tb';b.textContent='P'+(p+1);
+   b.addEventListener('pointerdown',e=>{e.preventDefault();tAct(6,p,0);},{passive:false});pb.appendChild(b);}}
+ [...pb.children].forEach((b,p)=>b.style.borderColor=p===m.page?'var(--text)':'var(--line)');
+}
+// Regler ziehen: waagerecht = Wert. Die volle Breite deckt den ganzen Bereich ab; waehrend des Ziehens
+// zeigt die Zeile den eigenen Wert (sonst wuerde das nachziehende Modell darunter springen).
+// Auswahl: opts = Werte 0..max der Reihe nach, slots = ausdrueckliche Paare (Sample-Plaetze)
+function tPickOpen(i){const p=tm.params[i];document.body.classList.add('pick');
+ $('tPickT').textContent=p.n;const l=$('tPickL');l.innerHTML='';
+ const shared=p.list&&tm.lists?tm.lists[p.list]:null;   // lange Listen stehen einmal je Modell
+ const list=shared?shared:(p.slots?p.slots:(p.opts||[]).map((o,v)=>({v,n:o})));
+ l.classList.toggle('wide',!!(p.slots||shared));   // Sample- und Zielnamen brauchen Platz
+ list.forEach(o=>{const b=document.createElement('div');b.className='pk'+(o.v===p.v?' on':'');b.textContent=o.n;b.dataset.v=o.v;
+  b.addEventListener('pointerdown',e=>{e.preventDefault();tAct(11,i,o.v);tPickClose();},{passive:false});
+  l.appendChild(b);});
+ const on=l.querySelector('.pk.on');if(on)setTimeout(()=>on.scrollIntoView({block:'nearest'}),0);}
+function tPickClose(){document.body.classList.remove('pick');}
+$('tPickX').addEventListener('pointerdown',e=>{e.preventDefault();tPickClose();},{passive:false});
+// daneben tippen schliesst auch - ohne das blieb der Picker offen und deckte die ganze Kopfzeile zu
+$('tPick').addEventListener('pointerdown',e=>{if(e.target===$('tPick')||e.target===$('tPickL')){e.preventDefault();tPickClose();}},{passive:false});
+addEventListener('keydown',e=>{if(e.key!=='Escape')return;if(document.body.classList.contains('pick'))tPickClose();else if(document.body.classList.contains('sheet'))tSheetClose();});
+function tParDrag(d,i){
+ let id=null,x0=0,v0=0,mx=127,cur=0;
+ d.addEventListener('pointerdown',e=>{if(!tm||!tm.params||!tm.params[i])return;e.preventDefault();
+  if(tm.params[i].opts||tm.params[i].slots){tPickOpen(i);return;}   // Auswahlregler: Liste statt Schieber
+  id=e.pointerId;x0=e.clientX;v0=cur=tm.params[i].v;mx=tm.params[i].mx||1;d.dataset.drag='1';d.classList.add('act');
+  try{d.setPointerCapture(id);}catch(err){}},{passive:false});
+ d.addEventListener('pointermove',e=>{if(id===null||e.pointerId!==id)return;e.preventDefault();
+  const w=d.getBoundingClientRect().width||1;
+  let v=Math.round(v0+(e.clientX-x0)/w*mx);v=Math.max(0,Math.min(mx,v));
+  if(v!==cur){cur=v;tAct(11,i,v);
+   d.querySelector('.bar').style.width=Math.round(100*v/mx)+'%';d.querySelector('.vl').textContent=v;}},{passive:false});
+ const end=e=>{if(id===null||(e&&e.pointerId!==id))return;id=null;delete d.dataset.drag;d.classList.remove('act');};
+ d.addEventListener('pointerup',end);d.addEventListener('pointercancel',end);
+}
+$('tLockE').addEventListener('pointerdown',e=>{e.preventDefault();tAct(12,0,0);},{passive:false});
+$('tLockC').addEventListener('pointerdown',e=>{e.preventDefault();tAct(13,0,0);},{passive:false});
+// Drei Ansichten, drei Knoepfe: STEPS, SOUND, NOTEN. Vorher war das EIN Knopf im Kreis, der das
+// Ziel statt des Zustands zeigte - zu den Steps zurueck brauchte je nach Lage ein oder zwei Treffer
+// (gemeldet "die Sequencer-Seite kann ich nicht zuverlaessig abrufen"). Jetzt: ein Tipp, immer.
+const TMODES=['','snd','keys','mix','song'];
+function tModeNow(){const c=document.body.classList;return c.contains('song')?4:(c.contains('mix')?3:(c.contains('keys')?2:(c.contains('snd')?1:0)));}
+function tSetMode(m){const b=document.body;TMODES.forEach(c=>c&&b.classList.remove(c));
+ if(TMODES[m])b.classList.add(TMODES[m]);
+ for(let k=0;k<TMODES.length;k++){const e=$('tM'+k);if(e)e.classList.toggle('on',k===m);}
+ if(TMODES[m]==='snd'&&tm&&tm.view===0)tAct(9,1,0);
+ if(TMODES[m]==='keys')tKbBuild();
+ if(TMODES[m]==='mix')tMixBuild();
+ if(TMODES[m]==='song')tSongBuild();
+ try{localStorage.tmode=m;}catch(e){}}
+for(let k=0;k<TMODES.length;k++)$('tM'+k).addEventListener('pointerdown',e=>{e.preventDefault();tSetMode(k);},{passive:false});
+try{const m=+(localStorage.tmode||0);setTimeout(()=>tSetMode(m||0),300);}catch(e){setTimeout(()=>tSetMode(0),300);}
+
+// ---- Song: die Clip-Matrix. Eine Zeile je Song-Zeile, darin die acht Spuren;
+// eine Zelle antippen waehlt ihr Pattern (nur belegte), die Zeilennummer spielt ab hier.
+let tSgKey='';
+function tSgPatName(v){const p=tm.sng.pats.find(x=>x.v===v);return p?p.n:'---';}
+function tSongBuild(){const L=$('tSgL');if(!tm||!tm.sng)return;const S=tm.sng;
+ L.innerHTML='';
+ S.rows.forEach((r,i)=>{const d=document.createElement('div');d.className='sgr';d.dataset.i=i;
+  const nr=document.createElement('div');nr.className='nr';nr.textContent=(i+1);
+  nr.addEventListener('pointerdown',e=>{e.preventDefault();tAct(17,1,i);},{passive:false});d.appendChild(nr);
+  const cs=document.createElement('div');cs.className='cs';
+  for(let t=0;t<8;t++){const c=document.createElement('div');c.className='cl';c.dataset.t=t;
+   c.addEventListener('pointerdown',e=>{e.preventDefault();tSgPick(i,t);},{passive:false});cs.appendChild(c);}
+  d.appendChild(cs);
+  const rp=document.createElement('div');rp.className='rp';
+  const m=document.createElement('div');m.textContent='−';m.addEventListener('pointerdown',e=>{e.preventDefault();tAct(17,5,i);},{passive:false});
+  const v=document.createElement('div');v.className='v';
+  const p=document.createElement('div');p.textContent='+';p.addEventListener('pointerdown',e=>{e.preventDefault();tAct(17,4,i);},{passive:false});
+  rp.appendChild(m);rp.appendChild(v);rp.appendChild(p);d.appendChild(rp);
+  const x=document.createElement('div');x.className='del';x.textContent='✕';
+  x.addEventListener('pointerdown',e=>{e.preventDefault();tAct(17,3,i);},{passive:false});d.appendChild(x);
+  L.appendChild(d);});
+ if(!S.rows.length){const e=document.createElement('div');e.className='lbl';e.style.color='var(--dim)';
+  e.textContent='Noch keine Zeilen – "+ ZEILE" legt die erste an.';L.appendChild(e);}
+ tSongPaint();}
+function tSongPaint(){if(!tm||!tm.sng)return;const S=tm.sng,L=$('tSgL');
+ const key=S.len+'|'+S.pats.map(p=>p.v).join(',');
+ if(key!==tSgKey){tSgKey=key;tSongBuild();return;}
+ $('tSgOn').textContent=S.on?'SONG AUS':'SONG AN';$('tSgOn').classList.toggle('on',!!S.on);
+ $('tSgI').textContent=S.len?(S.len+' Zeilen'+(S.pos>=0?'  ·  spielt '+(S.pos+1):'')):'';
+ [...L.children].forEach((d,i)=>{const r=S.rows[i];if(!r)return;
+  d.classList.toggle('now',i===S.pos);
+  const cl=d.querySelectorAll('.cl');
+  for(let t=0;t<cl.length;t++){const v=r.p[t],nm=tSgPatName(v);
+   cl[t].textContent=nm;cl[t].classList.toggle('off',nm==='---');}
+  d.querySelector('.rp .v').textContent='x'+r.r;});}
+// Zelle: Pattern waehlen (nur belegte, plus "schweigt")
+function tSgPick(row,trk){const S=tm.sng;document.body.classList.add('pick');
+ $('tPickT').textContent='ZEILE '+(row+1)+' · SPUR '+(trk+1);
+ const l=$('tPickL');l.innerHTML='';l.classList.remove('wide');
+ S.pats.forEach(o=>{const b=document.createElement('div');b.className='pk'+(o.v===S.rows[row].p[trk]?' on':'');
+  b.textContent=o.n;b.dataset.v=o.v;
+  b.addEventListener('pointerdown',e=>{e.preventDefault();tAct(18,row*16+trk,o.v);tPickClose();},{passive:false});
+  l.appendChild(b);});}
+$('tSgOn').addEventListener('pointerdown',e=>{e.preventDefault();tAct(17,0,0);},{passive:false});
+$('tSgAdd').addEventListener('pointerdown',e=>{e.preventDefault();tAct(17,2,tm&&tm.sng?tm.sng.len-1:0);},{passive:false});
+
+// ---- Projekt-Blatt: speichern, laden, neu. Namen tippt man am Geraet oder im Browser;
+// hier gibt es "neu" mit freiem Namen - der Weg ueber eine Bildschirmtastatur waere auf dem Handy laenger.
+function tSheetOpen(){document.body.classList.add('sheet');tSheetFill();}
+function tSheetClose(){document.body.classList.remove('sheet');}
+function tSheetFill(){const b=$('tShB');if(!tm||!tm.prj)return;const p=tm.prj;
+ b.innerHTML='';
+ const info=document.createElement('div');info.className='lbl';
+ info.textContent='Offen: '+p.n+(p.d?'  ·  ungespeicherte Änderungen':'  ·  gespeichert');b.appendChild(info);
+ const row=document.createElement('div');row.className='row';
+ const sv=document.createElement('div');sv.className='big'+(p.d?' go':'');sv.textContent='PROJEKT SPEICHERN';
+ sv.addEventListener('pointerdown',e=>{e.preventDefault();tAct(16,0,0);setTimeout(tSheetFill,600);},{passive:false});
+ const nw=document.createElement('div');nw.className='big';nw.textContent='NEUES PROJEKT';
+ nw.addEventListener('pointerdown',e=>{e.preventDefault();tAct(16,2,0);setTimeout(()=>{tSheetFill();tSheetClose();},700);},{passive:false});
+ row.appendChild(sv);row.appendChild(nw);b.appendChild(row);
+ const lb=document.createElement('div');lb.className='lbl';lb.textContent='Laden ('+(p.l?p.l.length:0)+')';b.appendChild(lb);
+ const pl=document.createElement('div');pl.className='pl';
+ (p.l||[]).forEach((nm,i)=>{const d=document.createElement('div');d.textContent=nm;if(nm===p.n)d.className='on';
+  d.dataset.i=i;
+  d.addEventListener('pointerdown',e=>{e.preventDefault();tAct(16,1,i);setTimeout(()=>{tSheetFill();tSheetClose();},900);},{passive:false});
+  pl.appendChild(d);});
+ b.appendChild(pl);
+ // --- Sampler: Quelle, Aufnahme, Hoeren, Speichern. Trimmen und Chops bleiben am Geraet.
+ const sl=document.createElement('div');sl.className='lbl';sl.style.marginTop='6px';
+ const S=tm.smp||{};
+ sl.textContent='Sampler · Quelle '+(S.srcn||'?')+(S.rec?'  ·  NIMMT AUF':(S.sec?'  ·  '+(S.sec/10).toFixed(1)+' s aufgenommen':'  ·  nichts aufgenommen'));
+ b.appendChild(sl);
+ const sr=document.createElement('div');sr.className='row';
+ const mk=(t,cls,fn)=>{const d=document.createElement('div');d.className='big'+(cls?' '+cls:'');d.textContent=t;
+  d.addEventListener('pointerdown',e=>{e.preventDefault();fn();setTimeout(tSheetFill,500);},{passive:false});return d;};
+ sr.appendChild(mk('QUELLE',''  ,()=>tSmpSrc()));
+ sr.appendChild(mk(S.rec?'STOPP':'AUFNAHME',S.rec?'go':'',()=>tAct(19,0,0)));
+ sr.appendChild(mk('HÖREN','',()=>tAct(19,1,0)));
+ sr.appendChild(mk('SAMPLE SICHERN','',()=>tAct(19,2,0)));
+ b.appendChild(sr);}
+// Quelle waehlen: USB, Master, die acht Spuren
+function tSmpSrc(){document.body.classList.add('pick');
+ $('tPickT').textContent='SAMPLER-QUELLE';
+ const l=$('tPickL');l.innerHTML='';l.classList.add('wide');
+ const n=['USB PC/HANDY','MASTER'];for(let t=0;t<8;t++)n.push('SPUR '+(t+1)+(tm.tracks[t]?' '+tm.tracks[t].n:''));
+ n.forEach((nm,v)=>{const d=document.createElement('div');d.className='pk'+(v===(tm.smp?tm.smp.src:0)?' on':'');
+  d.textContent=nm;d.dataset.v=v;
+  d.addEventListener('pointerdown',e=>{e.preventDefault();tAct(19,3,v);tPickClose();setTimeout(tSheetFill,400);},{passive:false});
+  l.appendChild(d);});}
+$('tPrj').addEventListener('pointerdown',e=>{e.preventDefault();tSheetOpen();},{passive:false});
+$('tShX').addEventListener('pointerdown',e=>{e.preventDefault();tSheetClose();},{passive:false});
+$('tSheet').addEventListener('pointerdown',e=>{if(e.target===$('tSheet')||e.target===$('tShB')){e.preventDefault();tSheetClose();}},{passive:false});
+
+// ---- Mixer: acht Spuren nebeneinander, Zeilen wie die MIX-Seite am Geraet
+const MIXN=['VOL','PAN','S.A','S.B','S.C','CMP'];
+function tMixBuild(){const m=$('tMix');if(!tm||!tm.tracks)return;m.innerHTML='';
+ tm.tracks.forEach((t,i)=>{const c=document.createElement('div');c.className='mxc';c.dataset.t=i;
+  const h=document.createElement('div');h.className='mxh';h.textContent='T'+(i+1)+' '+t.n;
+  h.addEventListener('pointerdown',e=>{e.preventDefault();tAct(2,i,0);},{passive:false});c.appendChild(h);
+  const b=document.createElement('div');b.className='mxb';
+  ['M','S'].forEach((lb,k)=>{const d=document.createElement('div');d.textContent=lb;if(k)d.className='so';
+   d.addEventListener('pointerdown',e=>{e.preventDefault();tAct(k?7:3,i,0);},{passive:false});b.appendChild(d);});
+  c.appendChild(b);
+  for(let r=0;r<MIXN.length;r++){const f=document.createElement('div');f.className='mxf'+(r===5?' sw':'');
+   f.innerHTML='<i></i><b>'+MIXN[r]+'</b><u></u>';tMixDrag(f,i,r);c.appendChild(f);}
+  m.appendChild(c);});
+ tMixPaint();}
+function tMixPaint(){if(!tm||!tm.tracks)return;const m=$('tMix');
+ if(m.childElementCount!==tm.tracks.length){tMixBuild();return;}
+ [...m.children].forEach((c,i)=>{const t=tm.tracks[i];if(!t||!t.mix)return;
+  c.classList.toggle('sel',i===tm.track);
+  const bs=c.querySelector('.mxb').children;bs[0].classList.toggle('on',!!t.m);bs[1].classList.toggle('on',!!t.s);
+  const fs=c.querySelectorAll('.mxf');
+  for(let r=0;r<fs.length;r++){const v=t.mix[r],f=fs[r];if(f.dataset.drag)continue;
+   if(r===5){f.querySelector('i').style.height='0';f.querySelector('u').textContent=v?'AN':'-';
+    f.style.background=v?'var(--panel2)':'var(--off)';continue;}
+   f.querySelector('i').style.height=Math.round(v/127*100)+'%';f.querySelector('u').textContent=v;}});}
+// senkrecht ziehen = Wert (volle Hoehe = ganzer Bereich), CMP ist ein Schalter
+function tMixDrag(f,t,r){let id=null,y0=0,v0=0,cur=0;
+ f.addEventListener('pointerdown',e=>{e.preventDefault();
+  if(r===5){const t2=tm.tracks[t];tAct(15,t*16+r,t2.mix[r]?0:1);return;}
+  id=e.pointerId;y0=e.clientY;v0=cur=tm.tracks[t].mix[r];f.setPointerCapture(id);f.dataset.drag='1';},{passive:false});
+ f.addEventListener('pointermove',e=>{if(id===null||e.pointerId!==id)return;e.preventDefault();
+  const h=f.getBoundingClientRect().height||1;
+  let v=Math.max(0,Math.min(127,Math.round(v0+(y0-e.clientY)/h*127)));
+  if(v!==cur){cur=v;f.querySelector('i').style.height=Math.round(v/127*100)+'%';f.querySelector('u').textContent=v;tAct(15,t*16+r,v);}},{passive:false});
+ const end=e=>{if(id===null||(e&&e.pointerId!==id))return;id=null;delete f.dataset.drag;};
+ f.addEventListener('pointerup',end);f.addEventListener('pointercancel',end);}
+
+// ---- Klaviatur: zwei Oktaven, weisse Tasten als Reihe, schwarze darueber
+let tOct=4;
+const WK=[0,2,4,5,7,9,11],BK=[1,3,-1,6,8,10,-1],NN=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+function tNoteName(n){return NN[((n%12)+12)%12]+(Math.floor(n/12)-1);}
+function tKbBuild(){const kb=$('tKb');if(kb.dataset.oct==tOct&&kb.childElementCount)return;kb.dataset.oct=tOct;
+ kb.innerHTML='';$('tOctT').textContent='C'+(tOct-1);
+ const wn=[];
+ for(let o=0;o<2;o++)for(const k of WK)wn.push(tOct*12+o*12+k);
+ wn.forEach(n=>{const d=document.createElement('div');d.className='wk';d.dataset.n=n;d.textContent=tNoteName(n);
+  d.addEventListener('pointerdown',e=>{e.preventDefault();tAct(14,n,0);d.classList.add('on');
+   setTimeout(()=>d.classList.remove('on'),180);},{passive:false});kb.appendChild(d);});
+ // schwarze Tasten zwischen die weissen legen (Anteil der Gesamtbreite)
+ const per=100/wn.length;
+ let wi=0;
+ for(let o=0;o<2;o++)for(let i=0;i<7;i++,wi++){
+  const semi=BK[i];if(semi<0)continue;
+  const n=tOct*12+o*12+semi;
+  const d=document.createElement('div');d.className='bk';d.dataset.n=n;d.textContent=tNoteName(n);
+  d.style.left='calc('+(per*(wi+1))+'% - '+(per*0.3)+'%)';d.style.width=(per*0.6)+'%';
+  d.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();tAct(14,n,0);d.classList.add('on');
+   setTimeout(()=>d.classList.remove('on'),180);},{passive:false});kb.appendChild(d);}
+}
+function tKbMark(note){const kb=$('tKb');[...kb.children].forEach(d=>d.classList.toggle('cur',+d.dataset.n===note));}
+$('tOctD').addEventListener('pointerdown',e=>{e.preventDefault();tOct=Math.max(0,tOct-1);tKbBuild();},{passive:false});
+$('tOctU').addEventListener('pointerdown',e=>{e.preventDefault();tOct=Math.min(8,tOct+1);tKbBuild();},{passive:false});
+$('tPlay').addEventListener('pointerdown',e=>{e.preventDefault();tAct(4,0,0);},{passive:false});
+$('tPatD').addEventListener('pointerdown',e=>{e.preventDefault();tAct(5,-1,1);},{passive:false});
+$('tPatU').addEventListener('pointerdown',e=>{e.preventDefault();tAct(5,1,1);},{passive:false});
+$('tView').addEventListener('pointerdown',e=>{e.preventDefault();tuiSet(false);},{passive:false});
+try{if(localStorage.tui)setTimeout(()=>tuiSet(true),400);}catch(e){}
 // ---- Verbindung: WebSocket (Bildstrom + Tasten), sonst Abfrage
 let ws=null,wsFails=0,everWs=false,pingT=0,lastRx=performance.now(),lostAt=0,tries=0;
 // Verbindungsverlust sichtbar machen: Bild abdunkeln + Hinweis statt eingefrorenem Bild
@@ -184,7 +663,7 @@ function connect(){
  const me=ws;lastRx=performance.now();
  const to=setTimeout(()=>{if(ws===me&&me.readyState!==1)wsKill();},4000);   // Aufbau haengt (kein Netz)
  ws.onopen=()=>{clearTimeout(to);mode='ws';everWs=true;wsFails=0;lastRx=performance.now();setStat(true);ws.send('f');};
- ws.onmessage=e=>{lastRx=performance.now();if(typeof e.data==='string'){if(e.data[0]==='P')lat=performance.now()-(+e.data.slice(2));}else decode(e.data);};
+ ws.onmessage=e=>{lastRx=performance.now();if(typeof e.data==='string'){if(e.data[0]==='P')lat=performance.now()-(+e.data.slice(2));else if(e.data[0]==='m'&&e.data[1]===' ')tuiModel(e.data.slice(2));}else decode(e.data);};
  ws.onclose=()=>{clearTimeout(to);if(ws!==me)return;ws=null;if(mode==='ws')mode='';wsFails++;setStat(false,'getrennt – verbinde neu …');releaseAll();setTimeout(connect,600);};
 }
 async function pollLoop(){
@@ -345,6 +824,7 @@ function pollPad(){const gps=navigator.getGamepads?navigator.getGamepads():[];
 // ---- Kopfzeile
 const togglePad=()=>{document.body.classList.toggle('nopad');try{localStorage.nopad=document.body.classList.contains('nopad')?1:'';}catch(e){}setTimeout(fit,30);};
 $('bPad').onclick=togglePad;
+$('bTui').onclick=()=>tuiSet(true);
 $('fPad').addEventListener('pointerdown',e=>{e.stopPropagation();e.preventDefault();togglePad();});
 try{if(localStorage.nopad)document.body.classList.add('nopad');}catch(e){}
 $('bHelp').onclick=()=>$('help').classList.add('show');$('help').onclick=()=>$('help').classList.remove('show');
