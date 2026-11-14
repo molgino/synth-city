@@ -381,6 +381,64 @@ static void uiScenarios() {
     tap(BT_X); UCHECK(holdS().lock[P_S0 + slot] != NO_LOCK || slot > 7, "im Lock-Modus: Lock auf der Klangseite fehlt");
     tap(BT_A); UCHECK(!lockLatch, "A beendet den Lock-Modus nicht");
 
+    uiCase = "Lock-Modus: zum naechsten Trig springen";
+    {   // gemeldet: "die Trig-Locks kann ich nur einzeln editieren und muss den Modus beenden, um zum
+        // naechsten zu kommen - ich moechte vor und zurueck, zumindest zu den Steps mit Trig".
+        // Links/rechts geht weiter Step fuer Step (so entstehen trigless Locks), L1/R1 waren im
+        // Lock-Modus frei und springen jetzt von Trig zu Trig.
+        simReset(); goPage(PG_FLT); goSlot(0); simFrame();
+        Pattern& P = curP();
+        for (int i = 0; i < 16; i++) { P.s[0][i].on = 0; memset(P.s[0][i].lock, NO_LOCK, NPARAMS); }
+        P.s[0][0].on = 1; P.s[0][6].on = 1; P.s[0][11].on = 2;   // Trig, Trig, trigless
+        cursor = 0; simFrame();
+        holdDown(BT_A); simWait(600); release(BT_A);
+        UCHECK(lockLatch && holdStep == 0, "Lock-Modus auf Step 1 erwartet (Step %d, latch %d)", holdStep + 1, lockLatch);
+        tap(BT_R1);
+        UCHECK(lockLatch && holdStep == 6, "R1 muesste zum Trig auf Step 7 springen (Step %d, latch %d)", holdStep + 1, lockLatch);
+        tap(BT_R1);
+        UCHECK(lockLatch && holdStep == 11, "R1 muesste auch den trigless Step 12 finden (Step %d)", holdStep + 1);
+        tap(BT_R1);
+        UCHECK(holdStep == 0, "R1 muesste am Ende wieder bei Step 1 landen (Step %d)", holdStep + 1);
+        tap(BT_L1);
+        UCHECK(lockLatch && holdStep == 11, "L1 muesste rueckwaerts zu Step 12 (Step %d)", holdStep + 1);
+        // der uebersprungene leere Step darf dabei nicht zum Trig geworden sein
+        int belegt = 0; for (int i = 0; i < 16; i++) if (curP().s[0][i].on) belegt++;
+        UCHECK(belegt == 3, "nach dem Springen sind %d statt 3 Steps belegt", belegt);
+        // und ein Lock landet auf dem Step, auf dem man gerade steht
+        tap(BT_X);
+        UCHECK(curP().s[0][11].lock[P_FREQ] != NO_LOCK, "der Lock landet nicht auf dem angesprungenen Step");
+        tap(BT_A);
+        UCHECK(!lockLatch, "A beendet den Lock-Modus nicht");
+    }
+
+    uiCase = "Insert-Typ: Grundwerte je Typ";
+    {   // gemeldet: "Insert-Typ wechseln verschiebt die Werte" - P1-P3 heissen je Typ anders
+        // (RATE/TIME/SIZE ...), standen aber noch auf den Zahlen des vorigen Typs.
+        simReset(); goPage(PG_INS); goSlot(0); simFrame();
+        Pattern& P = curP();
+        P.p[track][P_ITYP] = INS_DELAY;
+        for (int k = 0; k < 3; k++) P.p[track][P_IP1 + k] = (uint8_t)insDefault(INS_DELAY, k);
+        P.p[track][P_IP1] = 120;   // lange Delay-Zeit von Hand
+        simFrame();
+        int before = P.p[track][P_IP1];
+        goPage(PG_INS); goSlot(0); simFrame();
+        editValue(-1);   // DELAY -> APAN
+        UCHECK(curP().p[track][P_ITYP] == INS_APAN, "Typ nicht gewechselt (%d)", curP().p[track][P_ITYP]);
+        for (int k = 0; k < 3; k++)
+            UCHECK(curP().p[track][P_IP1 + k] == insDefault(INS_APAN, k),
+                   "P%d steht auf %d statt dem APAN-Grundwert %d (vorher %d)", k + 1, curP().p[track][P_IP1 + k], insDefault(INS_APAN, k), before);
+        // jeder Typ hat eigene Grundwerte, und ein zweiter Wechsel holt sie auch
+        editValue(1);
+        for (int k = 0; k < 3; k++)
+            UCHECK(curP().p[track][P_IP1 + k] == insDefault(INS_DELAY, k), "zurueck auf DELAY: P%d = %d", k + 1, curP().p[track][P_IP1 + k]);
+        // ein Lock auf TYPE gehoert dem Step - die Pattern-Werte bleiben stehen
+        int p1 = curP().p[track][P_IP1];
+        holdDown(BT_A); simWait(600); release(BT_A);
+        tap(BT_X);
+        UCHECK(curP().p[track][P_IP1] == p1, "ein TYPE-Lock hat die Pattern-Werte veraendert (%d statt %d)", curP().p[track][P_IP1], p1);
+        tap(BT_A);
+    }
+
     uiCase = "Leerer Step + Wert = trigless, kein Trig";
     {   // gemeldet: "wenn ich im Trig-Lock-Menü auf einem leeren Trigger einen Wert erstelle,
         // wird mir automatisch ein Trigger erstellt - das möchte ich nicht"

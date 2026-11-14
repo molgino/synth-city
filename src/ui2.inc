@@ -383,6 +383,9 @@ static bool v2Input(Input& I, Uint32 now, bool func) {
         if (!aHeld && !lockLatch) {
             int t = (I.repeat(BT_R1, now, 300, 120) ? 1 : 0) - (I.repeat(BT_L1, now, 300, 120) ? 1 : 0);
             if (t) { track = (track + t + NTRACKS) % NTRACKS; v2Build(v2View); v2Foc[v2View] = v2Clamp(v2Foc[v2View], 1); v2Apply(); }
+        } else if (lockLatch) {   // im Lock-Modus waren L1/R1 frei: jetzt zum vorigen/naechsten Step MIT Trig
+            int t = (I.repeat(BT_R1, now, 300, 160) ? 1 : 0) - (I.repeat(BT_L1, now, 300, 160) ? 1 : 0);
+            if (t) { int st = lockFindTrig(t); if (st >= 0) { undoTrack(now); lockJumpTo(st); } else toast(TR("KEIN WEITERER TRIG", "NO OTHER TRIG")); }
         }
         take(BT_UP); take(BT_DOWN); take(BT_L1); take(BT_R1);
     }

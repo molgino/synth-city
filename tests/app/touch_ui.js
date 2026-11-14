@@ -36,7 +36,9 @@ function check(ok, what, extra) { if (ok) { pass++; console.log('  OK     ' + wh
     const bad = await frei(sel);
     if (bad) check(false, `${sel} ist bedienbar`, bad);
     await pg.evaluate(s => { const e = document.querySelector(s); const r = e.getBoundingClientRect();
-      e.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2})); }, sel);
+      const o = {bubbles: true, pointerId: 77, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2};
+      e.dispatchEvent(new PointerEvent('pointerdown', o));
+      e.dispatchEvent(new PointerEvent('pointerup', o)); }, sel);   // Auswahlzeilen wirken erst beim Abheben
   };
 
   let m = await model();
@@ -54,7 +56,7 @@ function check(ok, what, extra) { if (ok) { pass++; console.log('  OK     ' + wh
 
   // Spur waehlen
   await pg.evaluate(() => { const e = [...document.querySelectorAll('.ttr')][4]; const r = e.getBoundingClientRect();
-    e.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, clientX: r.left + 20, clientY: r.top + r.height / 2})); });
+    const _o = {bubbles: true, clientX: r.left + 20, clientY: r.top + r.height / 2}; e.dispatchEvent(new PointerEvent('pointerdown', _o)); e.dispatchEvent(new PointerEvent('pointerup', _o)); });
   await pg.waitForTimeout(500);
   m2 = await model();
   check(m2.track === 4, 'Spur antippen waehlt sie', 'track=' + m2.track);
@@ -62,7 +64,7 @@ function check(ok, what, extra) { if (ok) { pass++; console.log('  OK     ' + wh
   // Mute
   const muteBefore = m2.tracks[4].m;
   await pg.evaluate(() => { const e = [...document.querySelectorAll('.ttr')][4].querySelector('.tm'); const r = e.getBoundingClientRect();
-    e.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2})); });
+    const _o = {bubbles: true, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2}; e.dispatchEvent(new PointerEvent('pointerdown', _o)); e.dispatchEvent(new PointerEvent('pointerup', _o)); });
   await pg.waitForTimeout(500);
   m2 = await model();
   check(m2.tracks[4].m !== muteBefore, 'M in der Spurzeile schaltet stumm', `${muteBefore} -> ${m2.tracks[4].m}`);
@@ -92,7 +94,7 @@ function check(ok, what, extra) { if (ok) { pass++; console.log('  OK     ' + wh
   const picked = await pg.evaluate(() => {   // eine Gruppe mit mindestens einem Regler ueber 1 Schritt
     const g = [...document.querySelectorAll('#tGrps .tg')].find(x => x.textContent === 'FILTER') || document.querySelectorAll('#tGrps .tg')[1];
     const r = g.getBoundingClientRect();
-    g.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, clientX: r.left + 10, clientY: r.top + r.height / 2}));
+    const _o = {bubbles: true, clientX: r.left + 10, clientY: r.top + r.height / 2}; g.dispatchEvent(new PointerEvent('pointerdown', _o)); g.dispatchEvent(new PointerEvent('pointerup', _o));
     return g.textContent;
   });
   await pg.waitForTimeout(900);
@@ -113,7 +115,7 @@ function check(ok, what, extra) { if (ok) { pass++; console.log('  OK     ' + wh
 
   // P-Lock: Pad lange druecken haelt den Step, Reglerwerte werden dann Locks
   await pg.evaluate(() => { const d = [...document.querySelectorAll('.tp')][5], r = d.getBoundingClientRect();
-    d.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, pointerId: 11, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2})); });
+    d.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, pointerId: 11, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2})); });   // bleibt gedrueckt: das Halten ist der Test
   await pg.waitForTimeout(650);
   await pg.evaluate(() => [...document.querySelectorAll('.tp')][5].dispatchEvent(new PointerEvent('pointerup', {bubbles: true, pointerId: 11})));
   await pg.waitForTimeout(900);
@@ -126,6 +128,21 @@ function check(ok, what, extra) { if (ok) { pass++; console.log('  OK     ' + wh
   await drag(0.1, 0.7); await pg.waitForTimeout(900);
   const locked = await pg.evaluate(() => ({v: tm.params[0].v, lk: tm.params[0].lk, step: tm.steps[5]}));
   check(locked.lk === 1 && locked.v !== patBase, 'im Lock-Modus wird der Wert als Lock geschrieben', `${patBase} -> ${locked.v}, lk=${locked.lk}`);
+  // Gemeldet: "ich kann die Trig-Locks nur einzeln editieren und muss immer beenden, um zum naechsten
+  // zu kommen" - TRIG ◀ / TRIG ▶ springen im Lock-Modus zum vorigen/naechsten Step MIT Trig.
+  {
+    const vorher = await pg.evaluate(() => ({hold: tm.hold, jmp: tm.jmp, steps: tm.steps.slice(0, 16)}));
+    check(vorher.jmp === 1, 'das Modell meldet, dass es einen weiteren Trig gibt', JSON.stringify(vorher.steps));
+    await tapSel('#tLockN'); await pg.waitForTimeout(900);
+    const sprung = await pg.evaluate(() => ({hold: tm.hold, steps: tm.steps}));
+    check(sprung.hold >= 0 && sprung.hold !== vorher.hold, 'TRIG ▶ springt zum naechsten Step, ohne den Lock-Modus zu beenden',
+          `Step ${vorher.hold + 1} -> ${sprung.hold + 1}`);
+    check(sprung.steps[sprung.hold] > 0, 'und der neue Step hat wirklich einen Trig', 'on=' + sprung.steps[sprung.hold]);
+    await tapSel('#tLockP'); await pg.waitForTimeout(900);
+    const zurueck = await pg.evaluate(() => tm.hold);
+    check(zurueck === vorher.hold, 'TRIG ◀ kommt wieder zurueck', `${sprung.hold + 1} -> ${zurueck + 1}`);
+  }
+
   // Der Step wird erst beim BEENDEN des Lock-Modus zum Traeger (leer + Wert = trigless). Vorher stand
   // hier die Pruefung mitten im Halten - sie ging nur durch, weil ein frueherer Lauf den Step hinterlassen hatte.
   // FERTIG gibt es nur WAEHREND des Haltens - ein zweiter Tap darauf traf vorher einen
@@ -145,13 +162,13 @@ function check(ok, what, extra) { if (ok) { pass++; console.log('  OK     ' + wh
   check(ei >= 0, 'ENGINE ist in den Makros');
   if (ei >= 0) {
     await pg.evaluate(i => { const d = document.querySelectorAll('#tPar .tr')[i], r = d.getBoundingClientRect();
-      d.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, pointerId: 12, clientX: r.left + 40, clientY: r.top + r.height / 2})); }, ei);
+      const _o = {bubbles: true, pointerId: 12, clientX: r.left + 40, clientY: r.top + r.height / 2}; d.dispatchEvent(new PointerEvent('pointerdown', _o)); d.dispatchEvent(new PointerEvent('pointerup', _o)); }, ei);
     await pg.waitForTimeout(600);
     const li = await pg.evaluate(() => ({open: document.body.classList.contains('pick'), n: document.querySelectorAll('#tPickL .pk').length}));
     check(li.open && li.n === 15, 'ENGINE antippen oeffnet die Auswahl mit allen Engines', li.n + ' Eintraege');
     const engBefore = await pg.evaluate(() => tm.tracks[tm.track].n);
     await pg.evaluate(() => { const b = [...document.querySelectorAll('#tPickL .pk')][4], r = b.getBoundingClientRect();
-      b.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, clientX: r.left + 10, clientY: r.top + 10})); });
+      const _o = {bubbles: true, clientX: r.left + 10, clientY: r.top + 10}; b.dispatchEvent(new PointerEvent('pointerdown', _o)); b.dispatchEvent(new PointerEvent('pointerup', _o)); });
     await pg.waitForTimeout(1000);
     const engAfter = await pg.evaluate(() => ({n: tm.tracks[tm.track].n, open: document.body.classList.contains('pick')}));
     check(engAfter.n === 'SYNTH' && !engAfter.open, 'die gewaehlte Engine landet auf der Spur', `${engBefore} -> ${engAfter.n}`);
@@ -160,7 +177,7 @@ function check(ok, what, extra) { if (ok) { pass++; console.log('  OK     ' + wh
   // Klaviatur: Noten vorhoeren, und bei gehaltenem Step wird die Note dessen Lock.
   // Dafuer erst wieder einen Step halten - der vorige Lock-Modus wurde oben mit FERTIG beendet.
   await pg.evaluate(() => { const d = [...document.querySelectorAll('.tp')][5], r = d.getBoundingClientRect();
-    d.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, pointerId: 40, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2})); });
+    d.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, pointerId: 40, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2})); });   // bleibt gedrueckt: das Halten ist der Test
   await pg.waitForTimeout(650);
   await pg.evaluate(() => [...document.querySelectorAll('.tp')][5].dispatchEvent(new PointerEvent('pointerup', {bubbles: true, pointerId: 40})));
   await pg.waitForTimeout(700);
@@ -173,7 +190,7 @@ function check(ok, what, extra) { if (ok) { pass++; console.log('  OK     ' + wh
   check(kb.h >= 44, 'die Tasten sind fingergross', kb.h + ' px hoch');
   const noteBefore = await pg.evaluate(() => tm.note);
   await pg.evaluate(() => { const d = [...document.querySelectorAll('#tKb .wk')][3], r = d.getBoundingClientRect();
-    d.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, pointerId: 41, clientX: r.left + r.width / 2, clientY: r.top + r.height - 8})); });
+    const _o = {bubbles: true, pointerId: 41, clientX: r.left + r.width / 2, clientY: r.top + r.height - 8}; d.dispatchEvent(new PointerEvent('pointerdown', _o)); d.dispatchEvent(new PointerEvent('pointerup', _o)); });
   await pg.waitForTimeout(900);
   const noteAfter = await pg.evaluate(() => tm.note);
   check(noteAfter !== noteBefore, 'Taste im Lock-Modus setzt die Note des Steps', `${noteBefore} -> ${noteAfter}`);
@@ -184,21 +201,21 @@ function check(ok, what, extra) { if (ok) { pass++; console.log('  OK     ' + wh
 
   // Samples: die Plaetze, die das Projekt geladen hat, als Liste mit Namen
   await pg.evaluate(() => { const e = [...document.querySelectorAll('.ttr')][7], r = e.getBoundingClientRect();
-    e.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, clientX: r.left + 20, clientY: r.top + r.height / 2})); });
+    const _o = {bubbles: true, clientX: r.left + 20, clientY: r.top + r.height / 2}; e.dispatchEvent(new PointerEvent('pointerdown', _o)); e.dispatchEvent(new PointerEvent('pointerup', _o)); });
   await pg.waitForTimeout(700);
   await pg.evaluate(() => tSetMode(1)); await pg.waitForTimeout(1100);
   const smp = await pg.evaluate(() => { const p = tm.params.find(x => x.n === 'SMPL'); return p ? {slots: p.slots ? p.slots.length : 0, v: p.v, i: tm.params.indexOf(p)} : null; });
   check(smp && smp.slots >= 1, 'SMPL bietet die geladenen Sample-Plaetze an', smp ? smp.slots + ' Plaetze' : 'kein SMPL-Regler');
   if (smp && smp.slots >= 1) {
     await pg.evaluate(i => { const d = document.querySelectorAll('#tPar .tr')[i], r = d.getBoundingClientRect();
-      d.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, pointerId: 50, clientX: r.left + 40, clientY: r.top + r.height / 2})); }, smp.i);
+      const _o = {bubbles: true, pointerId: 50, clientX: r.left + 40, clientY: r.top + r.height / 2}; d.dispatchEvent(new PointerEvent('pointerdown', _o)); d.dispatchEvent(new PointerEvent('pointerup', _o)); }, smp.i);
     await pg.waitForTimeout(600);
     const wide = await pg.evaluate(() => ({open: document.body.classList.contains('pick'), wide: document.getElementById('tPickL').classList.contains('wide')}));
     check(wide.open && wide.wide, 'die Sample-Liste ist breit (Namen statt Zahlen)');
     // einen anderen Platz als den aktuellen nehmen - sonst passiert beim zweiten Lauf nichts mehr
     await pg.evaluate(v => { const l = [...document.querySelectorAll('#tPickL .pk')];
       const b = l.find(e => +e.dataset.v !== v) || l[l.length - 1], r = b.getBoundingClientRect();
-      b.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, clientX: r.left + 10, clientY: r.top + 10})); }, smp.v);
+      const _o = {bubbles: true, clientX: r.left + 10, clientY: r.top + 10}; b.dispatchEvent(new PointerEvent('pointerdown', _o)); b.dispatchEvent(new PointerEvent('pointerup', _o)); }, smp.v);
     await pg.waitForTimeout(900);
     const picked = await pg.evaluate(() => tm.params.find(x => x.n === 'SMPL').v);
     check(picked !== smp.v, 'der gewaehlte Platz landet auf der Spur', `${smp.v} -> ${picked}`);
@@ -236,12 +253,52 @@ function check(ok, what, extra) { if (ok) { pass++; console.log('  OK     ' + wh
       wide: document.getElementById('tPickL').classList.contains('wide'),
       zeilen: document.querySelectorAll('#tPickL .pk').length}));
     check(wide.open && wide.wide && wide.zeilen === dst.len, 'die Zielliste steht als breite Auswahl da', JSON.stringify(wide));
-    await pg.evaluate(v => { const l = [...document.querySelectorAll('#tPickL .pk')];
-      const b = l.find(e => +e.dataset.v !== v && +e.dataset.v > 0) || l[1], r = b.getBoundingClientRect();
-      b.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, clientX: r.left + 10, clientY: r.top + 10})); }, dst.v);
+    // Gemeldet: "die Ziele kann ich immer noch nicht waehlen, die Liste ist nicht scrollbar".
+    // Ursache: die Zeile wirkte auf pointerdown MIT preventDefault - das beendet die Wischgeste des
+    // Browsers, also war unter 114 Zielen alles ausserhalb des ersten Schirms unerreichbar.
+    const sc = await pg.evaluate(() => { const l = document.getElementById('tPickL');
+      return {sh: l.scrollHeight, ch: l.clientHeight, ta: getComputedStyle(l).touchAction}; });
+    check(sc.sh > sc.ch + 10, 'die Zielliste ist laenger als der Schirm (es gibt also was zu scrollen)', `${sc.sh} in ${sc.ch}`);
+    check(/pan-y|auto/.test(sc.ta), 'senkrecht wischen gehoert dem Browser', 'touch-action=' + sc.ta);
+    // ein Wisch ueber eine Zeile darf nichts auswaehlen
+    const vorWisch = await pg.evaluate(() => tm.params.find(p => p.list === 'dest').v);
+    await pg.evaluate(() => { const b = document.querySelector('#tPickL .pk'), r = b.getBoundingClientRect();
+      const o = y => ({bubbles: true, pointerId: 45, clientX: r.left + 20, clientY: r.top + 20 + y});
+      b.dispatchEvent(new PointerEvent('pointerdown', o(0)));
+      b.dispatchEvent(new PointerEvent('pointerup', o(-70))); });
+    await pg.waitForTimeout(600);
+    check((await pg.evaluate(() => tm.params.find(p => p.list === 'dest').v)) === vorWisch,
+          'ein Wisch ueber die Liste waehlt nichts aus', 'Wert ' + vorWisch);
+    // Die Liste ist ein Menue: eine Zeile je Bedienseite, antippen klappt ihre Ziele auf
+    const men = await pg.evaluate(() => { const l = document.getElementById('tPickL');
+      return {menu: l.classList.contains('menu'), grp: l.querySelectorAll('.pg').length,
+              offen: l.querySelectorAll('.pgi.open').length,
+              sichtbar: [...l.querySelectorAll('.pk')].filter(e => e.offsetParent).length}; });
+    check(men.menu && men.grp > 5, 'die Ziele stehen als Menue nach Seiten da', `${men.grp} Gruppen`);
+    check(men.offen === 1, 'genau die Gruppe des aktuellen Ziels ist offen', men.offen + ' offen');
+    check(men.sichtbar < dst.len / 2, 'zugeklappt ist die Liste kurz', `${men.sichtbar} von ${dst.len} Zeilen`);
+    // eine zugeklappte Gruppe antippen: ihre Ziele erscheinen
+    const auf = await pg.evaluate(() => { const l = document.getElementById('tPickL');
+      const h = [...l.querySelectorAll('.pg')].find(x => !x.nextElementSibling.classList.contains('open'));
+      if (!h) return {ok: false};
+      const r = h.getBoundingClientRect(), o = {bubbles: true, pointerId: 48, clientX: r.left + 20, clientY: r.top + 20};
+      h.dispatchEvent(new PointerEvent('pointerdown', o)); h.dispatchEvent(new PointerEvent('pointerup', o));
+      return {ok: true, name: h.textContent, offen: h.nextElementSibling.classList.contains('open'),
+              zeilen: [...h.nextElementSibling.querySelectorAll('.pk')].map(e => +e.dataset.v)}; });
+    check(auf.ok && auf.offen && auf.zeilen.length > 0, 'eine Gruppe antippen klappt sie auf', JSON.stringify(auf).slice(0, 90));
+    await pg.waitForTimeout(200);
+    // und ein Ziel daraus landet auf dem LFO
+    const ziel = await pg.evaluate(v => { const l = document.getElementById('tPickL');
+      const b = [...l.querySelectorAll('.pgi.open .pk')].find(e => +e.dataset.v !== v && +e.dataset.v > 0 && e.offsetParent);
+      if (!b) return -1;
+      b.scrollIntoView({block: 'nearest'});
+      const r = b.getBoundingClientRect(), o = {bubbles: true, pointerId: 46, clientX: r.left + 10, clientY: r.top + 10};
+      b.dispatchEvent(new PointerEvent('pointerdown', o)); b.dispatchEvent(new PointerEvent('pointerup', o));
+      return +b.dataset.v; }, dst.v);
+    check(ziel > 0, 'in der offenen Gruppe liegt ein Ziel zum Antippen', 'v=' + ziel);
     await pg.waitForTimeout(900);
     const nv = await pg.evaluate(() => tm.params.find(p => p.list === 'dest').v);
-    check(nv !== dst.v && nv > 0, 'das gewaehlte Ziel landet auf dem LFO', `${dst.v} -> ${nv}`);
+    check(nv === ziel, 'das gewaehlte Ziel landet auf dem LFO', `${dst.v} -> ${nv} (erwartet ${ziel})`);
   }
 
   // Gemeldet: "im horizontalen Modus kann ich die oberen Elemente nicht bedienen" - der Picker war das
@@ -255,7 +312,8 @@ function check(ok, what, extra) { if (ok) { pass++; console.log('  OK     ' + wh
     check(geo.h >= 44 && geo.w >= 44, 'ABBRECHEN ist eine echte Fingerflaeche', `${geo.w}x${geo.h}`);
     check(geo.padTop >= 10 && geo.padLeft >= 10, 'der Picker haelt Abstand zum Rand (Safe-Area)', JSON.stringify(geo));
     await pg.evaluate(() => { const e = document.getElementById('tPick');
-      e.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, clientX: innerWidth - 6, clientY: innerHeight - 6})); });
+      const o = {bubbles: true, pointerId: 47, clientX: innerWidth - 6, clientY: innerHeight - 6};
+      e.dispatchEvent(new PointerEvent('pointerdown', o)); e.dispatchEvent(new PointerEvent('pointerup', o)); });
     await pg.waitForTimeout(400);
     check(!(await pg.evaluate(() => document.body.classList.contains('pick'))), 'daneben tippen schliesst die Auswahl');
     // und danach ist die Kopfzeile wieder bedienbar
@@ -275,18 +333,18 @@ function check(ok, what, extra) { if (ok) { pass++; console.log('  OK     ' + wh
     check(nach.len === vor + 2 && nach.zeilen === nach.len, '+ ZEILE legt Zeilen an', JSON.stringify(nach));
     // eine Zelle auf "schweigt" setzen
     await pg.evaluate(() => { const c = document.querySelectorAll('.sgr')[0].querySelectorAll('.cl')[2], r = c.getBoundingClientRect();
-      c.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, clientX: r.left + 5, clientY: r.top + 5})); });
+      const _o = {bubbles: true, clientX: r.left + 5, clientY: r.top + 5}; c.dispatchEvent(new PointerEvent('pointerdown', _o)); c.dispatchEvent(new PointerEvent('pointerup', _o)); });
     await pg.waitForTimeout(400);
     const pk = await pg.evaluate(() => ({offen: document.body.classList.contains('pick'), titel: document.getElementById('tPickT').textContent}));
     check(pk.offen && /ZEILE 1/.test(pk.titel) && /SPUR 3/.test(pk.titel), 'eine Zelle oeffnet die Pattern-Wahl', JSON.stringify(pk));
     await pg.evaluate(() => { const b = [...document.querySelectorAll('#tPickL .pk')].find(e => e.textContent === '---'), r = b.getBoundingClientRect();
-      b.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, clientX: r.left + 5, clientY: r.top + 5})); });
+      const _o = {bubbles: true, clientX: r.left + 5, clientY: r.top + 5}; b.dispatchEvent(new PointerEvent('pointerdown', _o)); b.dispatchEvent(new PointerEvent('pointerup', _o)); });
     await pg.waitForTimeout(800);
     check((await pg.evaluate(() => tm.sng.rows[0].p[2])) === 255, 'die Spur schweigt jetzt in dieser Zeile');
     // Wiederholungen
     const r0 = await pg.evaluate(() => tm.sng.rows[0].r);
     await pg.evaluate(() => { const d = document.querySelectorAll('.sgr')[0].querySelectorAll('.rp div')[2], r = d.getBoundingClientRect();
-      d.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, clientX: r.left + 5, clientY: r.top + 5})); });
+      const _o = {bubbles: true, clientX: r.left + 5, clientY: r.top + 5}; d.dispatchEvent(new PointerEvent('pointerdown', _o)); d.dispatchEvent(new PointerEvent('pointerup', _o)); });
     await pg.waitForTimeout(700);
     check((await pg.evaluate(() => tm.sng.rows[0].r)) === r0 + 1, 'die Wiederholungen lassen sich erhoehen');
     // Song an und wieder aus
@@ -298,7 +356,7 @@ function check(ok, what, extra) { if (ok) { pass++; console.log('  OK     ' + wh
     for (let i = 0; i < 8; i++) {
       if (!(await pg.evaluate(() => tm.sng.len))) break;
       await pg.evaluate(() => { const d = document.querySelectorAll('.sgr')[0].querySelector('.del'), r = d.getBoundingClientRect();
-        d.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, clientX: r.left + 5, clientY: r.top + 5})); });
+        const _o = {bubbles: true, clientX: r.left + 5, clientY: r.top + 5}; d.dispatchEvent(new PointerEvent('pointerdown', _o)); d.dispatchEvent(new PointerEvent('pointerup', _o)); });
       await pg.waitForTimeout(600);
     }
     check((await pg.evaluate(() => tm.sng.len)) === vor, 'Zeilen lassen sich wieder loeschen');
@@ -317,17 +375,17 @@ function check(ok, what, extra) { if (ok) { pass++; console.log('  OK     ' + wh
           'das Projekt-Blatt zeigt Speichern und alle Projekte', JSON.stringify(sh));
     // speichern
     await pg.evaluate(() => { const b = [...document.querySelectorAll('#tShB .big')][0], r = b.getBoundingClientRect();
-      b.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, clientX: r.left + 5, clientY: r.top + 5})); });
+      const _o = {bubbles: true, clientX: r.left + 5, clientY: r.top + 5}; b.dispatchEvent(new PointerEvent('pointerdown', _o)); b.dispatchEvent(new PointerEvent('pointerup', _o)); });
     await pg.waitForTimeout(1200);
     check((await pg.evaluate(() => tm.prj.d)) === 0, 'nach SPEICHERN meldet das Modell keine Aenderungen mehr');
     // ein anderes Projekt laden und wieder zurueck
     if (p0.l.length > 1) {
       const andere = p0.l.findIndex(n => n !== p0.n);
       await pg.evaluate(() => { const b = document.getElementById('tPrj'), r = b.getBoundingClientRect();
-        b.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, clientX: r.left + 5, clientY: r.top + 5})); });
+        const _o = {bubbles: true, clientX: r.left + 5, clientY: r.top + 5}; b.dispatchEvent(new PointerEvent('pointerdown', _o)); b.dispatchEvent(new PointerEvent('pointerup', _o)); });
       await pg.waitForTimeout(400);
       await pg.evaluate(i => { const d = [...document.querySelectorAll('#tShB .pl div')][i], r = d.getBoundingClientRect();
-        d.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, clientX: r.left + 5, clientY: r.top + 5})); }, andere);
+        const _o = {bubbles: true, clientX: r.left + 5, clientY: r.top + 5}; d.dispatchEvent(new PointerEvent('pointerdown', _o)); d.dispatchEvent(new PointerEvent('pointerup', _o)); }, andere);
       await pg.waitForTimeout(1600);
       const jetzt = await pg.evaluate(() => tm.prj.n);
       check(jetzt === p0.l[andere], 'ein Tipp auf die Zeile laedt genau dieses Projekt', `${p0.n} -> ${jetzt} (erwartet ${p0.l[andere]})`);
@@ -335,7 +393,7 @@ function check(ok, what, extra) { if (ok) { pass++; console.log('  OK     ' + wh
       await tapSel('#tPrj'); await pg.waitForTimeout(400);
       const zurueck = await pg.evaluate(n => [...document.querySelectorAll('#tShB .pl div')].findIndex(d => d.textContent === n), p0.n);
       await pg.evaluate(i => { const d = [...document.querySelectorAll('#tShB .pl div')][i], r = d.getBoundingClientRect();
-        d.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, clientX: r.left + 5, clientY: r.top + 5})); }, zurueck);
+        const _o = {bubbles: true, clientX: r.left + 5, clientY: r.top + 5}; d.dispatchEvent(new PointerEvent('pointerdown', _o)); d.dispatchEvent(new PointerEvent('pointerup', _o)); }, zurueck);
       await pg.waitForTimeout(1600);
       check((await pg.evaluate(() => tm.prj.n)) === p0.n, 'und wieder zurueck');
     }
@@ -347,27 +405,27 @@ function check(ok, what, extra) { if (ok) { pass++; console.log('  OK     ' + wh
     {   // Quelle umstellen - und wieder zurueck, damit der naechste Lauf gleich startet
       const q0 = await pg.evaluate(() => tm.smp.src);
       await pg.evaluate(() => { const d = [...document.querySelectorAll('#tShB .big')].find(e => e.textContent === 'QUELLE'), r = d.getBoundingClientRect();
-        d.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, clientX: r.left + 5, clientY: r.top + 5})); });
+        const _o = {bubbles: true, clientX: r.left + 5, clientY: r.top + 5}; d.dispatchEvent(new PointerEvent('pointerdown', _o)); d.dispatchEvent(new PointerEvent('pointerup', _o)); });
       await pg.waitForTimeout(450);
       const quellen = await pg.evaluate(() => document.querySelectorAll('#tPickL .pk').length);
       check(quellen === 10, 'die Quelle bietet USB, Master und acht Spuren an', String(quellen));
       const ziel = q0 === 1 ? 0 : 1;
       await pg.evaluate(i => { const d = [...document.querySelectorAll('#tPickL .pk')][i], r = d.getBoundingClientRect();
-        d.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, clientX: r.left + 5, clientY: r.top + 5})); }, ziel);
+        const _o = {bubbles: true, clientX: r.left + 5, clientY: r.top + 5}; d.dispatchEvent(new PointerEvent('pointerdown', _o)); d.dispatchEvent(new PointerEvent('pointerup', _o)); }, ziel);
       await pg.waitForTimeout(800);
       check((await pg.evaluate(() => tm.smp.src)) === ziel, 'die gewaehlte Quelle kommt an', `${q0} -> ${ziel}`);
       // Aufnahme an, wieder aus
       const recBtn = () => pg.evaluate(() => { const d = [...document.querySelectorAll('#tShB .big')].find(e => /AUFNAHME|STOPP/.test(e.textContent)), r = d.getBoundingClientRect();
-        d.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, clientX: r.left + 5, clientY: r.top + 5})); });
+        const _o = {bubbles: true, clientX: r.left + 5, clientY: r.top + 5}; d.dispatchEvent(new PointerEvent('pointerdown', _o)); d.dispatchEvent(new PointerEvent('pointerup', _o)); });
       await recBtn(); await pg.waitForTimeout(800);
       check((await pg.evaluate(() => tm.smp.rec)) === 1, 'AUFNAHME startet den Sampler');
       await recBtn(); await pg.waitForTimeout(800);
       check((await pg.evaluate(() => tm.smp.rec)) === 0, 'und STOPP beendet sie wieder');
       await pg.evaluate(() => { const d = [...document.querySelectorAll('#tShB .big')].find(e => e.textContent === 'QUELLE'), r = d.getBoundingClientRect();
-        d.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, clientX: r.left + 5, clientY: r.top + 5})); });
+        const _o = {bubbles: true, clientX: r.left + 5, clientY: r.top + 5}; d.dispatchEvent(new PointerEvent('pointerdown', _o)); d.dispatchEvent(new PointerEvent('pointerup', _o)); });
       await pg.waitForTimeout(450);
       await pg.evaluate(i => { const d = [...document.querySelectorAll('#tPickL .pk')][i], r = d.getBoundingClientRect();
-        d.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, clientX: r.left + 5, clientY: r.top + 5})); }, q0);
+        const _o = {bubbles: true, clientX: r.left + 5, clientY: r.top + 5}; d.dispatchEvent(new PointerEvent('pointerdown', _o)); d.dispatchEvent(new PointerEvent('pointerup', _o)); }, q0);
       await pg.waitForTimeout(700);
     }
     await pg.evaluate(() => tSheetClose()); await pg.waitForTimeout(300);
@@ -430,7 +488,7 @@ function check(ok, what, extra) { if (ok) { pass++; console.log('  OK     ' + wh
   {   // CMP ist ein Schalter, kein Schieber
     const vor = await pg.evaluate(() => tm.tracks[1].mix[5]);
     await pg.evaluate(() => { const f = [...document.querySelectorAll('.mxc')][1].querySelectorAll('.mxf')[5], b = f.getBoundingClientRect();
-      f.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, clientX: b.left + 5, clientY: b.top + 5})); });
+      const _o = {bubbles: true, clientX: b.left + 5, clientY: b.top + 5}; f.dispatchEvent(new PointerEvent('pointerdown', _o)); f.dispatchEvent(new PointerEvent('pointerup', _o)); });
     await pg.waitForTimeout(800);
     const nach = await pg.evaluate(() => tm.tracks[1].mix[5]);
     check(nach !== vor && (nach === 0 || nach === 1), 'CMP schaltet um', `${vor} -> ${nach}`);
@@ -438,7 +496,7 @@ function check(ok, what, extra) { if (ok) { pass++; console.log('  OK     ' + wh
   {   // Mute aus dem Mixer
     const vor = await pg.evaluate(() => tm.tracks[4].m);
     await pg.evaluate(() => { const d = [...document.querySelectorAll('.mxc')][4].querySelector('.mxb').children[0], b = d.getBoundingClientRect();
-      d.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, clientX: b.left + 5, clientY: b.top + 5})); });
+      const _o = {bubbles: true, clientX: b.left + 5, clientY: b.top + 5}; d.dispatchEvent(new PointerEvent('pointerdown', _o)); d.dispatchEvent(new PointerEvent('pointerup', _o)); });
     await pg.waitForTimeout(800);
     check((await pg.evaluate(() => tm.tracks[4].m)) !== vor, 'Mute geht auch aus dem Mixer');
   }

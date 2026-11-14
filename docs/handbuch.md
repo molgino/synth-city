@@ -110,9 +110,11 @@ Was Stufe 1 kann:
 
 **Die vier Ansichten am Handy.** Über den Reglern steht eine Leiste **SEQUENZ · KLANG · EFFEKTE · MASTER** – dieselben vier Ansichten, die am Gerät mit L2/R2 kommen. SEQUENZ sind Trigs, Länge, Richtung und Bedingungen, KLANG der Sound der Spur, EFFEKTE die drei Send-Busse, MASTER Tempo, Swing, Summe, Skala und Kompressor. Das **Tempo** stellst du also in MASTER ein: Zeile BPM waagerecht ziehen (30–300).
 
-**Lange Listen am Handy.** Regler mit Namen statt Zahlen (ENGINE, Filtertyp, SAMPLE, LFO-Ziel, Trig-Bedingung …) öffnen beim Antippen eine **Liste** statt eines Schiebers – auf 114 Modulationsziele mit dem Finger zu zielen wäre nicht zu machen. Daneben tippen oder **ABBRECHEN** schließt sie wieder.
+**Lange Listen am Handy.** Regler mit Namen statt Zahlen (ENGINE, Filtertyp, SAMPLE, LFO-Ziel, Trig-Bedingung …) öffnen beim Antippen eine **Liste** statt eines Schiebers – auf 114 Modulationsziele mit dem Finger zu zielen wäre nicht zu machen. Die Modulationsziele stehen dabei als **Menü nach Seiten**: eine Zeile je Bedienseite (FILTER, AMP, LFO 1 …) mit der Anzahl ihrer Ziele, antippen klappt sie auf; offen ist gleich die Gruppe, in der das aktuelle Ziel steht. Senkrecht wischen scrollt, daneben tippen oder **ABBRECHEN** schließt.
 
 **Klang schrauben (Stufe 2).** Der Knopf **SOUND** schaltet von den Pads auf die Regler um. Oben wischst du durch die Gruppen (KLANG, FILTER, VERSTÄRKER, LFO …), darunter steht jeder Regler als breite Zeile mit Name und Wert. **Waagerecht über die Zeile ziehen** ändert den Wert – die ganze Zeilenbreite deckt den ganzen Bereich ab, du musst also nicht zielen. Gelb heißt: Der Wert ist für diesen Step gelockt. **STEPS** führt zurück zu den Pads.
+
+**Von Trig zu Trig.** Im Lock-Modus musst du nicht mehr beenden, um den nächsten Step zu bearbeiten: **TRIG ◀** und **TRIG ▶** oben springen zum vorigen bzw. nächsten Step, auf dem etwas liegt (Trig oder trigless) – am Gerät machen das **L1/R1**. Die Pfeiltasten ◀▶ gehen weiter Step für Step, auch über leere (so legst du dort neue trigless Werte an). Gibt es in der Spur keinen weiteren Trig, sind die beiden Knöpfe gedimmt.
 
 **P-Locks am Handy.** Ein Pad **lange gedrückt halten** hält den Step fest – die Oberfläche springt zu den Reglern, und was du jetzt änderst, gilt nur für diesen einen Step (die Werte stehen gelb). Oben steht, welcher Step hängt; **FERTIG** beendet, **LOCKS WEG** räumt sie wieder ab. War der Step leer, wird er dabei zu einem trigless Step – die Werte wirken also, ohne dass neu angeschlagen wird. Kurz antippen bleibt wie gehabt: Trig an und aus.
 
@@ -243,6 +245,7 @@ Jede Spur hat diese Seiten:
 
   Dazu kommen auf derselben Seite **CRSH** (Bitcrusher), **SRR** (Samplerate-Reduktion) und **DRIV** (Drive).
   Alle Regler, auch TYPE, lassen sich pro Step locken. Die Insert-Effekte sitzen hinter Filter und Hüllkurve, also vor Panorama und den Sends.
+  **Ein Typwechsel setzt P1–P3 auf die Grundwerte des neuen Typs** – dieselben drei Regler bedeuten je Typ etwas anderes, und eine Delay-Zeit von 120 ergibt als Chorus-RATE keinen Sinn. Ein Lock auf TYPE ändert die Werte des Patterns dagegen nicht.
 
   **DELAY** und **ROOM** liegen im Klangweg der Spur, nicht auf einem Send: das Echo folgt also Filter, Panorama und jedem Lock. TIME ist frei in Millisekunden (nicht taktsynchron) – gedacht für Slapback, Doubling und enge Räume, nicht für lange Fahnen. Die Fahne klingt nach dem Notenende weiter (bis zu 4 Sekunden), ohne die Hüllkurve abzuschneiden. Für lange, taktsynchrone Echos und große Hallräume bleiben die Effekt-Busse A/B/C die bessere Adresse – sie kosten nur einmal Rechenzeit statt pro Stimme.
 

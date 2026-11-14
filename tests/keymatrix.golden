@@ -478,7 +478,7 @@ Seite INS | LINKS | Seite INS>AMP
 Seite INS | RECHTS | Seite INS>SND
 Seite INS | A | T5 Step 1 0>1
 Seite INS | B | -
-Seite INS | X | T5.TYPE 0>1
+Seite INS | X | T5.TYPE 0>1; T5.P2 64>70
 Seite INS | Y | -
 Seite INS | L1 | Seite INS>EN1; Spur 5>4
 Seite INS | R1 | Spur 5>6
@@ -487,7 +487,7 @@ Seite INS | R2 | Ansicht SOUND>EFFEKTE; Seite INS>FX A
 Seite INS | START | PLAY
 Seite INS | SELECT | MEHR auf; MEHR-Eintrag 0>1
 Seite INS | A lang | Lock-Modus an; Step gehalten; T5 Step 1 0>1; Meldung "LOCK-MODUS STEP 1  (A ODER FERTIG = ENDE)"
-Seite INS | X lang | T5.TYPE 0>8
+Seite INS | X lang | T5.TYPE 0>8; T5.P1 64>80; T5.P2 64>60; T5.P3 64>70
 Seite INS | Y lang | -
 Seite INS | START lang | PLAY
 Seite INS | SELECT lang | -
@@ -2372,8 +2372,8 @@ TRIG Lock-Modus | A | Lock-Modus aus; Step losgelassen; T5 Step 1 1>0; Meldung "
 TRIG Lock-Modus | B | Meldung "LOCKS GELÖSCHT"
 TRIG Lock-Modus | X | T5 Step 1 Lock NOTE 255>37
 TRIG Lock-Modus | Y | T5 Step 1 Lock NOTE 255>35
-TRIG Lock-Modus | L1 | -
-TRIG Lock-Modus | R1 | -
+TRIG Lock-Modus | L1 | Meldung "KEIN WEITERER TRIG"
+TRIG Lock-Modus | R1 | Meldung "KEIN WEITERER TRIG"
 TRIG Lock-Modus | L2 | Ansicht SEQ>-; Seite TRG>SET; SET 1>7
 TRIG Lock-Modus | R2 | Ansicht SEQ>SOUND; Seite TRG>SRC
 TRIG Lock-Modus | START | PLAY
@@ -2759,8 +2759,8 @@ NEU SOUND Lock-Modus | A | Lock-Modus aus; Step losgelassen; T5 Step 1 1>0; Meld
 NEU SOUND Lock-Modus | B | Meldung "LOCKS GELÖSCHT"
 NEU SOUND Lock-Modus | X | T5 Step 1 Lock FREQ 255>71
 NEU SOUND Lock-Modus | Y | T5 Step 1 Lock FREQ 255>69
-NEU SOUND Lock-Modus | L1 | -
-NEU SOUND Lock-Modus | R1 | -
+NEU SOUND Lock-Modus | L1 | Meldung "KEIN WEITERER TRIG"
+NEU SOUND Lock-Modus | R1 | Meldung "KEIN WEITERER TRIG"
 NEU SOUND Lock-Modus | L2 | Ansicht SOUND>SEQ; Seite FLT>TRG
 NEU SOUND Lock-Modus | R2 | Ansicht SOUND>EFFEKTE; Seite FLT>FX A
 NEU SOUND Lock-Modus | START | PLAY

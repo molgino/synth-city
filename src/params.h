@@ -304,6 +304,24 @@ static const char* const INS_PNAMES[INS_COUNT][3] = {
     {"-", "-", "-"}, {"RATE", "DEPTH", "WIDTH"}, {"RATE", "DEPTH", "FBK"}, {"RATE", "DEPTH", "FBK"},
     {"GAIN", "TONE", "LEVEL"}, {"FREQ", "FINE", "-"}, {"RATE", "DEPTH", "-"},
     {"TIME", "FBK", "TONE"}, {"SIZE", "DAMP", "DIFF"}};
+// Grundwerte von P1-P3 je Typ: dieselben drei Regler bedeuten je Typ etwas voellig anderes
+// (RATE/TIME/SIZE, DEPTH/FBK/DAMP ...). Ein Typwechsel setzt sie darum neu - sonst stand im CHORUS
+// die Delay-Zeit des vorigen Typs (gemeldet "Insert-Typ wechseln verschiebt die Werte").
+static const uint8_t INS_DEFS[INS_COUNT][3] = {
+    { 64,  64,  64},   // OFF     -     -     -
+    { 64,  70,  64},   // CHORUS  RATE  DEPTH WIDTH
+    { 50,  70,  50},   // PHASER  RATE  DEPTH FBK
+    { 40,  60,  85},   // FLANGER RATE  DEPTH FBK
+    { 60,  70, 100},   // DRIVE   GAIN  TONE  LEVEL
+    { 64,  64,  64},   // RING    FREQ  FINE  -
+    { 55,  90,  64},   // APAN    RATE  DEPTH -
+    { 50,  45,  80},   // DELAY   TIME  FBK   TONE
+    { 80,  60,  70}};  // ROOM    SIZE  DAMP  DIFF
+static_assert(sizeof(INS_DEFS) / sizeof(*INS_DEFS) == INS_COUNT, "INS_DEFS unvollstaendig: jeder Insert-Typ braucht Grundwerte");
+inline int insDefault(int type, int k) {
+    if (k < 0 || k > 2) return 64;
+    return INS_DEFS[(type % INS_COUNT + INS_COUNT) % INS_COUNT][k];
+}
 static_assert(sizeof(INS_NAMES) / sizeof(*INS_NAMES) == INS_COUNT, "INS_NAMES unvollstaendig");
 static_assert(sizeof(INS_PNAMES) / sizeof(*INS_PNAMES) == INS_COUNT, "INS_PNAMES unvollstaendig");
 static_assert(INS_COUNT - 1 == 8, "INS: Hoechstwert des Reglers TYPE in PARAM_DEFS (INS-Seite) mitziehen");

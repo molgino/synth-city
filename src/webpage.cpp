@@ -472,6 +472,7 @@ body.tui.snd #tGrid{display:none}
 #tLock{display:none;align-items:center;gap:8px}
 body.tui.hold #tLock{display:flex}
 #tLock .tb{background:var(--lk,#2a2317);border-color:#ffba40;color:#ffba40}
+#tLock .tb.off{opacity:.35}   /* kein weiterer Trig in dieser Spur */
 .tp.hold{outline:3px solid #ffba40;outline-offset:-3px}
 body.tui.hold .tr .vl{color:#ffba40}
 /* Klaviatur: haengt ein Step im P-Lock, schreibt die Taste dessen Note - sonst hoert man nur vor */
@@ -505,7 +506,7 @@ body.sheet #tSheet{display:grid}
 #tSheet .tb{min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center;
  border-radius:10px;background:var(--panel);border:1px solid var(--off2);color:var(--text);padding:0 14px;font:inherit}
 #tShT{font-size:15px;color:var(--cy)}
-#tShB{overflow-y:auto;overscroll-behavior:contain;display:flex;flex-direction:column;gap:8px}
+#tShB{overflow-y:auto;overscroll-behavior:contain;display:flex;flex-direction:column;gap:8px;touch-action:pan-y;-webkit-overflow-scrolling:touch}
 #tShB .row{display:flex;gap:8px;flex-wrap:wrap}
 #tShB .big{flex:1;min-height:52px;display:flex;align-items:center;justify-content:center;border-radius:10px;
  background:var(--panel);border:1px solid var(--off2);color:var(--text);font-size:14px}
@@ -522,10 +523,17 @@ body.pick #tPick{display:grid}
 #tPickL.wide{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
 #tPickL.wide .pk{justify-content:flex-start;font-size:13px;padding:0 12px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;display:block;line-height:52px}
 #tPickL{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));grid-auto-rows:minmax(52px,auto);
- gap:8px;overflow-y:auto;overscroll-behavior:contain;align-content:start}
+ gap:8px;overflow-y:auto;overscroll-behavior:contain;align-content:start;touch-action:pan-y;-webkit-overflow-scrolling:touch}
 #tPickL .pk{display:flex;align-items:center;justify-content:center;border-radius:10px;background:var(--panel);
  border:1px solid var(--line);color:var(--text);font-size:14px;padding:0 8px;text-align:center}
 #tPickL .pk.on{background:var(--panel2);border-color:var(--text);color:var(--cy)}
+/* Lange Listen als Menue: eine Zeile je Bedienseite, antippen klappt ihre Ziele auf */
+#tPickL.menu{grid-template-columns:1fr}
+#tPickL .pg{min-height:48px;display:flex;align-items:center;gap:8px;padding:0 12px;border-radius:10px;
+ background:var(--panel2);border:1px solid var(--off2);color:var(--text);font-size:13px}
+#tPickL .pg .cnt{margin-left:auto;color:var(--dim);font-size:12px}
+#tPickL .pgi{display:none;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px;padding:4px 0 8px 10px}
+#tPickL .pgi.open{display:grid}
 /* schmal (Handy hochkant): die Kopfzeile darf nicht umbrechen - Meldung weg, Schrift kleiner */
 @media (max-width:560px){#tMsg{display:none}#tBpm{font-size:11px}#tTop .tb{padding:0 9px;font-size:12px}
  #tPat{font-size:16px;min-width:48px}#tPlay{min-width:52px}}
@@ -557,7 +565,7 @@ body.nopad #scr{grid-column:1 !important}
 </div></div>
 <div id="tui">
  <div id="tTop"><button class="tb" id="tPlay">▶</button><div class="tb" id="tPatD">‹</div><div id="tPat">A01</div><div class="tb" id="tPatU">›</div>
-  <div id="tBpm">120 BPM</div><span id="tMsg"></span><span id="tLock"><span style="color:#ffba40;font-size:12px" id="tLockT">LOCK</span><button class="tb" id="tLockC">LOCKS WEG</button><button class="tb" id="tLockE">FERTIG</button></span><span id="tModes"><button class="tb tm" id="tM0">STEPS</button><button class="tb tm" id="tM1">SOUND</button><button class="tb tm" id="tM2">NOTEN</button><button class="tb tm" id="tM3">MIXER</button><button class="tb tm" id="tM4">SONG</button></span><button class="tb" id="tView" title="zum gespiegelten Geraetebild">BILD</button></div>
+  <div id="tBpm">120 BPM</div><span id="tMsg"></span><span id="tLock"><span style="color:#ffba40;font-size:12px" id="tLockT">LOCK</span><button class="tb" id="tLockP" title="voriger Step mit Trig">◀ TRIG</button><button class="tb" id="tLockN" title="naechster Step mit Trig">TRIG ▶</button><button class="tb" id="tLockC">LOCKS WEG</button><button class="tb" id="tLockE">FERTIG</button></span><span id="tModes"><button class="tb tm" id="tM0">STEPS</button><button class="tb tm" id="tM1">SOUND</button><button class="tb tm" id="tM2">NOTEN</button><button class="tb tm" id="tM3">MIXER</button><button class="tb tm" id="tM4">SONG</button></span><button class="tb" id="tView" title="zum gespiegelten Geraetebild">BILD</button></div>
  <div id="tMain"><div id="tTracks"></div>
   <div id="tGrid"></div>
   <div id="tSnd"><div id="tVws"><div class="vw" data-v="0">SEQUENZ</div><div class="vw" data-v="1">KLANG</div><div class="vw" data-v="2">EFFEKTE</div><div class="vw" data-v="3">MASTER</div></div><div id="tGrps"></div><div id="tPar"></div></div>
@@ -632,6 +640,7 @@ function tuiRender(m){
  if(document.body.classList.contains('keys')){tKbMark(m.note);
   $('tNoteT').textContent=(m.hold>=0?'Step '+(m.hold+1)+': ':'')+tNoteName(m.note)+(m.drum?' · Drum-Engine: Tonhöhe wirkt kaum':'');}
  if(m.hold>=0)$('tLockT').textContent='LOCK STEP '+(m.hold+1);
+ ['tLockP','tLockN'].forEach(id=>$(id).classList.toggle('off',!m.jmp));   // kein weiterer Trig: gedimmt
  if(document.body.classList.contains('mix'))tMixPaint();
  if(document.body.classList.contains('song'))tSongPaint();
  // Spuren: nur neu aufbauen, wenn sich die Struktur aendert (sonst flackert es und der Finger verliert das Ziel)
@@ -702,19 +711,48 @@ function tuiRender(m){
 // Regler ziehen: waagerecht = Wert. Die volle Breite deckt den ganzen Bereich ab; waehrend des Ziehens
 // zeigt die Zeile den eigenen Wert (sonst wuerde das nachziehende Modell darunter springen).
 // Auswahl: opts = Werte 0..max der Reihe nach, slots = ausdrueckliche Paare (Sample-Plaetze)
+// Tippen statt Druecken: ein pointerdown mit preventDefault beendet die Wischgeste des Browsers -
+// die Auswahlliste liess sich darum nicht scrollen, und mit 114 Zielen war alles unter dem ersten
+// Schirm unerreichbar (gemeldet "LFO-Ziele kann ich nicht waehlen, die Liste ist nicht scrollbar").
+// Darum erst beim Abheben handeln, und nur, wenn der Finger praktisch stehen geblieben ist.
+function tTap(el,fn){let id=null,x0=0,y0=0;
+ el.addEventListener('pointerdown',e=>{id=e.pointerId;x0=e.clientX;y0=e.clientY;},{passive:true});
+ el.addEventListener('pointerup',e=>{if(id===null||e.pointerId!==id)return;id=null;
+  if(Math.abs(e.clientX-x0)>12||Math.abs(e.clientY-y0)>12)return;   // gewischt = gescrollt, nicht gewaehlt
+  e.preventDefault();fn(e);},{passive:false});
+ el.addEventListener('pointercancel',()=>{id=null;});
+ el.addEventListener('pointerleave',()=>{id=null;});}
 function tPickOpen(i){const p=tm.params[i];document.body.classList.add('pick');
  $('tPickT').textContent=p.n;const l=$('tPickL');l.innerHTML='';
  const shared=p.list&&tm.lists?tm.lists[p.list]:null;   // lange Listen stehen einmal je Modell
  const list=shared?shared:(p.slots?p.slots:(p.opts||[]).map((o,v)=>({v,n:o})));
  l.classList.toggle('wide',!!(p.slots||shared));   // Sample- und Zielnamen brauchen Platz
- list.forEach(o=>{const b=document.createElement('div');b.className='pk'+(o.v===p.v?' on':'');b.textContent=o.n;b.dataset.v=o.v;
-  b.addEventListener('pointerdown',e=>{e.preventDefault();tAct(11,i,o.v);tPickClose();},{passive:false});
-  l.appendChild(b);});
+ const mkRow=o=>{const b=document.createElement('div');b.className='pk'+(o.v===p.v?' on':'');b.textContent=o.n;b.dataset.v=o.v;
+  tTap(b,()=>{tAct(11,i,o.v);tPickClose();});return b;};
+ // Hat die Liste Gruppen (nur die langen: "g" am ersten Eintrag je Bedienseite), wird sie ein Menue:
+ // 114 Ziele in einer Reihe findet keiner, nach Seiten sortiert sind es 20 Zeilen zum Aufklappen.
+ const grp=[];let cur=null;
+ list.forEach(o=>{if(o.g!==undefined||!cur){cur={g:o.g||'',e:[]};grp.push(cur);}cur.e.push(o);});
+ const menu=grp.some(g=>g.g);
+ l.classList.toggle('menu',menu);
+ if(!menu){list.forEach(o=>l.appendChild(mkRow(o)));}
+ else grp.forEach(g=>{
+  if(!g.g){g.e.forEach(o=>l.appendChild(mkRow(o)));return;}   // "---" und VCA stehen immer oben
+  const h=document.createElement('div');h.className='pg';
+  const box=document.createElement('div');box.className='pgi';
+  g.e.forEach(o=>box.appendChild(mkRow(o)));
+  const auf=g.e.some(o=>o.v===p.v);   // die Gruppe des aktuellen Ziels steht offen
+  const zeig=()=>{const o=box.classList.contains('open');
+   h.innerHTML='';h.appendChild(document.createTextNode((o?'▾ ':'▸ ')+g.g));
+   const c=document.createElement('span');c.className='cnt';c.textContent=g.e.length;h.appendChild(c);};
+  box.classList.toggle('open',auf);zeig();
+  tTap(h,()=>{box.classList.toggle('open');zeig();});
+  l.appendChild(h);l.appendChild(box);});
  const on=l.querySelector('.pk.on');if(on)setTimeout(()=>on.scrollIntoView({block:'nearest'}),0);}
 function tPickClose(){document.body.classList.remove('pick');}
 $('tPickX').addEventListener('pointerdown',e=>{e.preventDefault();tPickClose();},{passive:false});
 // daneben tippen schliesst auch - ohne das blieb der Picker offen und deckte die ganze Kopfzeile zu
-$('tPick').addEventListener('pointerdown',e=>{if(e.target===$('tPick')||e.target===$('tPickL')){e.preventDefault();tPickClose();}},{passive:false});
+tTap($('tPick'),e=>{if(e.target===$('tPick')||e.target===$('tPickL'))tPickClose();});
 addEventListener('keydown',e=>{if(e.key!=='Escape')return;if(document.body.classList.contains('pick'))tPickClose();else if(document.body.classList.contains('sheet'))tSheetClose();});
 function tParDrag(d,i){
  let id=null,x0=0,v0=0,mx=127,mn=0,cur=0;
@@ -731,6 +769,10 @@ function tParDrag(d,i){
  d.addEventListener('pointerup',end);d.addEventListener('pointercancel',end);
 }
 $('tLockE').addEventListener('pointerdown',e=>{e.preventDefault();tAct(12,0,0);},{passive:false});
+// Gemeldet: "ich kann die Trig-Locks nur einzeln editieren und muss immer beenden" - diese zwei
+// Knoepfe springen im Lock-Modus zum vorigen/naechsten Step MIT Trig (am Geraet machen das L1/R1).
+$('tLockP').addEventListener('pointerdown',e=>{e.preventDefault();tAct(20,-1,0);},{passive:false});
+$('tLockN').addEventListener('pointerdown',e=>{e.preventDefault();tAct(20,1,0);},{passive:false});
 $('tLockC').addEventListener('pointerdown',e=>{e.preventDefault();tAct(13,0,0);},{passive:false});
 // Drei Ansichten, drei Knoepfe: STEPS, SOUND, NOTEN. Vorher war das EIN Knopf im Kreis, der das
 // Ziel statt des Zustands zeigte - zu den Steps zurueck brauchte je nach Lage ein oder zwei Treffer
@@ -789,7 +831,7 @@ function tSgPick(row,trk){const S=tm.sng;document.body.classList.add('pick');
  const l=$('tPickL');l.innerHTML='';l.classList.remove('wide');
  S.pats.forEach(o=>{const b=document.createElement('div');b.className='pk'+(o.v===S.rows[row].p[trk]?' on':'');
   b.textContent=o.n;b.dataset.v=o.v;
-  b.addEventListener('pointerdown',e=>{e.preventDefault();tAct(18,row*16+trk,o.v);tPickClose();},{passive:false});
+  tTap(b,()=>{tAct(18,row*16+trk,o.v);tPickClose();});
   l.appendChild(b);});}
 $('tSgOn').addEventListener('pointerdown',e=>{e.preventDefault();tAct(17,0,0);},{passive:false});
 $('tSgAdd').addEventListener('pointerdown',e=>{e.preventDefault();tAct(17,2,tm&&tm.sng?tm.sng.len-1:0);},{passive:false});
@@ -804,15 +846,15 @@ function tSheetFill(){const b=$('tShB');if(!tm||!tm.prj)return;const p=tm.prj;
  info.textContent='Offen: '+p.n+(p.d?'  ·  ungespeicherte Änderungen':'  ·  gespeichert');b.appendChild(info);
  const row=document.createElement('div');row.className='row';
  const sv=document.createElement('div');sv.className='big'+(p.d?' go':'');sv.textContent='PROJEKT SPEICHERN';
- sv.addEventListener('pointerdown',e=>{e.preventDefault();tAct(16,0,0);setTimeout(tSheetFill,600);},{passive:false});
+ tTap(sv,()=>{tAct(16,0,0);setTimeout(tSheetFill,600);});
  const nw=document.createElement('div');nw.className='big';nw.textContent='NEUES PROJEKT';
- nw.addEventListener('pointerdown',e=>{e.preventDefault();tAct(16,2,0);setTimeout(()=>{tSheetFill();tSheetClose();},700);},{passive:false});
+ tTap(nw,()=>{tAct(16,2,0);setTimeout(()=>{tSheetFill();tSheetClose();},700);});
  row.appendChild(sv);row.appendChild(nw);b.appendChild(row);
  const lb=document.createElement('div');lb.className='lbl';lb.textContent='Laden ('+(p.l?p.l.length:0)+')';b.appendChild(lb);
  const pl=document.createElement('div');pl.className='pl';
  (p.l||[]).forEach((nm,i)=>{const d=document.createElement('div');d.textContent=nm;if(nm===p.n)d.className='on';
   d.dataset.i=i;
-  d.addEventListener('pointerdown',e=>{e.preventDefault();tAct(16,1,i);setTimeout(()=>{tSheetFill();tSheetClose();},900);},{passive:false});
+  tTap(d,()=>{tAct(16,1,i);setTimeout(()=>{tSheetFill();tSheetClose();},900);});
   pl.appendChild(d);});
  b.appendChild(pl);
  // --- Sampler: Quelle, Aufnahme, Hoeren, Speichern. Trimmen und Chops bleiben am Geraet.
@@ -822,7 +864,7 @@ function tSheetFill(){const b=$('tShB');if(!tm||!tm.prj)return;const p=tm.prj;
  b.appendChild(sl);
  const sr=document.createElement('div');sr.className='row';
  const mk=(t,cls,fn)=>{const d=document.createElement('div');d.className='big'+(cls?' '+cls:'');d.textContent=t;
-  d.addEventListener('pointerdown',e=>{e.preventDefault();fn();setTimeout(tSheetFill,500);},{passive:false});return d;};
+  tTap(d,()=>{fn();setTimeout(tSheetFill,500);});return d;};
  sr.appendChild(mk('QUELLE',''  ,()=>tSmpSrc()));
  sr.appendChild(mk(S.rec?'STOPP':'AUFNAHME',S.rec?'go':'',()=>tAct(19,0,0)));
  sr.appendChild(mk('HÖREN','',()=>tAct(19,1,0)));
@@ -835,11 +877,11 @@ function tSmpSrc(){document.body.classList.add('pick');
  const n=['USB PC/HANDY','MASTER'];for(let t=0;t<8;t++)n.push('SPUR '+(t+1)+(tm.tracks[t]?' '+tm.tracks[t].n:''));
  n.forEach((nm,v)=>{const d=document.createElement('div');d.className='pk'+(v===(tm.smp?tm.smp.src:0)?' on':'');
   d.textContent=nm;d.dataset.v=v;
-  d.addEventListener('pointerdown',e=>{e.preventDefault();tAct(19,3,v);tPickClose();setTimeout(tSheetFill,400);},{passive:false});
+  tTap(d,()=>{tAct(19,3,v);tPickClose();setTimeout(tSheetFill,400);});
   l.appendChild(d);});}
 $('tPrj').addEventListener('pointerdown',e=>{e.preventDefault();tSheetOpen();},{passive:false});
 $('tShX').addEventListener('pointerdown',e=>{e.preventDefault();tSheetClose();},{passive:false});
-$('tSheet').addEventListener('pointerdown',e=>{if(e.target===$('tSheet')||e.target===$('tShB')){e.preventDefault();tSheetClose();}},{passive:false});
+tTap($('tSheet'),e=>{if(e.target===$('tSheet')||e.target===$('tShB'))tSheetClose();});
 
 // ---- Mixer: acht Spuren nebeneinander, Zeilen wie die MIX-Seite am Geraet
 const MIXN=['VOL','PAN','S.A','S.B','S.C','CMP'];

@@ -841,6 +841,23 @@ static void lockJumpTo(int st) {   // Lock-Modus: zu einem anderen Step derselbe
     toast("LOCK STEP %d", st + 1);
 }
 
+// Gemeldet: "die Trig-Locks kann ich nur einzeln editieren und muss den Modus beenden, um zum
+// naechsten zu kommen - ich moechte vor und zurueck, zumindest zu den Steps mit einem Trig".
+// Sucht ab dem gehaltenen Step in eine Richtung den naechsten belegten Step (Trig oder trigless)
+// derselben Spur; gibt es keinen, bleibt es bei -1 (dann tut der Sprung nichts).
+static int lockFindTrig(int dir) {
+    if (!aHeld) return -1;
+    const Pattern& P = eng.proj.pat[holdPat];
+    int len = P.len[holdTrack] < 1 ? 1 : P.len[holdTrack];
+    if (len > NSTEPS) len = NSTEPS;
+    for (int i = 1; i <= len; i++) {
+        int st = ((holdStep + dir * i) % len + len) % len;
+        if (st == holdStep) break;
+        if (P.s[holdTrack][st].on != 0) return st;
+    }
+    return -1;
+}
+
 // Rueckgaengig: Stapel von Pattern-Staenden; zusammenhaengende Aenderungen (bis 0,8 s Pause) = ein Schritt
 enum { UNDO_N = 12 };
 static Pattern undoBuf[UNDO_N], undoShadow, redoBuf[UNDO_N];
@@ -3771,6 +3788,17 @@ static void editValue(int delta) {
         int m = MACHINE_ORDER[clampi(oi + (delta > 0 ? 1 : -1), 0, M_COUNT - 1)];
         if (m != P.machine[track]) { lockA(); Engine::setMachine(P, track, m); unlockA();
                                     if (cfg.preview) { lockA(); eng.preview(track, nullptr); unlockA(); } }
+        return;
+    }
+    if (d.kind == K_INS) {   // Insert-Typ: P1-P3 heissen je Typ anders, also kommen die Grundwerte des neuen Typs
+        int cur = aHeld && holdS().lock[idx] != NO_LOCK ? holdS().lock[idx] : P.p[track][idx];
+        int nv = clampi(cur + delta, 0, d.max);
+        // Lock: nur der Typ, P1-P3 gehoeren dem Pattern. Auch wenn der Wert gleich bleibt, wird der Lock
+        // geschrieben (er haelt den Wert fuer diesen Step fest) - genau wie bei jedem anderen Regler.
+        if (aHeld) { holdS().lock[idx] = (uint8_t)nv; aEdited = true; return; }
+        if (nv == cur) return;
+        P.p[track][idx] = (uint8_t)nv;
+        for (int k = 0; k < 3; k++) P.p[track][P_IP1 + k] = (uint8_t)insDefault(nv, k);
         return;
     }
     if (d.kind == K_NOTEX) {   // Intervall: von AUS geht es bei +0 (uni) los, nicht bei -24

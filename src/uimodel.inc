@@ -5,7 +5,7 @@
 // Gelesen wird im Hauptthread (uiModelPush, ~10/s), geschickt vom Web-Thread; Aktionen laufen
 // ueber remoteActPush zurueck in den Hauptthread (uiActionsRun in handleInput).
 
-enum { UA_STEP = 1, UA_TRACK, UA_MUTE, UA_PLAY, UA_PATTERN, UA_PAGE, UA_SOLO, UA_TRIGLESS, UA_VIEW, UA_GROUP, UA_PARAM, UA_HOLD, UA_LOCKCLR, UA_NOTE, UA_TRKP, UA_PRJ, UA_SONG, UA_SNGCELL, UA_SMP };
+enum { UA_STEP = 1, UA_TRACK, UA_MUTE, UA_PLAY, UA_PATTERN, UA_PAGE, UA_SOLO, UA_TRIGLESS, UA_VIEW, UA_GROUP, UA_PARAM, UA_HOLD, UA_LOCKCLR, UA_NOTE, UA_TRKP, UA_PRJ, UA_SONG, UA_SNGCELL, UA_SMP, UA_LOCKJMP };
 // Mixer: dieselben Zeilen wie die MIX-Seite am Geraet (MIX_P), damit beide dasselbe zeigen
 enum { UMIX_N = 6 };
 
@@ -69,12 +69,18 @@ static int uiListJson(char* b, int n, int w, const char* name, int kind, int mac
     } else {   // Modulationsziel: "---", jeder echte Klangparameter mit seiner Seite, bei ENV zusaetzlich VCA
         w += snprintf(b + w, n - w, "{\"v\":0,\"n\":\"---\"}"); first = false;
         if (kind == K_EDEST) w += snprintf(b + w, n - w, ",{\"v\":%d,\"n\":\"VCA\"}", MOD_VCA);
+        // Die Ziele kommen nach Bedienseiten gruppiert: "g" steht nur am ERSTEN Eintrag einer Seite
+        // (jedem der 114 Eintraege den Seitennamen mitzugeben waere 1,4 KB fuer nichts), und am Handy
+        // wird daraus ein Menue zum Aufklappen - gewuenscht: "mach da ein Menue draus mit den Zielen".
         for (int u = 0; u < NUI_PAGES && w < n - 80; u++) {
             if (!pageAvail(u)) continue;
+            bool firstOfPage = true;
             for (int k = 0; k < uiSlots(u) && w < n - 80; k++) {
                 int pi = uiParam(u, k);
                 if (pi < 0 || !ldestValid(mach, pi) || ldestUiPage(pi) != u) continue;
-                w += snprintf(b + w, n - w, ",{\"v\":%d,\"n\":\"%s %s\"}", pi + 1, PAGE_NAMES[u], paramDef(mach, pi).name);
+                if (firstOfPage) { w += snprintf(b + w, n - w, ",{\"v\":%d,\"n\":\"%s\",\"g\":\"%s\"}",
+                                                 pi + 1, paramDef(mach, pi).name, PAGE_NAMES[u]); firstOfPage = false; }
+                else w += snprintf(b + w, n - w, ",{\"v\":%d,\"n\":\"%s\"}", pi + 1, paramDef(mach, pi).name);
             }
         }
     }
@@ -95,10 +101,11 @@ static int uiModelJson(char* b, int n) {
     const Pattern& P = curP();
     int len = P.len[track] < 1 ? 1 : P.len[track];
     int w = snprintf(b, n,
-        "{\"play\":%d,\"song\":%d,\"bpm\":%d,\"pat\":\"%s\",\"patIdx\":%d,\"track\":%d,\"len\":%d,\"page\":%d,\"pages\":%d,\"rec\":%d,\"hold\":%d,\"msg\":\"",
+        "{\"play\":%d,\"song\":%d,\"bpm\":%d,\"pat\":\"%s\",\"patIdx\":%d,\"track\":%d,\"len\":%d,\"page\":%d,\"pages\":%d,\"rec\":%d,\"hold\":%d,\"jmp\":%d,\"msg\":\"",
         eng.playing ? 1 : 0, eng.songOn ? 1 : 0, eng.proj.bpm, PN(curPi()), curPi(), track, len,
         cursor / 16, (len + 15) / 16, eng.recording ? 1 : 0,
-        aHeld && holdTrack == track && holdPat == curPi() ? holdStep : -1);   // P-Lock: welcher Step haengt gerade
+        aHeld && holdTrack == track && holdPat == curPi() ? holdStep : -1,   // P-Lock: welcher Step haengt gerade
+        aHeld && lockFindTrig(1) >= 0 ? 1 : 0);   // gibt es ueberhaupt einen weiteren Trig zum Springen?
     for (const char* c = msg; *c && w < n - 8; c++) {   // Meldung (Anfuehrungszeichen entschaerfen)
         if (*c == '"' || *c == '\\') continue;
         b[w++] = *c;
@@ -377,6 +384,13 @@ static void uiActionsRun() {   // Hauptthread: Aktionen aus der Touch-Oberflaech
                 if (aHeld && aEdited) { Step& st = holdS(); if (!st.on) st.on = 2; }
                 aHeld = false; lockLatch = false; aEdited = false;
             }
+        } break;
+        case UA_LOCKJMP: {   // im Lock-Modus zum vorigen/naechsten Step mit Trig (am Geraet L1/R1)
+            if (!aHeld) break;
+            int st = lockFindTrig(e.a >= 0 ? 1 : -1);
+            if (st < 0) break;
+            undoTrack(SDL_GetTicks());
+            lockA(); lockJumpTo(st); unlockA();
         } break;
         case UA_LOCKCLR: {   // alle Locks dieses Steps weg (am Geraet: B im Lock-Modus)
             if (!aHeld) break;
