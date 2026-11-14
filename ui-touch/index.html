@@ -210,7 +210,25 @@ body.tui.keys #tGrid,body.tui.keys #tSnd{display:none}
 #tPick{display:none;position:fixed;inset:0;z-index:9;background:#0e0f12ee;
  padding:max(10px,env(safe-area-inset-top)) max(10px,env(safe-area-inset-right)) max(10px,env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left));
  grid-template-rows:auto minmax(0,1fr);gap:10px}
-#tPickH{display:flex;align-items:center;gap:10px;min-height:44px}
+#tPickH,#tShH{display:flex;align-items:center;gap:10px;min-height:44px}
+/* Projekt-Blatt: gleicher Bau wie der Picker (Safe-Area, 44-px-Flaechen) */
+#tSheet{display:none;position:fixed;inset:0;z-index:9;background:#0e0f12f2;
+ padding:max(10px,env(safe-area-inset-top)) max(10px,env(safe-area-inset-right)) max(10px,env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left));
+ grid-template-rows:auto minmax(0,1fr);gap:10px}
+body.sheet #tSheet{display:grid}
+#tSheet .tb{min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center;
+ border-radius:10px;background:var(--panel);border:1px solid var(--off2);color:var(--text);padding:0 14px;font:inherit}
+#tShT{font-size:15px;color:var(--cy)}
+#tShB{overflow-y:auto;overscroll-behavior:contain;display:flex;flex-direction:column;gap:8px}
+#tShB .row{display:flex;gap:8px;flex-wrap:wrap}
+#tShB .big{flex:1;min-height:52px;display:flex;align-items:center;justify-content:center;border-radius:10px;
+ background:var(--panel);border:1px solid var(--off2);color:var(--text);font-size:14px}
+#tShB .big.go{background:var(--acc);border-color:var(--acc);color:var(--bg)}
+#tShB .lbl{color:var(--dim);font-size:12px}
+#tShB .pl{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px}
+#tShB .pl div{min-height:48px;display:flex;align-items:center;padding:0 12px;border-radius:9px;
+ background:var(--panel);border:1px solid var(--line);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+#tShB .pl div.on{border-color:var(--text);color:var(--cy)}
 #tPick .tb{min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center;
  border-radius:10px;background:var(--panel);border:1px solid var(--off2);color:var(--text);padding:0 14px;font:inherit}
 body.pick #tPick{display:grid}
@@ -262,7 +280,8 @@ body.nopad #scr{grid-column:1 !important}
  <div id="tWait">warte auf die Groovebox …</div>
  <div id="tPick"><div id="tPickH"><span id="tPickT"></span>
   <span style="flex:1"></span><button class="tb" id="tPickX">ABBRECHEN</button></div><div id="tPickL"></div></div>
- <div id="tBot"><div id="tPages" style="display:flex;gap:6px;flex-wrap:wrap"></div></div>
+ <div id="tBot"><div id="tPages" style="display:flex;gap:6px;flex-wrap:wrap"></div><span style="flex:1"></span><button class="tb" id="tPrj">PROJEKT</button></div>
+ <div id="tSheet"><div id="tShH"><span id="tShT">PROJEKT</span><span style="flex:1"></span><button class="tb" id="tShX">ZU</button></div><div id="tShB"></div></div>
 </div>
 <div id="help"><div><b style="color:#fff">Tastatur</b><br>
 <kbd>←↑→↓</kbd> Steuerkreuz &nbsp; <kbd>Z</kbd>/<kbd>Leertaste</kbd> A &nbsp; <kbd>X</kbd>/<kbd>⌫</kbd> B &nbsp; <kbd>S</kbd> X &nbsp; <kbd>A</kbd> Y<br>
@@ -319,7 +338,8 @@ function tuiModel(j){let m;try{m=typeof j==='string'?JSON.parse(j):j;}catch(e){r
  document.body.classList.remove('twait');tuiRender(m);}
 function tuiRender(m){
  const play=$('tPlay');play.textContent=m.play?'■':'▶';play.classList.toggle('on',!!m.play);
- $('tPat').textContent=m.pat;$('tBpm').textContent=m.bpm+' BPM'+(m.song?' · SONG':'');
+ $('tPat').textContent=m.pat;
+ if(m.prj)$('tPrj').textContent=(m.prj.d?'● ':'')+'PROJEKT';$('tBpm').textContent=m.bpm+' BPM'+(m.song?' · SONG':'');
  $('tMsg').textContent=m.msg||'';
  document.body.classList.toggle('hold',m.hold>=0);
  if(document.body.classList.contains('keys')){tKbMark(m.note);
@@ -407,7 +427,7 @@ function tPickClose(){document.body.classList.remove('pick');}
 $('tPickX').addEventListener('pointerdown',e=>{e.preventDefault();tPickClose();},{passive:false});
 // daneben tippen schliesst auch - ohne das blieb der Picker offen und deckte die ganze Kopfzeile zu
 $('tPick').addEventListener('pointerdown',e=>{if(e.target===$('tPick')||e.target===$('tPickL')){e.preventDefault();tPickClose();}},{passive:false});
-addEventListener('keydown',e=>{if(e.key==='Escape'&&document.body.classList.contains('pick'))tPickClose();});
+addEventListener('keydown',e=>{if(e.key!=='Escape')return;if(document.body.classList.contains('pick'))tPickClose();else if(document.body.classList.contains('sheet'))tSheetClose();});
 function tParDrag(d,i){
  let id=null,x0=0,v0=0,mx=127,cur=0;
  d.addEventListener('pointerdown',e=>{if(!tm||!tm.params||!tm.params[i])return;e.preventDefault();
@@ -438,6 +458,31 @@ function tSetMode(m){const b=document.body;TMODES.forEach(c=>c&&b.classList.remo
  try{localStorage.tmode=m;}catch(e){}}
 for(let k=0;k<TMODES.length;k++)$('tM'+k).addEventListener('pointerdown',e=>{e.preventDefault();tSetMode(k);},{passive:false});
 try{const m=+(localStorage.tmode||0);setTimeout(()=>tSetMode(m||0),300);}catch(e){setTimeout(()=>tSetMode(0),300);}
+
+// ---- Projekt-Blatt: speichern, laden, neu. Namen tippt man am Geraet oder im Browser;
+// hier gibt es "neu" mit freiem Namen - der Weg ueber eine Bildschirmtastatur waere auf dem Handy laenger.
+function tSheetOpen(){document.body.classList.add('sheet');tSheetFill();}
+function tSheetClose(){document.body.classList.remove('sheet');}
+function tSheetFill(){const b=$('tShB');if(!tm||!tm.prj)return;const p=tm.prj;
+ b.innerHTML='';
+ const info=document.createElement('div');info.className='lbl';
+ info.textContent='Offen: '+p.n+(p.d?'  ·  ungespeicherte Änderungen':'  ·  gespeichert');b.appendChild(info);
+ const row=document.createElement('div');row.className='row';
+ const sv=document.createElement('div');sv.className='big'+(p.d?' go':'');sv.textContent='SPEICHERN';
+ sv.addEventListener('pointerdown',e=>{e.preventDefault();tAct(16,0,0);setTimeout(tSheetFill,600);},{passive:false});
+ const nw=document.createElement('div');nw.className='big';nw.textContent='NEUES PROJEKT';
+ nw.addEventListener('pointerdown',e=>{e.preventDefault();tAct(16,2,0);setTimeout(()=>{tSheetFill();tSheetClose();},700);},{passive:false});
+ row.appendChild(sv);row.appendChild(nw);b.appendChild(row);
+ const lb=document.createElement('div');lb.className='lbl';lb.textContent='Laden ('+(p.l?p.l.length:0)+')';b.appendChild(lb);
+ const pl=document.createElement('div');pl.className='pl';
+ (p.l||[]).forEach((nm,i)=>{const d=document.createElement('div');d.textContent=nm;if(nm===p.n)d.className='on';
+  d.dataset.i=i;
+  d.addEventListener('pointerdown',e=>{e.preventDefault();tAct(16,1,i);setTimeout(()=>{tSheetFill();tSheetClose();},900);},{passive:false});
+  pl.appendChild(d);});
+ b.appendChild(pl);}
+$('tPrj').addEventListener('pointerdown',e=>{e.preventDefault();tSheetOpen();},{passive:false});
+$('tShX').addEventListener('pointerdown',e=>{e.preventDefault();tSheetClose();},{passive:false});
+$('tSheet').addEventListener('pointerdown',e=>{if(e.target===$('tSheet')||e.target===$('tShB')){e.preventDefault();tSheetClose();}},{passive:false});
 
 // ---- Mixer: acht Spuren nebeneinander, Zeilen wie die MIX-Seite am Geraet
 const MIXN=['VOL','PAN','S.A','S.B','S.C','CMP'];
