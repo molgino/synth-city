@@ -27,7 +27,7 @@ static volatile int g_status = 0;              // 0 aus, 1 wartet auf PC, 2 PC l
 void usbAudioSetChannels(int ch) { if (!g_active) g_ch = ch >= 2 && ch <= MAXCH ? ch : 2; }
 int usbAudioChannels() { return g_ch; }
 static SDL_Thread* g_thread = nullptr;
-static char g_dev[32];
+static char g_dev[32], g_idev[32];
 static volatile bool g_host = false;     // Host-Modus: Geraet am R36S (z. B. MPC) statt Gadget zum PC
 static char g_hostName[64] = "";         // Name der Karte im Host-Modus (Anzeige)
 static volatile int g_hostMax = 0;       // groesste Kanalzahl, die das Geraet annimmt
@@ -78,6 +78,48 @@ static int playbackDevice(int card) {
     }
     snd_ctl_close(ctl);
     return found;
+}
+
+// Aufnahme-PCM einer Karte (wie playbackDevice, nur andere Richtung)
+static int captureDevice(int card) {
+    char nm[16]; snprintf(nm, sizeof nm, "hw:%d", card);
+    snd_ctl_t* ctl;
+    if (snd_ctl_open(&ctl, nm, 0) < 0) return -1;
+    int dev = -1, found = -1;
+    snd_pcm_info_t* info; snd_pcm_info_alloca(&info);
+    while (snd_ctl_pcm_next_device(ctl, &dev) == 0 && dev >= 0) {
+        snd_pcm_info_set_device(info, (unsigned)dev);
+        snd_pcm_info_set_subdevice(info, 0);
+        snd_pcm_info_set_stream(info, SND_PCM_STREAM_CAPTURE);
+        if (snd_ctl_pcm_info(ctl, info) >= 0) { found = dev; break; }
+    }
+    snd_ctl_close(ctl);
+    return found;
+}
+
+// Eigener Eingang des Geraets (Mikrofon bzw. Line-In am internen Codec): erste Karte mit Aufnahme-PCM,
+// die NICHT das USB-Gadget und nicht MIDI ist. Der interne Codec (rk817) wird bevorzugt.
+static bool findMicIn(char* out, int n) {
+    int card = -1, best = -1, bestDev = 0, other = -1, otherDev = 0;
+    while (snd_card_next(&card) == 0 && card >= 0) {
+        char *nm = nullptr, *ln = nullptr;
+        snd_card_get_name(card, &nm);
+        snd_card_get_longname(card, &ln);
+        bool midi = (nm && strcasestr(nm, "midi")) || (ln && strcasestr(ln, "midi"));
+        bool gadget = (nm && (strcasestr(nm, "uac") || strcasestr(nm, "gadget"))) ||
+                      (ln && (strcasestr(ln, "uac") || strcasestr(ln, "gadget")));
+        bool internal = (nm && strcasestr(nm, "rk817")) || (ln && strcasestr(ln, "rk817"));
+        free(nm); free(ln);
+        if (midi || gadget) continue;
+        int cd = captureDevice(card);
+        if (cd < 0) continue;
+        if (internal && best < 0) { best = card; bestDev = cd; }
+        if (other < 0) { other = card; otherDev = cd; }
+    }
+    if (best < 0) { best = other; bestDev = otherDev; }
+    if (best < 0) return false;
+    snprintf(out, n, "hw:%d,%d", best, bestDev);
+    return true;
 }
 
 // UAC2-Gadget-Soundkarte suchen: nur Karten mit Wiedergabe-PCM, nie MIDI ("MIDI Gadget") oder den internen Codec.
@@ -411,6 +453,7 @@ enum { IRING = 16384, IMASK = IRING - 1, ITARGET = 2048 };
 static float g_iring[IRING * 2];          // Float: 24 Bit vom PC bleiben erhalten
 static volatile unsigned g_iw = 0, g_ir = 0;
 static volatile bool g_irun = false, g_iactive = false;
+static volatile bool g_imic = false;      // Eingang ist der eigene (Mikrofon/Line-In) statt des USB-Gadgets
 static volatile int g_istatus = 0;
 static SDL_Thread* g_ithread = nullptr;
 static double g_ifrac = 0, g_iratio = 1.0, g_ifill = ITARGET;
@@ -427,16 +470,16 @@ static int g_recAlloc = 0;                // Frames im Puffer
 static int pcInThread(void*) {
   while (g_irun) {   // neu oeffnen, wenn der PC die Abtastrate wechselt
     snd_pcm_t* pcm = nullptr;
-    int e = snd_pcm_open(&pcm, g_dev, SND_PCM_STREAM_CAPTURE, SND_PCM_NONBLOCK);
-    if (e < 0) { printf("PC-Audio: %s nicht zu oeffnen (%s)\n", g_dev, snd_strerror(e)); g_iactive = false; return 0; }
-    const int rate = pickRate(pcm, gadgetRate(false));
+    int e = snd_pcm_open(&pcm, g_idev, SND_PCM_STREAM_CAPTURE, SND_PCM_NONBLOCK);
+    if (e < 0) { printf("%s: %s nicht zu oeffnen (%s)\n", g_imic ? "Eingang" : "PC-Audio", g_idev, snd_strerror(e)); g_iactive = false; return 0; }
+    const int rate = pickRate(pcm, g_imic ? g_srcRate : gadgetRate(false));
     const int bps = openFormat(pcm, (unsigned)rate, 30000);
     if (!bps) {
         printf("PC-Audio: Format nicht moeglich (%d Hz)\n", rate); snd_pcm_close(pcm); g_iactive = false; return 0;
     }
     const int src = g_srcRate;
     g_ibase = (double)rate / src; g_ireset = 1; g_rateIn = rate;
-    printf("PC-Audio vom PC aktiv (%s, %d Hz, %d Bit)\n", g_dev, rate, bps == 2 ? 16 : 24);
+    printf("%s aktiv (%s, %d Hz, %d Bit)\n", g_imic ? "Eingang (Mikrofon/Line-In)" : "PC-Audio vom PC", g_idev, rate, bps == 2 ? 16 : 24);
     static uint8_t tmp[256 * 2 * 4];
     Uint32 lastOk = 0, statAt = SDL_GetTicks(), rateCheckAt = SDL_GetTicks();
     unsigned long got = 0;
@@ -444,7 +487,7 @@ static int pcInThread(void*) {
     while (g_irun) {
         if (SDL_GetTicks() - rateCheckAt >= 500) {   // PC hat eine andere Rate gewaehlt?
             rateCheckAt = SDL_GetTicks();
-            int r = gadgetRate(false);
+            int r = g_imic ? rate : gadgetRate(false);
             if (r > 0 && r != rate) { printf("PC-Audio: PC wechselt auf %d Hz\n", r); break; }
             if (g_srcRate != src) break;   // Engine-Rate gewechselt: Verhaeltnis neu
         }
@@ -476,10 +519,13 @@ static int pcInThread(void*) {
     return 0;
 }
 
-bool pcInStart() {
-    if (g_iactive) return true;
+bool micInAvailable() { char d[32]; return findMicIn(d, sizeof d); }
+bool pcInStartSrc(bool mic) {
+    if (g_iactive) { if (mic == g_imic) return true; pcInStop(); }
     if (g_ithread) { SDL_WaitThread(g_ithread, nullptr); g_ithread = nullptr; }
-    if (!findGadget(g_dev, sizeof g_dev)) return false;
+    if (mic) { if (!findMicIn(g_idev, sizeof g_idev)) return false; }
+    else { if (!findGadget(g_dev, sizeof g_dev)) return false; snprintf(g_idev, sizeof g_idev, "%s", g_dev); }
+    g_imic = mic;
     g_iw = g_ir = 0; g_iprimed = false; g_ifrac = 0; g_iratio = 1.0; g_ifill = ITARGET;
     g_irun = true; g_iactive = true; g_istatus = 1;
     g_ithread = SDL_CreateThread(pcInThread, "pcaudio", nullptr);
@@ -492,7 +538,9 @@ void pcInStop() {
     SDL_WaitThread(g_ithread, nullptr);
     g_ithread = nullptr; g_iactive = false; g_istatus = 0;
 }
+bool pcInStart() { return pcInStartSrc(false); }
 bool pcInActive() { return g_iactive; }
+bool pcInIsMic() { return g_iactive && g_imic; }
 int pcInStatus() { return g_iactive ? g_istatus : 0; }
 
 void pcInMix(float* st, int frames, float gain) {   // nur aus dem Audio-Callback
@@ -557,6 +605,9 @@ void usbAudioSetChannels(int) {}
 int usbAudioChannels() { return 2; }
 void usbAudioPushMulti(const float*, int) {}
 bool pcInStart() { return false; }
+bool pcInStartSrc(bool) { return false; }
+bool micInAvailable() { return false; }
+bool pcInIsMic() { return false; }
 void pcInStop() {}
 bool pcInActive() { return false; }
 int pcInStatus() { return 0; }

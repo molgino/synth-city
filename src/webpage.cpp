@@ -494,7 +494,10 @@ body.tui.keys #tGrid,body.tui.keys #tSnd{display:none}
 .tr.sel .vl::after{content:' ›';color:var(--dim)}
 /* Der Picker war das einzige Element ohne Safe-Area: im Querformat lagen Kopfzeile und ABBRECHEN
    auf dem iPhone unter der Notch und waren nicht zu treffen (gemeldet "obere Elemente nicht bedienbar"). */
-#tPick{display:none;position:fixed;inset:0;z-index:9;background:#0e0f12ee;
+/* Der Picker MUSS ueber dem Blatt liegen: beide standen auf z-index 9 und #tSheet kommt im Markup
+   spaeter - die Sampler-Quelle oeffnete sich also hinter dem MEHR-Blatt und war nicht zu treffen
+   (gemeldet "unter MEHR werden die Funktionen hinter dem Menue geoeffnet"). */
+#tPick{display:none;position:fixed;inset:0;z-index:11;background:#0e0f12ee;
  padding:max(10px,env(safe-area-inset-top)) max(10px,env(safe-area-inset-right)) max(10px,env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left));
  grid-template-rows:auto minmax(0,1fr);gap:10px}
 #tPickH,#tShH{display:flex;align-items:center;gap:10px;min-height:44px}
@@ -893,6 +896,7 @@ function tSmpSrc(){document.body.classList.add('pick');
  $('tPickT').textContent='SAMPLER-QUELLE';
  const l=$('tPickL');l.innerHTML='';l.classList.add('wide');
  const n=['USB PC/HANDY','MASTER'];for(let t=0;t<8;t++)n.push('SPUR '+(t+1)+(tm.tracks[t]?' '+tm.tracks[t].n:''));
+ n.push('MIKRO/EINGANG');   // eigener Eingang des Geraets
  n.forEach((nm,v)=>{const d=document.createElement('div');d.className='pk'+(v===(tm.smp?tm.smp.src:0)?' on':'');
   d.textContent=nm;d.dataset.v=v;
   tTap(d,()=>{tAct(19,3,v);tPickClose();setTimeout(tSheetFill,400);});

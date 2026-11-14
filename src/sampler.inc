@@ -13,7 +13,11 @@ static volatile int smpState = 0;                // 0 bereit, 1 wartet auf Signa
 static volatile float smpThr = 0.01f;           // Start-Schwelle (linear, < 0 = sofort)
 static volatile int smpTarget = 0;               // feste Laenge in Frames (LAENGE = N Pages), 0 = FREI
 static bool smpFromPc = false;                   // USB-Aufnahme laeuft ueber pcRec
+enum { SMP_SRC_USB = 0, SMP_SRC_MASTER = 1, SMP_SRC_TRK0 = 2, SMP_SRC_MIC = 10, SMP_SRC_N = 11 };
 static int smpSrc = 0, smpStart = 0, smpEnd = 0, smpChops = 0, smpMode = 0, smpNorm = 1, smpFade = 5, smpDest = 0;
+// Nimmt der Sampler gerade vom EIGENEN Eingang auf? Dann muss der Aufnahme-Thread laufen,
+// egal in welchem USB-Modus das Geraet steht - und mitgehoert wird nicht (Rueckkopplung).
+static bool smpMicRec() { return smpFromPc && smpSrc == SMP_SRC_MIC && (pcRecState() == 1 || pcRecState() == 2); }
 static int smpCut[SMP_MAXCHOP + 1], smpNCut = 0;  // Grenzen der Chops (Frames), smpNCut Chops
 static volatile int pvPos = 0, pvEnd = 0; static volatile bool pvOn = false;
 static int smpChopPv = -1;                       // zuletzt vorgehoerter Chop
@@ -32,8 +36,8 @@ static bool smpAlloc() {
 // Audio-Thread: Quelle Spur n (smpSrc 2..9) -> Engine schreibt die Spur zusaetzlich nach smpTap
 static float smpTap[4096 * 2];
 static const float* smpAudioPre(int frames) {
-    bool on = (smpState == 1 || smpState == 2) && smpSrc >= 2 && frames <= 4096;
-    eng.tapTrack = on ? smpSrc - 2 : -1;
+    bool on = (smpState == 1 || smpState == 2) && smpSrc >= SMP_SRC_TRK0 && smpSrc < SMP_SRC_MIC && frames <= 4096;
+    eng.tapTrack = on ? smpSrc - SMP_SRC_TRK0 : -1;
     eng.tapOut = on ? smpTap : nullptr;
     if (on) memset(smpTap, 0, sizeof(float) * 2 * (size_t)frames);
     return on ? smpTap : nullptr;
@@ -143,12 +147,15 @@ static void smpRecToggle() {
         return;
     }
     pvOn = false;
-    if (smpSrc == 0) {   // USB vom PC/Handy
-        if (usbMode != 2) { toast(TR("ERST USB-MODUS PC + AUDIO-INTERFACE", "SET USB MODE PC + AUDIO INTERFACE FIRST")); return; }
+    if (smpSrc == SMP_SRC_USB || smpSrc == SMP_SRC_MIC) {   // ueber den Aufnahme-Eingang (USB-Gadget bzw. eigener Eingang)
+        bool mic = smpSrc == SMP_SRC_MIC;
+        if (!mic && usbMode != 2) { toast(TR("ERST USB-MODUS PC + AUDIO-INTERFACE", "SET USB MODE PC + AUDIO INTERFACE FIRST")); return; }
+        if (mic && !pcInStartSrc(true)) { toast(TR("KEIN EINGANG GEFUNDEN", "NO INPUT FOUND")); return; }
         if (pcRecState() == 3) pcRecDone();
         if (!pcRecStart(recThrLin())) { toast(TR("KEIN SPEICHER", "OUT OF MEMORY")); return; }
         smpFromPc = true;
-        toast(TR("AM PC/HANDY ABSPIELEN - AUFNAHME STARTET MIT DEM TON", "PLAY ON PC/PHONE - RECORDING STARTS WITH THE SOUND"));
+        toast(mic ? TR("AUFNAHME STARTET MIT DEM TON AM EINGANG", "RECORDING STARTS WITH THE SOUND AT THE INPUT")
+                  : TR("AM PC/HANDY ABSPIELEN - AUFNAHME STARTET MIT DEM TON", "PLAY ON PC/PHONE - RECORDING STARTS WITH THE SOUND"));
     } else {
         if (!smpAlloc()) { toast(TR("KEIN SPEICHER", "OUT OF MEMORY")); return; }
         int tg = smpPagesFrames(eng.sr);
@@ -172,7 +179,7 @@ static void smpEdit(int k, int d) {
     if (smpRecording()) return;
     int step = smpLen > 0 ? (smpLen / 500 > 1 ? smpLen / 500 : 1) : 1;
     switch (k) {
-    case SK_SRC: smpSrc = (smpSrc + (d > 0 ? 1 : 9)) % 10; break;   // USB, MASTER, SPUR 1-8
+    case SK_SRC: smpSrc = (smpSrc + (d > 0 ? 1 : SMP_SRC_N - 1)) % SMP_SRC_N; break;   // USB, MASTER, SPUR 1-8, MIKRO
     case SK_START: if (smpLen > 0) { smpStart = clampi(smpStart + d * step, 0, smpEnd - 64); smpPeakCalc(); smpChopCalc(); } break;
     case SK_END: if (smpLen > 0) { smpEnd = clampi(smpEnd + d * step, smpStart + 64, smpLen); smpPeakCalc(); smpChopCalc(); } break;
     case SK_CHOPS: { int c = smpChops + (d > 0 ? 1 : -1); if (c == 1) c = d > 0 ? 2 : 0; smpChops = clampi(c, 0, SMP_MAXCHOP); smpChopCalc(); smpChopPv = -1; } break;
@@ -244,7 +251,7 @@ static void smpSave() {
             if (P.machine[track] != m) Engine::setMachine(P, track, m);
             P.p[track][P_S0] = (uint8_t)sl;
             if (m == M_CHOP && smpNCut >= 2) P.p[track][P_S1] = (uint8_t)(smpNCut - 1);   // SLCS = Scheiben - 1
-            if (smpSrc >= 1) {   // vom Master/einer Spur: Laenge in Steps fuer den Time-Warp
+            if (smpSrc >= 1 && smpSrc != SMP_SRC_MIC) {   // vom Master/einer Spur: Laenge in Steps fuer den Time-Warp
                 double steps = total / (eng.stepSamples() * smpRate / eng.sr);
                 int stp = (int)(steps + 0.5);
                 if (stp >= 1 && stp <= 128) P.p[track][P_X1] = (uint8_t)stp;
@@ -355,7 +362,8 @@ static void drawSampler() {
         text(x + 7, y + 3, g_lang ? NM_EN[k] : NM_DE[k], sel ? C_ACC : C_DIM);
         switch (k) {
         case SK_SRC:
-            if (smpSrc >= 2) snprintf(b, sizeof b, TR("SPUR %d %s", "TRACK %d %s"), smpSrc - 1, MACHINE_NAMES[curP().machine[smpSrc - 2] % M_COUNT]);
+            if (smpSrc == SMP_SRC_MIC) snprintf(b, sizeof b, "%s", TR("MIKRO/EINGANG", "MIC/INPUT"));
+            else if (smpSrc >= 2) snprintf(b, sizeof b, TR("SPUR %d %s", "TRACK %d %s"), smpSrc - 1, MACHINE_NAMES[curP().machine[smpSrc - 2] % M_COUNT]);
             else snprintf(b, sizeof b, "%s", smpSrc ? "MASTER" : TR("USB PC/HANDY", "USB PC/PHONE"));
             break;
         case SK_START: snprintf(b, sizeof b, "%.2f s", smpStart / (float)smpRate); break;
@@ -386,13 +394,13 @@ static void drawSampler() {
         hitAdd(x, y, 151, 30, HK_BTN, BTN[i].bt);
     }
     // Erklaerung
-    static const char* const HL_DE[SK_COUNT] = {"USB: PC/Handy. MASTER: Summe. SPUR 1-8: eine Spur (nach Insert/VOL/PAN, ohne FX-Busse)",
+    static const char* const HL_DE[SK_COUNT] = {"USB: PC/Handy. MIKRO: eigener Eingang. MASTER: Summe. SPUR 1-8: eine Spur (nach Insert/VOL/PAN)",
         "Anfang der Auswahl (grüne Linie)", "Ende der Auswahl (rote Linie)", "Anzahl Chops (Scheiben), AUS = ganzes Sample",
         "GLEICH: gleich lange Chops. TRANSIENT: an den Einsätzen (Drums)", "Auf volle Lautstärke bringen (-0,3 dB)",
         "Ein-/Ausblenden an den Schnitten gegen Knacken", "Nach dem Speichern in die aktuelle Spur laden (SMPL bzw. CHOP mit Chops)",
         "FREI: bis Stopp. 1-16 PAGES: genau N x 16 Steps, ab Page-Anfang",
         "Startpegel: Aufnahme beginnt erst über diesem Pegel. SOFORT = ohne Warten"};
-    static const char* const HL_EN[SK_COUNT] = {"USB: PC/phone. MASTER: the mix. TRACK 1-8: one track (after insert/VOL/PAN, no FX buses)",
+    static const char* const HL_EN[SK_COUNT] = {"USB: PC/phone. MIC: own input. MASTER: the mix. TRACK 1-8: one track (after insert/VOL/PAN)",
         "Start of the selection (green line)", "End of the selection (red line)", "Number of chops (slices), OFF = whole sample",
         "EQUAL: equal-length chops. TRANSIENT: at the hits (drums)", "Bring to full volume (-0.3 dB)",
         "Fade in/out at the cuts against clicks", "After saving, load into the current track (SMPL or CHOP with chops)",

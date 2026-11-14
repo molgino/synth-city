@@ -474,6 +474,7 @@ static char batPath[300] = "";
 // Aufnahme vom PC als Sample speichern: samples/pc/pc-NN.wav (24 Bit Stereo, Engine-Rate), danach Samples neu laden
 static void reloadSamples();
 static bool smpTakePc(const float* d, int n);   // sampler.inc
+static bool smpMicRec();                        // sampler.inc: Aufnahme vom eigenen Eingang (Mikrofon/Line-In)
 static void smpUpdate();
 static float smpSeconds();
 static void savePcRecording(const float* d, int frames) {
@@ -759,9 +760,10 @@ static void animate() {
             bool mute = cfg.intUsb && usbAudioActive() && !usbAudioHost();   // interne Ausgabe stumm, solange USB-Audio laeuft
             if (mute != intMuted) { intMuted = mute; hwVolumeSet(mute ? 0 : cfg.hwVol); }
             bool rec = pcRecState() == 1 || pcRecState() == 2;
-            pcInGain = cfg.pcIn ? 1.f : 0.f;
-            bool wantIn = (cfg.pcIn || rec) && usbMode == 2 && !driveOn;
-            if (wantIn && !pcInActive()) pcInStart();
+            bool mic = smpMicRec();   // Sampler nimmt vom eigenen Eingang auf: Thread laeuft in jedem USB-Modus
+            pcInGain = (cfg.pcIn && !mic) ? 1.f : 0.f;   // Mikrofon nie mithoeren - das pfeift
+            bool wantIn = mic || ((cfg.pcIn || rec) && usbMode == 2 && !driveOn);
+            if (wantIn && (!pcInActive() || pcInIsMic() != mic)) pcInStartSrc(mic);
             if (!wantIn && pcInActive()) pcInStop();
         }
         {   // fertige PC-Aufnahme als Sample speichern

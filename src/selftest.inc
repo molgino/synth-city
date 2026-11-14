@@ -985,6 +985,26 @@ static void uiScenarios() {
     tap(BT_X); tap(BT_SELECT);
     UCHECK(!fbOpen && curP().machine[2] == M_FM, "Abbruch aendert die Engine");
 
+    uiCase = "Sampler: eigener Eingang als Quelle";
+    {   // Wunsch: "beim Sample aufnehmen waere es cool, wenn ich das interne Mikro auswaehlen koennte"
+        simReset(); goPage(PG_SMPR); simFrame();
+        smpSrc = 0; smpState = 0; smpFromPc = false;
+        slot = SK_SRC;
+        for (int i = 0; i < SMP_SRC_N; i++) tap(BT_X);
+        UCHECK(smpSrc == 0, "der Quellen-Ring hat nicht %d Eintraege (steht auf %d)", SMP_SRC_N, smpSrc);
+        tap(BT_Y);   // einen zurueck: der neue Eintrag liegt am Ende
+        UCHECK(smpSrc == SMP_SRC_MIC, "hinter USB rueckwaerts muesste der eigene Eingang kommen (%d)", smpSrc);
+        // der eigene Eingang zapft keine Spur ab (das macht nur SPUR 1-8)
+        smpState = 1; smpAudioPre(64);
+        UCHECK(eng.tapTrack < 0, "der Eingang zapft Spur %d ab", eng.tapTrack);
+        smpState = 0; eng.tapTrack = -1;
+        // und er laeuft ueber den Aufnahme-Eingang, nicht ueber den Master-Weg
+        smpFromPc = true; smpSrc = SMP_SRC_MIC;
+        UCHECK(!smpMicRec(), "ohne laufende Aufnahme darf der Eingang nicht angefordert werden");
+        smpFromPc = false; smpSrc = 1;
+        simReset(); simFrame();
+    }
+
     uiCase = "Sampler";
     {
         simReset(); goPage(PG_SMPR);

@@ -459,8 +459,15 @@ function check(ok, what, extra) { if (ok) { pass++; console.log('  OK     ' + wh
       await pg.evaluate(() => { const d = [...document.querySelectorAll('#tShB .big')].find(e => e.textContent === 'QUELLE'), r = d.getBoundingClientRect();
         const _o = {bubbles: true, clientX: r.left + 5, clientY: r.top + 5}; d.dispatchEvent(new PointerEvent('pointerdown', _o)); d.dispatchEvent(new PointerEvent('pointerup', _o)); });
       await pg.waitForTimeout(450);
-      const quellen = await pg.evaluate(() => document.querySelectorAll('#tPickL .pk').length);
-      check(quellen === 10, 'die Quelle bietet USB, Master und acht Spuren an', String(quellen));
+      const quellen = await pg.evaluate(() => [...document.querySelectorAll('#tPickL .pk')].map(e => e.textContent));
+      check(quellen.length === 11, 'die Quelle bietet USB, Master, acht Spuren und den eigenen Eingang an', String(quellen.length));
+      check(/MIKRO|EINGANG/.test(quellen[quellen.length - 1] || ''), 'der eigene Eingang steht in der Liste', quellen[quellen.length - 1]);
+      // Gemeldet: "unter MEHR werden die Funktionen hinter dem Menue geoeffnet" - Picker und Blatt
+      // standen beide auf z-index 9, und #tSheet kommt im Markup spaeter.
+      const oben = await pg.evaluate(() => { const l = document.getElementById('tPickL'), r = l.getBoundingClientRect();
+        const t = document.elementFromPoint(r.left + r.width / 2, r.top + 10);
+        return {id: t ? (t.id || t.className) : '?', inPick: !!(t && document.getElementById('tPick').contains(t))}; });
+      check(oben.inPick, 'die Quellen-Liste liegt VOR dem MEHR-Blatt', 'oben liegt ' + oben.id);
       const ziel = q0 === 1 ? 0 : 1;
       await pg.evaluate(i => { const d = [...document.querySelectorAll('#tPickL .pk')][i], r = d.getBoundingClientRect();
         const _o = {bubbles: true, clientX: r.left + 5, clientY: r.top + 5}; d.dispatchEvent(new PointerEvent('pointerdown', _o)); d.dispatchEvent(new PointerEvent('pointerup', _o)); }, ziel);

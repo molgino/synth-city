@@ -147,7 +147,8 @@ static int uiModelJson(char* b, int n) {
     {   // Sampler: Zustand, Laenge, Quelle - Aufnehmen, Hoeren und Speichern gehen damit vom Handy
         const char* sn;
         char sb[40];
-        if (smpSrc >= 2) { snprintf(sb, sizeof sb, TR("SPUR %d", "TRACK %d"), smpSrc - 1); sn = sb; }
+        if (smpSrc == SMP_SRC_MIC) sn = TR("MIKRO/EINGANG", "MIC/INPUT");
+        else if (smpSrc >= 2) { snprintf(sb, sizeof sb, TR("SPUR %d", "TRACK %d"), smpSrc - 1); sn = sb; }
         else sn = smpSrc ? "MASTER" : TR("USB PC/HANDY", "USB PC/PHONE");
         w += snprintf(b + w, n - w, ",\"smp\":{\"st\":%d,\"rec\":%d,\"sec\":%d,\"src\":%d,\"srcn\":\"%s\",\"peak\":%d}",
                       smpState, smpRecording() ? 1 : 0, smpRate > 0 ? smpLen * 10 / smpRate : 0, smpSrc, sn,
@@ -323,7 +324,7 @@ static void uiActionsRun() {   // Hauptthread: Aktionen aus der Touch-Oberflaech
             if (e.a == 0) smpRecToggle();
             else if (e.a == 1) { smpChopPv = -1; smpPreview(smpStart, smpEnd); }
             else if (e.a == 2) smpSave();
-            else if (e.a == 3 && e.b >= 0 && e.b < 10) smpSrc = e.b;
+            else if (e.a == 3 && e.b >= 0 && e.b < SMP_SRC_N) smpSrc = e.b;
         } break;
         case UA_SONG: {   // 0 Song an/aus, 1 ab Zeile b spielen, 2 Zeile hinter b einfuegen, 3 Zeile b weg, 4/5 rep +/-
             Project& J = eng.proj;

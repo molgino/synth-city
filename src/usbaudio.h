@@ -20,6 +20,9 @@ void usbAudioSetEngineRate(int sr);           // tatsaechliche Rate der Engine (
 // PC -> R36S: was der PC auf "Synth City" abspielt, in den Ausgang mischen und als Sample aufnehmen
 #include <stdint.h>
 bool pcInStart();
+bool pcInStartSrc(bool mic);                  // true = eigener Eingang (Mikrofon/Line-In am internen Codec)
+bool micInAvailable();                        // gibt es ueberhaupt einen eigenen Eingang?
+bool pcInIsMic();                             // laeuft gerade der eigene Eingang?
 void pcInStop();
 bool pcInActive();
 int pcInStatus();                             // 0 aus, 1 PC spielt nichts, 2 PC spielt

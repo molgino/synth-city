@@ -1210,7 +1210,7 @@ Seite SMPR | RECHTS | -
 Seite SMPR | A | Meldung "ERST USB-MODUS PC + AUDIO-INTERFACE"
 Seite SMPR | B | -
 Seite SMPR | X | Sampler Quelle 0>1
-Seite SMPR | Y | Sampler Quelle 0>9
+Seite SMPR | Y | Sampler Quelle 0>10
 Seite SMPR | L1 | Regler 1>10
 Seite SMPR | R1 | Regler 1>2
 Seite SMPR | L2 | Ansicht SEQ>-; Seite SMPR>SET; SET 1>7
@@ -1218,8 +1218,8 @@ Seite SMPR | R2 | Ansicht SEQ>SOUND; Seite SMPR>SRC
 Seite SMPR | START | PLAY
 Seite SMPR | SELECT | MEHR auf
 Seite SMPR | A lang | Meldung "ERST USB-MODUS PC + AUDIO-INTERFACE"
-Seite SMPR | X lang | Sampler Quelle 0>6
-Seite SMPR | Y lang | Sampler Quelle 0>4
+Seite SMPR | X lang | Sampler Quelle 0>4
+Seite SMPR | Y lang | Sampler Quelle 0>7
 Seite SMPR | START lang | PLAY
 Seite SMPR | SELECT lang | -
 Seite SMPR | SEL+HOCH | REC an; Meldung "AUFNAHME AN"
@@ -1237,7 +1237,7 @@ Seite SMPR | SEL+R2 | Meldung "SPUR HAT NUR 16 STEPS (LÄNGE: SEITE SEQ)"
 Seite SMPR | SEL+START | Meldung "GESPEICHERT"
 Seite SMPR | A+B | Meldung "ERST USB-MODUS PC + AUDIO-INTERFACE"
 Seite SMPR | A+X | Sampler Quelle 0>1; Meldung "ERST USB-MODUS PC + AUDIO-INTERFACE"
-Seite SMPR | A+Y | Sampler Quelle 0>9; Meldung "ERST USB-MODUS PC + AUDIO-INTERFACE"
+Seite SMPR | A+Y | Sampler Quelle 0>10; Meldung "ERST USB-MODUS PC + AUDIO-INTERFACE"
 Seite SMPR | A+HOCH | Meldung "NICHTS ZUM SPEICHERN"
 Seite SMPR | A+RUNTER | Meldung "ERST USB-MODUS PC + AUDIO-INTERFACE"
 Seite SMPR | A+L1 | Regler 1>10; Meldung "ERST USB-MODUS PC + AUDIO-INTERFACE"
@@ -5287,7 +5287,7 @@ SAMPLER Regler 1 | RECHTS | -
 SAMPLER Regler 1 | A | Meldung "ERST USB-MODUS PC + AUDIO-INTERFACE"
 SAMPLER Regler 1 | B | -
 SAMPLER Regler 1 | X | Sampler Quelle 0>1
-SAMPLER Regler 1 | Y | Sampler Quelle 0>9
+SAMPLER Regler 1 | Y | Sampler Quelle 0>10
 SAMPLER Regler 1 | L1 | Regler 1>10
 SAMPLER Regler 1 | R1 | Regler 1>2
 SAMPLER Regler 2 | HOCH | Meldung "NICHTS ZUM SPEICHERN"
