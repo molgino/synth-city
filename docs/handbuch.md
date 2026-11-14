@@ -96,6 +96,38 @@ Die 8 Spuren liegen auf dem Bildschirm genau so wie die Tasten: **Steuerkreuz �
 | linker Stick ↑/↓ | Tempo ±1 BPM |
 | START | Play / Stop |
 
+## Touch-Oberfläche am Handy (neu, Stufe 1)
+
+Auf dem Handy – in der App wie auch bei der Fernbedienung über `/screen` – gibt es neben dem gespiegelten Gerätebild eine **eigene, für Finger gebaute Oberfläche**. Knopf **Touch** in der Kopfzeile, zurück mit **BILD**.
+
+Warum zwei Oberflächen: Das Gerätebild ist 640×480 und damit 4:3. Ein Handy quer ist rund 2,2:1, also bleiben links und rechts Balken, und jede Fläche ist so groß, wie 480 Zeilen es hergeben. Die Touch-Oberfläche ist an keine Auflösung gebunden – sie füllt den Schirm und macht die Flächen so groß, wie Platz da ist (gemessen: 79 % des Schirms im Querformat, 86 % hochkant).
+
+Was Stufe 1 kann:
+
+* **Steps setzen**: 16 große Pads, quer in zwei Reihen zu acht (wie die Step-Leiste am Gerät), hochkant als 4×4-Raster. Antippen setzt und löscht den Trig, der laufende Step ist umrandet.
+* **Spur wählen und stummschalten**: die Spurspalte zeigt Nummer, Engine und Farbe; das **M** rechts schaltet stumm.
+* **Transport**: Play/Stop, Pattern vor und zurück, Seiten (P1, P2 …) bei längeren Spuren.
+
+**Klang schrauben (Stufe 2).** Der Knopf **SOUND** schaltet von den Pads auf die Regler um. Oben wischst du durch die Gruppen (KLANG, FILTER, VERSTÄRKER, LFO …), darunter steht jeder Regler als breite Zeile mit Name und Wert. **Waagerecht über die Zeile ziehen** ändert den Wert – die ganze Zeilenbreite deckt den ganzen Bereich ab, du musst also nicht zielen. Gelb heißt: Der Wert ist für diesen Step gelockt. **STEPS** führt zurück zu den Pads.
+
+**P-Locks am Handy.** Ein Pad **lange gedrückt halten** hält den Step fest – die Oberfläche springt zu den Reglern, und was du jetzt änderst, gilt nur für diesen einen Step (die Werte stehen gelb). Oben steht, welcher Step hängt; **FERTIG** beendet, **LOCKS WEG** räumt sie wieder ab. War der Step leer, wird er dabei zu einem trigless Step – die Werte wirken also, ohne dass neu angeschlagen wird. Kurz antippen bleibt wie gehabt: Trig an und aus.
+
+**Song am Handy (SONG).** Die Clip-Matrix als Liste: je Zeile die **Zeilennummer** (antippen spielt ab hier), die **acht Spuren** als Zellen, die **Wiederholungen** (`− x2 +`) und **✕** zum Löschen. Eine Zelle antippen wählt ihr Pattern – angeboten werden nur die belegten, plus `---` für „diese Spur schweigt hier". **+ ZEILE** hängt eine Kopie der letzten Zeile an, **SONG AN/AUS** schaltet den Song-Modus. Die gerade spielende Zeile ist umrandet.
+
+**Projekt und Sampler am Handy (MEHR).** Der Knopf unten rechts öffnet ein Blatt mit **PROJEKT SPEICHERN**, **NEUES PROJEKT** und der Liste aller Projekte – ein Tipp auf eine Zeile lädt sie. Solange etwas ungespeichert ist, trägt der Knopf einen Punkt. Namen tippst du am Gerät oder über die Web-Seite; „neues Projekt" vergibt selbst einen freien Namen. Darunter steht der **Sampler**: **QUELLE** (USB, Master oder eine der acht Spuren), **AUFNAHME/STOPP**, **HÖREN** und **SAMPLE SICHERN**. Trimmen, Chops und die Feineinstellungen bleiben am Gerät – dort siehst du die Wellenform.
+
+**Mixer (MIXER).** Alle acht Spuren nebeneinander, mit denselben Zeilen wie die MIX-Seite am Gerät: **VOL, PAN, S.A, S.B, S.C** und **CMP**. Senkrecht ziehen stellt den Wert ein (die ganze Höhe = der ganze Bereich), CMP ist ein Schalter, **M** und **S** über jeder Spalte sind Mute und Solo. Die Spaltenköpfe wählen die Spur. Im Querformat stehen alle acht nebeneinander, hochkant vier und vier.
+
+**Noten eingeben (NOTEN).** Der Modus-Knopf geht im Kreis: STEPS → SOUND → NOTEN. Die Klaviatur zeigt zwei Oktaven, **− OKT** und **+ OKT** verschieben den Bereich. Eine Taste antippen hört die Note vor. Hältst du vorher einen Step gedrückt (P-Lock), schreibt die Taste die **Note dieses Steps** – so baust du eine Melodie Schritt für Schritt: Step halten, Note antippen, nächster Step. Die Note des Steps ist auf der Klaviatur umrandet. Bei Drum-Engines steht ein Hinweis, dass die Tonhöhe dort kaum wirkt.
+
+**Sample wählen (SOUND).** Die Zeile **SMPL** zeigt den Namen des Samples, nicht eine Nummer. Antippen öffnet die Liste der Plätze, die dein Projekt geladen hat – plus **---** für „kein Sample". Ein neues Sample aus der Bibliothek holst du nach wie vor über **BILD** (Gerätebild) im Explorer; hier wählst du aus dem, was schon im Projekt liegt. Hältst du vorher einen Step gedrückt, gilt die Wahl nur für diesen Step.
+
+**Auswahl statt Schieber.** Regler mit wenigen, benannten Werten – ENGINE, Filtertyp, Bus-Effekt, VOICE – öffnen beim Antippen eine Liste mit großen Feldern. Auf fünfzehn Engines mit dem Finger zu zielen wäre sonst Glückssache. Lange Listen (Sample, LFO-Ziel, Trig-Bedingung) laufen vorerst weiter über **BILD**.
+
+Was du am Handy änderst, ist sofort am Gerät zu sehen und umgekehrt – es ist dasselbe Projekt und dieselbe Liste, nur anders gezeichnet.
+
+Alles Übrige – Sampler, Song, Einstellungen – läuft weiter über **BILD**, also das gespiegelte Gerätebild mit der gewohnten Bedienung. Beide Ansichten zeigen dasselbe Projekt; was du in der einen änderst, steht sofort in der anderen.
+
 ## Akkorde und Stimmen (TRIG-Seite: NT2–NT4, VOICE)
 
 Jede Spur spielt bis zu **4 Töne gleichzeitig**. Es gibt zwei Wege dorthin.

@@ -38,6 +38,17 @@ static void touchPush(char type, int id, int x, int y) {
     g_tq[g_tqHead++ & 255] = RemoteTouch{type, id, x, y};
 }
 void remoteTouchInject(char type, int id, int x, int y) { touchPush(type, id, x, y); }   // Selbsttest
+// Touch-Oberflaeche: dieselben Aktionen wie ueber /ws, hier ohne Thread (die Seite ruft gbMsg direkt)
+static RemoteAct g_aq[128];
+static unsigned g_aqHead = 0, g_aqTail = 0;
+void remoteActPush(int kind, int a, int b) {   // Reglerwerte zusammenfassen (siehe remote.cpp)
+    if (kind == 11 && g_aqHead != g_aqTail) { RemoteAct& l = g_aq[(g_aqHead - 1) & 127]; if (l.kind == kind && l.a == a) { l.b = b; return; } }
+    if (g_aqHead - g_aqTail < 128) g_aq[g_aqHead++ & 127] = RemoteAct{kind, a, b};
+}
+bool remoteActPop(RemoteAct& e) { if (g_aqHead == g_aqTail) return false; e = g_aq[g_aqTail++ & 127]; return true; }
+void remoteModelSet(const char*) {}            // in der App holt die Seite das Modell direkt (gbModel)
+int remoteModelGet(char*, int) { return 0; }
+bool remoteModelWanted() { return false; }
 bool remoteTouchPop(RemoteTouch& e) {
     if (g_tqHead == g_tqTail) return false;
     e = g_tq[g_tqTail++ & 255];
@@ -50,6 +61,10 @@ extern "C" EMSCRIPTEN_KEEPALIVE void gbMsg(const char* msg) {
     else if (msg[0] == 'u' && sscanf(msg + 2, "%15s", b) == 1) remoteInput(b, 0);
     else if (msg[0] == 'a' && sscanf(msg + 2, "%15s %d", b, &v) == 2) remoteInput(b, v);
     else if ((msg[0] == 't' || msg[0] == 'm' || msg[0] == 'e') && msg[1] == ' ' && sscanf(msg + 2, "%d %d %d", &id, &x, &y) == 3) touchPush(msg[0], id, x, y);
+    else if (msg[0] == 'k' && msg[1] == ' ') {   // Touch-Oberflaeche: Aktion "k kind a b"
+        int kk = 0, aa = 0, bb = 0;
+        if (sscanf(msg + 2, "%d %d %d", &kk, &aa, &bb) >= 1) remoteActPush(kk, aa, bb);
+    }
     else if (msg[0] == 'c') {   // Seite im Hintergrund: nichts bleibt gedrueckt
         for (int k = 0; k < BT_COUNT; k++) remoteDown[k] = false;
         for (int a = 0; a < 4; a++) remoteAxis[a] = 0.f;
