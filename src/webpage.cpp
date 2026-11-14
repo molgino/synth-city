@@ -391,6 +391,24 @@ body.mix #tMain{display:none}
 .mxf u{position:absolute;right:3px;top:2px;font-size:10px;text-decoration:none;color:var(--text)}
 .mxf.sw{display:flex;align-items:center;justify-content:center}
 @media (orientation:portrait){#tMix{grid-template-columns:repeat(4,1fr)}}
+/* Song: eine Zeile je Song-Zeile, darin die acht Spuren als Zellen */
+#tSong{display:none;grid-row:2;grid-template-rows:auto minmax(0,1fr);gap:6px;min-height:0}
+body.song #tSong{display:grid}
+body.song #tMain{display:none}
+#tSgBar{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+#tSgL{overflow-y:auto;overscroll-behavior:contain;display:flex;flex-direction:column;gap:4px}
+.sgr{display:flex;gap:3px;align-items:stretch;background:var(--panel);border-radius:8px;padding:3px;border:1px solid var(--line)}
+.sgr.now{border-color:var(--cy)}
+.sgr>.nr{min-width:34px;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--dim);border-radius:5px;background:var(--panel2)}
+.sgr>.cs{flex:1;display:grid;grid-template-columns:repeat(8,1fr);gap:3px;min-width:0}
+.sgr .cl{min-height:40px;display:flex;align-items:center;justify-content:center;border-radius:5px;
+ background:var(--off);font-size:11px;color:var(--text);overflow:hidden}
+.sgr .cl.off{color:var(--dim);background:var(--bg)}
+.sgr>.rp{display:flex;gap:2px;align-items:stretch}
+.sgr>.rp div{min-width:30px;display:flex;align-items:center;justify-content:center;border-radius:5px;background:var(--off);font-size:12px}
+.sgr>.rp div.v{min-width:34px;background:var(--panel2);color:var(--cy)}
+.sgr>.del{min-width:34px;display:flex;align-items:center;justify-content:center;border-radius:5px;background:var(--off);color:var(--dim)}
+@media (orientation:portrait){.sgr .cl{min-height:34px;font-size:10px}.sgr>.nr{min-width:26px}}
 #tModes .tm{padding:0 10px}
 #tModes .tm.on{background:var(--panel2);border-color:var(--text);color:var(--cy)}
 #tPlay{font-size:20px;min-width:62px}
@@ -532,12 +550,13 @@ body.nopad #scr{grid-column:1 !important}
 </div></div>
 <div id="tui">
  <div id="tTop"><button class="tb" id="tPlay">▶</button><div class="tb" id="tPatD">‹</div><div id="tPat">A01</div><div class="tb" id="tPatU">›</div>
-  <div id="tBpm">120 BPM</div><span id="tMsg"></span><span id="tLock"><span style="color:#ffba40;font-size:12px" id="tLockT">LOCK</span><button class="tb" id="tLockC">LOCKS WEG</button><button class="tb" id="tLockE">FERTIG</button></span><span id="tModes"><button class="tb tm" id="tM0">STEPS</button><button class="tb tm" id="tM1">SOUND</button><button class="tb tm" id="tM2">NOTEN</button><button class="tb tm" id="tM3">MIXER</button></span><button class="tb" id="tView" title="zum gespiegelten Geraetebild">BILD</button></div>
+  <div id="tBpm">120 BPM</div><span id="tMsg"></span><span id="tLock"><span style="color:#ffba40;font-size:12px" id="tLockT">LOCK</span><button class="tb" id="tLockC">LOCKS WEG</button><button class="tb" id="tLockE">FERTIG</button></span><span id="tModes"><button class="tb tm" id="tM0">STEPS</button><button class="tb tm" id="tM1">SOUND</button><button class="tb tm" id="tM2">NOTEN</button><button class="tb tm" id="tM3">MIXER</button><button class="tb tm" id="tM4">SONG</button></span><button class="tb" id="tView" title="zum gespiegelten Geraetebild">BILD</button></div>
  <div id="tMain"><div id="tTracks"></div>
   <div id="tGrid"></div>
   <div id="tSnd"><div id="tGrps"></div><div id="tPar"></div></div>
   <div id="tKeys"><div id="tOct"><button class="tb" id="tOctD">− OKT</button><span id="tOctT" style="color:var(--cy);min-width:52px;text-align:center"></span><button class="tb" id="tOctU">+ OKT</button><span id="tNoteT" style="color:var(--dim);font-size:12px"></span></div><div id="tKb"></div></div></div>
  <div id="tMix"></div>
+ <div id="tSong"><div id="tSgBar"><button class="tb" id="tSgOn">SONG AN</button><button class="tb" id="tSgAdd">+ ZEILE</button><span id="tSgI" style="color:var(--dim);font-size:12px"></span></div><div id="tSgL"></div></div>
  <div id="tWait">warte auf die Groovebox …</div>
  <div id="tPick"><div id="tPickH"><span id="tPickT"></span>
   <span style="flex:1"></span><button class="tb" id="tPickX">ABBRECHEN</button></div><div id="tPickL"></div></div>
@@ -604,6 +623,7 @@ function tuiRender(m){
   $('tNoteT').textContent=(m.hold>=0?'Step '+(m.hold+1)+': ':'')+tNoteName(m.note)+(m.drum?' · Drum-Engine: Tonhöhe wirkt kaum':'');}
  if(m.hold>=0)$('tLockT').textContent='LOCK STEP '+(m.hold+1);
  if(document.body.classList.contains('mix'))tMixPaint();
+ if(document.body.classList.contains('song'))tSongPaint();
  // Spuren: nur neu aufbauen, wenn sich die Struktur aendert (sonst flackert es und der Finger verliert das Ziel)
  const key=m.tracks.map(t=>t.n).join(',')+'|'+m.len;
  const tr=$('tTracks');
@@ -705,17 +725,64 @@ $('tLockC').addEventListener('pointerdown',e=>{e.preventDefault();tAct(13,0,0);}
 // Drei Ansichten, drei Knoepfe: STEPS, SOUND, NOTEN. Vorher war das EIN Knopf im Kreis, der das
 // Ziel statt des Zustands zeigte - zu den Steps zurueck brauchte je nach Lage ein oder zwei Treffer
 // (gemeldet "die Sequencer-Seite kann ich nicht zuverlaessig abrufen"). Jetzt: ein Tipp, immer.
-const TMODES=['','snd','keys','mix'];
-function tModeNow(){const c=document.body.classList;return c.contains('mix')?3:(c.contains('keys')?2:(c.contains('snd')?1:0));}
+const TMODES=['','snd','keys','mix','song'];
+function tModeNow(){const c=document.body.classList;return c.contains('song')?4:(c.contains('mix')?3:(c.contains('keys')?2:(c.contains('snd')?1:0)));}
 function tSetMode(m){const b=document.body;TMODES.forEach(c=>c&&b.classList.remove(c));
  if(TMODES[m])b.classList.add(TMODES[m]);
  for(let k=0;k<TMODES.length;k++){const e=$('tM'+k);if(e)e.classList.toggle('on',k===m);}
  if(TMODES[m]==='snd'&&tm&&tm.view===0)tAct(9,1,0);
  if(TMODES[m]==='keys')tKbBuild();
  if(TMODES[m]==='mix')tMixBuild();
+ if(TMODES[m]==='song')tSongBuild();
  try{localStorage.tmode=m;}catch(e){}}
 for(let k=0;k<TMODES.length;k++)$('tM'+k).addEventListener('pointerdown',e=>{e.preventDefault();tSetMode(k);},{passive:false});
 try{const m=+(localStorage.tmode||0);setTimeout(()=>tSetMode(m||0),300);}catch(e){setTimeout(()=>tSetMode(0),300);}
+
+// ---- Song: die Clip-Matrix. Eine Zeile je Song-Zeile, darin die acht Spuren;
+// eine Zelle antippen waehlt ihr Pattern (nur belegte), die Zeilennummer spielt ab hier.
+let tSgKey='';
+function tSgPatName(v){const p=tm.sng.pats.find(x=>x.v===v);return p?p.n:'---';}
+function tSongBuild(){const L=$('tSgL');if(!tm||!tm.sng)return;const S=tm.sng;
+ L.innerHTML='';
+ S.rows.forEach((r,i)=>{const d=document.createElement('div');d.className='sgr';d.dataset.i=i;
+  const nr=document.createElement('div');nr.className='nr';nr.textContent=(i+1);
+  nr.addEventListener('pointerdown',e=>{e.preventDefault();tAct(17,1,i);},{passive:false});d.appendChild(nr);
+  const cs=document.createElement('div');cs.className='cs';
+  for(let t=0;t<8;t++){const c=document.createElement('div');c.className='cl';c.dataset.t=t;
+   c.addEventListener('pointerdown',e=>{e.preventDefault();tSgPick(i,t);},{passive:false});cs.appendChild(c);}
+  d.appendChild(cs);
+  const rp=document.createElement('div');rp.className='rp';
+  const m=document.createElement('div');m.textContent='−';m.addEventListener('pointerdown',e=>{e.preventDefault();tAct(17,5,i);},{passive:false});
+  const v=document.createElement('div');v.className='v';
+  const p=document.createElement('div');p.textContent='+';p.addEventListener('pointerdown',e=>{e.preventDefault();tAct(17,4,i);},{passive:false});
+  rp.appendChild(m);rp.appendChild(v);rp.appendChild(p);d.appendChild(rp);
+  const x=document.createElement('div');x.className='del';x.textContent='✕';
+  x.addEventListener('pointerdown',e=>{e.preventDefault();tAct(17,3,i);},{passive:false});d.appendChild(x);
+  L.appendChild(d);});
+ if(!S.rows.length){const e=document.createElement('div');e.className='lbl';e.style.color='var(--dim)';
+  e.textContent='Noch keine Zeilen – "+ ZEILE" legt die erste an.';L.appendChild(e);}
+ tSongPaint();}
+function tSongPaint(){if(!tm||!tm.sng)return;const S=tm.sng,L=$('tSgL');
+ const key=S.len+'|'+S.pats.map(p=>p.v).join(',');
+ if(key!==tSgKey){tSgKey=key;tSongBuild();return;}
+ $('tSgOn').textContent=S.on?'SONG AUS':'SONG AN';$('tSgOn').classList.toggle('on',!!S.on);
+ $('tSgI').textContent=S.len?(S.len+' Zeilen'+(S.pos>=0?'  ·  spielt '+(S.pos+1):'')):'';
+ [...L.children].forEach((d,i)=>{const r=S.rows[i];if(!r)return;
+  d.classList.toggle('now',i===S.pos);
+  const cl=d.querySelectorAll('.cl');
+  for(let t=0;t<cl.length;t++){const v=r.p[t],nm=tSgPatName(v);
+   cl[t].textContent=nm;cl[t].classList.toggle('off',nm==='---');}
+  d.querySelector('.rp .v').textContent='x'+r.r;});}
+// Zelle: Pattern waehlen (nur belegte, plus "schweigt")
+function tSgPick(row,trk){const S=tm.sng;document.body.classList.add('pick');
+ $('tPickT').textContent='ZEILE '+(row+1)+' · SPUR '+(trk+1);
+ const l=$('tPickL');l.innerHTML='';l.classList.remove('wide');
+ S.pats.forEach(o=>{const b=document.createElement('div');b.className='pk'+(o.v===S.rows[row].p[trk]?' on':'');
+  b.textContent=o.n;b.dataset.v=o.v;
+  b.addEventListener('pointerdown',e=>{e.preventDefault();tAct(18,row*16+trk,o.v);tPickClose();},{passive:false});
+  l.appendChild(b);});}
+$('tSgOn').addEventListener('pointerdown',e=>{e.preventDefault();tAct(17,0,0);},{passive:false});
+$('tSgAdd').addEventListener('pointerdown',e=>{e.preventDefault();tAct(17,2,tm&&tm.sng?tm.sng.len-1:0);},{passive:false});
 
 // ---- Projekt-Blatt: speichern, laden, neu. Namen tippt man am Geraet oder im Browser;
 // hier gibt es "neu" mit freiem Namen - der Weg ueber eine Bildschirmtastatur waere auf dem Handy laenger.

@@ -5,7 +5,7 @@
 // Gelesen wird im Hauptthread (uiModelPush, ~10/s), geschickt vom Web-Thread; Aktionen laufen
 // ueber remoteActPush zurueck in den Hauptthread (uiActionsRun in handleInput).
 
-enum { UA_STEP = 1, UA_TRACK, UA_MUTE, UA_PLAY, UA_PATTERN, UA_PAGE, UA_SOLO, UA_TRIGLESS, UA_VIEW, UA_GROUP, UA_PARAM, UA_HOLD, UA_LOCKCLR, UA_NOTE, UA_TRKP, UA_PRJ };
+enum { UA_STEP = 1, UA_TRACK, UA_MUTE, UA_PLAY, UA_PATTERN, UA_PAGE, UA_SOLO, UA_TRIGLESS, UA_VIEW, UA_GROUP, UA_PARAM, UA_HOLD, UA_LOCKCLR, UA_NOTE, UA_TRKP, UA_PRJ, UA_SONG, UA_SNGCELL };
 // Mixer: dieselben Zeilen wie die MIX-Seite am Geraet (MIX_P), damit beide dasselbe zeigen
 enum { UMIX_N = 6 };
 
@@ -122,6 +122,20 @@ static int uiModelJson(char* b, int n) {
         w += snprintf(b + w, n - w, "],\"drum\":%d,\"note\":%d", machineIsDrum(P.machine[track] % M_COUNT) ? 1 : 0, note);
     }
     w += snprintf(b + w, n - w, ",\"now\":%d", eng.playing ? eng.playedStep[track] : -1);
+    {   // Song: die Clip-Matrix als Zeilen, dazu die belegten Patterns zur Auswahl
+        const Project& J = eng.proj;
+        w += snprintf(b + w, n - w, ",\"sng\":{\"on\":%d,\"len\":%d,\"pos\":%d,\"rows\":[",
+                      eng.songOn ? 1 : 0, J.songLen, eng.songActive() ? eng.songPos : -1);
+        for (int i = 0; i < J.songLen && w < n - 200; i++) {
+            w += snprintf(b + w, n - w, "%s{\"r\":%d,\"p\":[", i ? "," : "", J.row[i].rep);
+            for (int t = 0; t < NTRACKS; t++) w += snprintf(b + w, n - w, "%s%d", t ? "," : "", J.row[i].pat[t]);
+            w += snprintf(b + w, n - w, "]}");
+        }
+        w += snprintf(b + w, n - w, "],\"pats\":[{\"v\":%d,\"n\":\"---\"}", SONG_EMPTY);
+        for (int i = 0; i < NPATTERNS && w < n - 120; i++)
+            if (J.pat[i].used) w += snprintf(b + w, n - w, ",{\"v\":%d,\"n\":\"%s\"}", i, PN(i));
+        w += snprintf(b + w, n - w, "]}");
+    }
     {   // Projekt: Name, ungespeicherte Aenderungen, Liste zum Laden
         static char pl[UPRJ_MAX][64];
         int pn = uiProjects(pl);
@@ -269,6 +283,49 @@ static void uiActionsRun() {   // Hauptthread: Aktionen aus der Touch-Oberflaech
             }
             page = savePage; slot = saveSlot;
             v2Sync();
+        } break;
+        case UA_SONG: {   // 0 Song an/aus, 1 ab Zeile b spielen, 2 Zeile hinter b einfuegen, 3 Zeile b weg, 4/5 rep +/-
+            Project& J = eng.proj;
+            int r = e.b;
+            if (e.a == 0) {
+                if (!J.songLen) { toast(TR("SONG IST LEER", "SONG IS EMPTY")); break; }
+                lockA();
+                if (eng.songOn) { eng.songOn = false; if (eng.playing) eng.nextPat = eng.curPat; }
+                else eng.songStart(r >= 0 && r < J.songLen ? r : 0);
+                unlockA();
+                toast(eng.songOn ? TR("SONG-MODUS AN", "SONG MODE ON") : TR("SONG-MODUS AUS", "SONG MODE OFF"));
+            } else if (e.a == 1) {
+                if (r < 0 || r >= J.songLen) break;
+                lockA(); eng.songStart(r); if (!eng.playing) eng.start(); unlockA();
+            } else if (e.a == 2) {   // wie L1 am Geraet: Kopie der Zeile dahinter
+                if (J.songLen >= SONG_MAX) { toast(TR("SONG VOLL (%d)", "SONG FULL (%d)"), SONG_MAX); break; }
+                lockA();
+                int at = J.songLen ? clampi(r, 0, J.songLen - 1) + 1 : 0;
+                for (int i = J.songLen; i > at; i--) J.row[i] = J.row[i - 1];
+                if (J.songLen) J.row[at] = J.row[at - 1]; else Engine::rowFromPattern(J, J.row[at], curPi());
+                J.row[at].rep = 1;
+                J.songLen++;
+                if (eng.songActive() && eng.songPos >= at && J.songLen > 1) eng.songPos++;
+                unlockA();
+            } else if (e.a == 3) {
+                if (r < 0 || r >= J.songLen) break;
+                lockA();
+                for (int i = r; i < J.songLen - 1; i++) J.row[i] = J.row[i + 1];
+                J.songLen--;
+                if (eng.songPos >= J.songLen) eng.songPos = 0;
+                if (!J.songLen) eng.songOn = false; else if (eng.songOn) eng.rowPending = true;
+                unlockA();
+            } else if (e.a == 4 || e.a == 5) {
+                if (r < 0 || r >= J.songLen) break;
+                lockA(); J.row[r].rep = (uint8_t)clampi(J.row[r].rep + (e.a == 4 ? 1 : -1), 1, 64); unlockA();
+            }
+        } break;
+        case UA_SNGCELL: {   // eine Zelle der Matrix: a = Zeile*16 + Spur, b = Pattern (SONG_EMPTY = schweigt)
+            int r = (e.a >> 4) & 63, t = e.a & 15;
+            Project& J = eng.proj;
+            if (r >= J.songLen || t >= NTRACKS) break;
+            if (e.b != SONG_EMPTY && (e.b < 0 || e.b >= NPATTERNS)) break;
+            lockA(); J.row[r].pat[t] = (uint8_t)e.b; unlockA();
         } break;
         case UA_PRJ: {   // 0 speichern, 1 laden (b = Zeile der Liste), 2 neues Projekt mit freiem Namen
             if (e.a == 0) { toast(saveProject() ? TR("PROJEKT GESPEICHERT", "PROJECT SAVED") : TR("SPEICHERN FEHLGESCHLAGEN", "SAVING FAILED")); break; }

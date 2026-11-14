@@ -185,13 +185,13 @@ function check(ok, what, extra) { if (ok) { pass++; console.log('  OK     ' + wh
 
   // Gemeldet: "die Sequencer-Seite kann ich nicht zuverlaessig abrufen" - der Modus war EIN Knopf
   // im Kreis, der das Ziel statt des Zustands zeigte. Jetzt drei Knoepfe: jeder Modus mit einem Tipp.
-  for (const [from, to, cls] of [['#tM1', '#tM0', 'tui'], ['#tM2', '#tM0', 'tui'], ['#tM3', '#tM0', 'tui'], ['#tM0', '#tM2', 'tui keys'], ['#tM1', '#tM2', 'tui keys'], ['#tM2', '#tM1', 'tui snd'], ['#tM0', '#tM3', 'tui mix']]) {
+  for (const [from, to, cls] of [['#tM1', '#tM0', 'tui'], ['#tM2', '#tM0', 'tui'], ['#tM3', '#tM0', 'tui'], ['#tM0', '#tM2', 'tui keys'], ['#tM1', '#tM2', 'tui keys'], ['#tM2', '#tM1', 'tui snd'], ['#tM0', '#tM3', 'tui mix'], ['#tM3', '#tM4', 'tui song']]) {
     await tapSel(from); await pg.waitForTimeout(450);
     await tapSel(to); await pg.waitForTimeout(450);
     const got = await pg.evaluate(() => document.body.className.trim());
     check(got === cls, `ein Tipp von ${from} auf ${to} reicht`, `body="${got}" statt "${cls}"`);
   }
-  const marked = await pg.evaluate(() => [0, 1, 2, 3].map(k => document.getElementById('tM' + k).classList.contains('on')));
+  const marked = await pg.evaluate(() => [0, 1, 2, 3, 4].map(k => document.getElementById('tM' + k).classList.contains('on')));
   check(marked.filter(Boolean).length === 1, 'genau ein Modus ist markiert', JSON.stringify(marked));
 
   // Lange Listen (LFO-Ziel): stehen einmal je Modell unter lists, der Regler verweist darauf
@@ -235,6 +235,47 @@ function check(ok, what, extra) { if (ok) { pass++; console.log('  OK     ' + wh
       const t = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2); return t === e || e.contains(t); }));
     check(frei, 'danach ist die Kopfzeile wieder frei');
   }
+
+  // Song: die Clip-Matrix. Der Test raeumt am Ende alle Zeilen wieder weg.
+  await tapSel('#tM4'); await pg.waitForTimeout(800);
+  {
+    const vor = await pg.evaluate(() => tm.sng.len);
+    check(await pg.evaluate(() => !!tm.sng && Array.isArray(tm.sng.pats)), 'das Modell liefert den Song');
+    await tapSel('#tSgAdd'); await pg.waitForTimeout(700);
+    await tapSel('#tSgAdd'); await pg.waitForTimeout(700);
+    const nach = await pg.evaluate(() => ({len: tm.sng.len, zeilen: document.querySelectorAll('.sgr').length}));
+    check(nach.len === vor + 2 && nach.zeilen === nach.len, '+ ZEILE legt Zeilen an', JSON.stringify(nach));
+    // eine Zelle auf "schweigt" setzen
+    await pg.evaluate(() => { const c = document.querySelectorAll('.sgr')[0].querySelectorAll('.cl')[2], r = c.getBoundingClientRect();
+      c.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, clientX: r.left + 5, clientY: r.top + 5})); });
+    await pg.waitForTimeout(400);
+    const pk = await pg.evaluate(() => ({offen: document.body.classList.contains('pick'), titel: document.getElementById('tPickT').textContent}));
+    check(pk.offen && /ZEILE 1/.test(pk.titel) && /SPUR 3/.test(pk.titel), 'eine Zelle oeffnet die Pattern-Wahl', JSON.stringify(pk));
+    await pg.evaluate(() => { const b = [...document.querySelectorAll('#tPickL .pk')].find(e => e.textContent === '---'), r = b.getBoundingClientRect();
+      b.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, clientX: r.left + 5, clientY: r.top + 5})); });
+    await pg.waitForTimeout(800);
+    check((await pg.evaluate(() => tm.sng.rows[0].p[2])) === 255, 'die Spur schweigt jetzt in dieser Zeile');
+    // Wiederholungen
+    const r0 = await pg.evaluate(() => tm.sng.rows[0].r);
+    await pg.evaluate(() => { const d = document.querySelectorAll('.sgr')[0].querySelectorAll('.rp div')[2], r = d.getBoundingClientRect();
+      d.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, clientX: r.left + 5, clientY: r.top + 5})); });
+    await pg.waitForTimeout(700);
+    check((await pg.evaluate(() => tm.sng.rows[0].r)) === r0 + 1, 'die Wiederholungen lassen sich erhoehen');
+    // Song an und wieder aus
+    await tapSel('#tSgOn'); await pg.waitForTimeout(800);
+    check((await pg.evaluate(() => tm.sng.on)) === 1 && (await pg.evaluate(() => tm.song)) === 1, 'SONG AN schaltet den Song-Modus ein');
+    await tapSel('#tSgOn'); await pg.waitForTimeout(700);
+    check((await pg.evaluate(() => tm.sng.on)) === 0, 'und wieder aus');
+    // aufraeumen, damit der naechste Lauf gleich startet
+    for (let i = 0; i < 8; i++) {
+      if (!(await pg.evaluate(() => tm.sng.len))) break;
+      await pg.evaluate(() => { const d = document.querySelectorAll('.sgr')[0].querySelector('.del'), r = d.getBoundingClientRect();
+        d.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, clientX: r.left + 5, clientY: r.top + 5})); });
+      await pg.waitForTimeout(600);
+    }
+    check((await pg.evaluate(() => tm.sng.len)) === vor, 'Zeilen lassen sich wieder loeschen');
+  }
+  await tapSel('#tM0'); await pg.waitForTimeout(400);
 
   // Projekt: speichern, laden, neu - ohne das kam man am Handy nicht an seine Projekte
   {
