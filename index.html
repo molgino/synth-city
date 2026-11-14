@@ -260,18 +260,20 @@ body.sheet #tSheet{display:grid}
 body.pick #tPick{display:grid}
 #tPickT{font-size:15px;color:var(--cy)}
 #tPickL.wide{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
-#tPickL.wide .pk{justify-content:flex-start;font-size:13px;padding:0 12px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;display:block;line-height:52px}
+#tPickL.wide .pk{justify-content:flex-start;font-size:13px;padding:0 12px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;display:flex}
 #tPickL{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));grid-auto-rows:minmax(52px,auto);
  gap:8px;overflow-y:auto;overscroll-behavior:contain;align-content:start;touch-action:pan-y;-webkit-overflow-scrolling:touch}
 #tPickL .pk{display:flex;align-items:center;justify-content:center;border-radius:10px;background:var(--panel);
- border:1px solid var(--line);color:var(--text);font-size:14px;padding:0 8px;text-align:center}
+ border:1px solid var(--line);color:var(--text);font-size:14px;padding:0 8px;text-align:center;min-height:52px}
 #tPickL .pk.on{background:var(--panel2);border-color:var(--text);color:var(--cy)}
 /* Lange Listen als Menue: eine Zeile je Bedienseite, antippen klappt ihre Ziele auf */
-#tPickL.menu{grid-template-columns:1fr}
+/* Die Gruppenkaesten muessen so hoch werden duerfen, wie ihre Ziele brauchen - mit
+   grid-auto-rows:minmax(52px,auto) des aeusseren Rasters wurden die Eintraege auf 9 px gepresst. */
+#tPickL.menu{grid-template-columns:1fr;grid-auto-rows:min-content}
 #tPickL .pg{min-height:48px;display:flex;align-items:center;gap:8px;padding:0 12px;border-radius:10px;
  background:var(--panel2);border:1px solid var(--off2);color:var(--text);font-size:13px}
 #tPickL .pg .cnt{margin-left:auto;color:var(--dim);font-size:12px}
-#tPickL .pgi{display:none;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px;padding:4px 0 8px 10px}
+#tPickL .pgi{display:none;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));grid-auto-rows:minmax(52px,auto);gap:6px;padding:4px 0 8px 10px}
 #tPickL .pgi.open{display:grid}
 /* schmal (Handy hochkant): die Kopfzeile darf nicht umbrechen - Meldung weg, Schrift kleiner */
 @media (max-width:560px){#tMsg{display:none}#tBpm{font-size:11px}#tTop .tb{padding:0 9px;font-size:12px}
@@ -496,18 +498,34 @@ $('tPickX').addEventListener('pointerdown',e=>{e.preventDefault();tPickClose();}
 // daneben tippen schliesst auch - ohne das blieb der Picker offen und deckte die ganze Kopfzeile zu
 tTap($('tPick'),e=>{if(e.target===$('tPick')||e.target===$('tPickL'))tPickClose();});
 addEventListener('keydown',e=>{if(e.key!=='Escape')return;if(document.body.classList.contains('pick'))tPickClose();else if(document.body.classList.contains('sheet'))tSheetClose();});
+// Gemeldet: "auf der Sequencer-Seite verstelle ich immer wieder aus Versehen Werte". Ursache:
+// die Zeile nahm den Finger schon beim Aufsetzen (pointerdown + preventDefault) und rechnete jede
+// waagerechte Zuckung in einen Wert um - beim senkrechten Wischen also auch. Jetzt entscheidet die
+// ERSTE Bewegung: ueber 8 px mehr quer als hoch = Wert (ab da gehoert der Finger der Zeile),
+// sonst scrollt der Browser und die Zeile fasst den Wert nicht mehr an. Antippen (unter 10 px)
+// oeffnet beim Abheben die Liste - so wie jede andere Auswahl am Handy.
 function tParDrag(d,i){
- let id=null,x0=0,v0=0,mx=127,mn=0,cur=0;
- d.addEventListener('pointerdown',e=>{if(!tm||!tm.params||!tm.params[i])return;e.preventDefault();
-  if(tm.params[i].opts||tm.params[i].slots||tm.params[i].list){tPickOpen(i);return;}   // Auswahlregler: Liste statt Schieber
-  id=e.pointerId;x0=e.clientX;v0=cur=tm.params[i].v;mx=tm.params[i].mx||1;mn=tm.params[i].mn||0;d.dataset.drag='1';d.classList.add('act');
-  try{d.setPointerCapture(id);}catch(err){}},{passive:false});
- d.addEventListener('pointermove',e=>{if(id===null||e.pointerId!==id)return;e.preventDefault();
+ let id=null,x0=0,y0=0,v0=0,mx=127,mn=0,cur=0,mode=0;   // mode 0 = noch unentschieden, 1 = Wert, 2 = scrollen
+ d.addEventListener('pointerdown',e=>{if(!tm||!tm.params||!tm.params[i])return;
+  id=e.pointerId;x0=e.clientX;y0=e.clientY;v0=cur=tm.params[i].v;
+  mx=tm.params[i].mx||1;mn=tm.params[i].mn||0;mode=0;},{passive:true});
+ d.addEventListener('pointermove',e=>{if(id===null||e.pointerId!==id)return;
+  const dx=e.clientX-x0,dy=e.clientY-y0;
+  if(mode===0){
+   if(Math.abs(dy)>8&&Math.abs(dy)>=Math.abs(dx)){mode=2;return;}       // senkrecht: das ist ein Scrollen
+   if(Math.abs(dx)>8&&Math.abs(dx)>Math.abs(dy)){mode=1;d.dataset.drag='1';d.classList.add('act');
+    try{d.setPointerCapture(id);}catch(err){}}
+   else return;}
+  if(mode!==1)return;
+  e.preventDefault();
   const w=d.getBoundingClientRect().width||1;
-  let v=Math.round(v0+(e.clientX-x0)/w*(mx-mn));v=Math.max(mn,Math.min(mx,v));
+  let v=Math.round(v0+dx/w*(mx-mn));v=Math.max(mn,Math.min(mx,v));
   if(v!==cur){cur=v;tAct(11,i,v);
    d.querySelector('.bar').style.width=Math.round(100*(v-mn)/Math.max(1,mx-mn))+'%';d.querySelector('.vl').textContent=v;}},{passive:false});
- const end=e=>{if(id===null||(e&&e.pointerId!==id))return;id=null;delete d.dataset.drag;d.classList.remove('act');};
+ const end=e=>{if(id===null||(e&&e.pointerId!==id))return;
+  const tap=mode===0&&e&&e.type==='pointerup'&&Math.abs(e.clientX-x0)<10&&Math.abs(e.clientY-y0)<10;
+  id=null;mode=0;delete d.dataset.drag;d.classList.remove('act');
+  if(tap&&tm&&tm.params&&tm.params[i]&&(tm.params[i].opts||tm.params[i].slots||tm.params[i].list)){e.preventDefault();tPickOpen(i);}};
  d.addEventListener('pointerup',end);d.addEventListener('pointercancel',end);
 }
 $('tLockE').addEventListener('pointerdown',e=>{e.preventDefault();tAct(12,0,0);},{passive:false});
