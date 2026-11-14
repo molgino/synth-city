@@ -526,6 +526,30 @@ static void uiScenarios() {
         simReset(); simFrame();
     }
 
+    uiCase = "Gruppentitel und MEHR-Liste";
+    {   // Beide Funde kamen vom Sanitizer: pageLong pruefte "p >= PG_SRC2 && p <= PG_SRC5", aber
+        // PG_SRC3-5 sind hinten angefuegt - dazwischen liegen FILTER, AMP, MIX, PRJ ..., die damit
+        // "OPERATOR -14" im Kopf trugen; und mrLabel kannte die Ansicht MASTER (-13) nicht.
+        simReset(); goTrack(3);
+        lockA(); Engine::setMachine(curP(), 3, M_FM); unlockA();
+        simFrame();
+        int opPages = 0;
+        for (int p = 0; p < NUI_PAGES; p++) {
+            const char* t = pageLong(p);
+            UCHECK(t && !strstr(t, "OPERATOR -") && !strstr(t, "-1"), "Seite %d traegt den Titel \"%s\"", p, t ? t : "(null)");
+            if (t && !strncmp(t, "OPERATOR", 8)) opPages++;
+        }
+        UCHECK(opPages == 4, "Es muessten genau 4 Operator-Seiten sein (%d)", opPages);
+        for (int i = 0; i < MR_VN; i++) {
+            char l[64], v[48]; mrLabel(i, l, sizeof l, v, sizeof v);
+            UCHECK(l[0] && (unsigned char)l[0] >= 32 && strlen(l) < 40, "MEHR-Eintrag %d heisst \"%s\"", i, l);
+        }
+        { char l[64], v[48]; int mi = -1;
+          for (int i = 0; i < MR_VN; i++) { mrLabel(i, l, sizeof l, v, sizeof v); if (!strcmp(l, "MASTER")) mi = i; }
+          UCHECK(mi >= 0, "MASTER steht nicht in der MEHR-Liste"); }
+        simReset(); simFrame();
+    }
+
     uiCase = "SYNTH-Oszillatoren";
     {
         simReset(); goTrack(4);

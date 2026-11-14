@@ -967,9 +967,12 @@ static const char* pageLong(int p) {
     int m = curP().machine[track];
     if (m == M_FM) {
         if (p == PG_SRC) return TR("FM: ALGORITHMUS", "FM: ALGORITHM");
-        if (p >= PG_SRC2 && p <= PG_SRC5) {   // Rolle dazu: ohne sie sagt O.LVL nicht, was es tut
+        // Nur die vier Operator-Seiten: PG_SRC3-5 wurden hinten angefuegt, zwischen PG_SRC2 und
+        // ihnen liegen FILTER, AMP, MIX, PRJ ... - ein Bereichstest ergab dort "OPERATOR -14".
+        const int opk = p == PG_SRC2 ? 0 : (p == PG_SRC3 ? 1 : (p == PG_SRC4 ? 2 : (p == PG_SRC5 ? 3 : -1)));
+        if (opk >= 0) {   // Rolle dazu: ohne sie sagt O.LVL nicht, was es tut
             static char b[48];
-            int k = p == PG_SRC2 ? 0 : p - PG_SRC3 + 1, algo = curP().p[track][P_S0];
+            int k = opk, algo = curP().p[track][P_S0];
             int tg = fmModTargets(algo, k);
             int n = snprintf(b, sizeof b, "OPERATOR %d", k + 1);
             if (fmIsCarrier(algo, k)) n += snprintf(b + n, sizeof b - n, TR(" - TRÄGER", " - CARRIER"));

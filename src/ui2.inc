@@ -226,7 +226,7 @@ static void mrLabel(int i, char* l, int ln, char* v, int vn) {
     v[0] = 0;
     if (i < MR_VN) {
         int p = V2_RING[i];
-        snprintf(l, ln, "%s", p == -10 ? "SEQ" : p == -11 ? "SOUND" : p == -12 ? TR("EFFEKTE", "FX") : PAGE_LONG[p]);   // -12 fehlte: PAGE_LONG[-12]
+        snprintf(l, ln, "%s", p == -10 ? "SEQ" : p == -11 ? "SOUND" : p == -12 ? TR("EFFEKTE", "FX") : p == -13 ? "MASTER" : PAGE_LONG[p]);   // -12/-13 fehlten: PAGE_LONG[-13]
         if (i == v2RingIndex()) snprintf(v, vn, "<");
         return;
     }

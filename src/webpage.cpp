@@ -372,6 +372,12 @@ body.tui #app{visibility:hidden}
  background:var(--panel);border:1px solid var(--line);border-radius:10px;color:var(--text);font:inherit;font-size:13px;padding:0 12px}
 #tTop .tb:active,#tBot .tb:active{background:var(--panel2)}
 #tModes{display:flex;gap:4px}
+/* Ansichten der Liste: dieselben vier wie die Reiter am Geraet (SEQ, SOUND, EFFEKTE, MASTER).
+   Ohne sie kam man am Handy nie an Tempo, Skala, Kompressor, die Effekt-Busse und die TRIG-Regler. */
+#tVws{display:flex;gap:4px;flex-wrap:wrap}
+#tVws .vw{min-height:34px;display:flex;align-items:center;padding:0 12px;border-radius:8px;
+ background:var(--panel);border:1px solid var(--line);color:var(--dim);font-size:12px}
+#tVws .vw.on{background:var(--panel2);border-color:var(--text);color:var(--cy)}
 /* Mixer: 8 Spalten, Zeilen wie die MIX-Seite am Geraet (VOL PAN S.A S.B S.C CMP) */
 #tMix{display:none;grid-row:2;grid-template-columns:repeat(8,1fr);gap:4px;min-height:0}
 body.mix #tMix{display:grid}
@@ -441,9 +447,10 @@ body.song #tMain{display:none}
  #tTracks{grid-auto-rows:auto;grid-template-columns:repeat(4,1fr)}
  .ttr{min-height:42px;padding:0 4px}
  .ttr .tn{font-size:11px}.ttr .tnr{display:none}}   /* hochkant ist kein Platz fuer die Nummer: die Farbe sagt es */
-#tBot:empty,#tBot.hide{display:none}
+#tBot:empty{display:none}
+#tPages.hide{display:none}
 /* Klang schrauben: Gruppenleiste zum Wischen + Regler als breite Zeilen (waagerecht ziehen = Wert) */
-#tSnd{display:none;grid-template-rows:auto minmax(0,1fr);gap:6px;min-height:0}
+#tSnd{display:none;grid-template-rows:auto auto minmax(0,1fr);gap:6px;min-height:0}
 body.tui.snd #tSnd{display:grid}
 body.tui.snd #tGrid{display:none}
 #tGrps{display:flex;gap:6px;overflow-x:auto;overflow-y:hidden;padding-bottom:2px;scrollbar-width:none}
@@ -553,7 +560,7 @@ body.nopad #scr{grid-column:1 !important}
   <div id="tBpm">120 BPM</div><span id="tMsg"></span><span id="tLock"><span style="color:#ffba40;font-size:12px" id="tLockT">LOCK</span><button class="tb" id="tLockC">LOCKS WEG</button><button class="tb" id="tLockE">FERTIG</button></span><span id="tModes"><button class="tb tm" id="tM0">STEPS</button><button class="tb tm" id="tM1">SOUND</button><button class="tb tm" id="tM2">NOTEN</button><button class="tb tm" id="tM3">MIXER</button><button class="tb tm" id="tM4">SONG</button></span><button class="tb" id="tView" title="zum gespiegelten Geraetebild">BILD</button></div>
  <div id="tMain"><div id="tTracks"></div>
   <div id="tGrid"></div>
-  <div id="tSnd"><div id="tGrps"></div><div id="tPar"></div></div>
+  <div id="tSnd"><div id="tVws"><div class="vw" data-v="0">SEQUENZ</div><div class="vw" data-v="1">KLANG</div><div class="vw" data-v="2">EFFEKTE</div><div class="vw" data-v="3">MASTER</div></div><div id="tGrps"></div><div id="tPar"></div></div>
   <div id="tKeys"><div id="tOct"><button class="tb" id="tOctD">− OKT</button><span id="tOctT" style="color:var(--cy);min-width:52px;text-align:center"></span><button class="tb" id="tOctU">+ OKT</button><span id="tNoteT" style="color:var(--dim);font-size:12px"></span></div><div id="tKb"></div></div></div>
  <div id="tMix"></div>
  <div id="tSong"><div id="tSgBar"><button class="tb" id="tSgOn">SONG AN</button><button class="tb" id="tSgAdd">+ ZEILE</button><span id="tSgI" style="color:var(--dim);font-size:12px"></span></div><div id="tSgL"></div></div>
@@ -613,7 +620,10 @@ function tuiPoll(){if(!tuiOn)return;
 function tAct(k,a,b){tSend('k '+k+' '+(a|0)+' '+(b|0));}
 function tuiModel(j){let m;try{m=typeof j==='string'?JSON.parse(j):j;}catch(e){return;}tm=m;window.tm=m;/* Tests lesen den Zustand hier */
  document.body.classList.remove('twait');tuiRender(m);}
+document.querySelectorAll('#tVws .vw').forEach(d=>d.addEventListener('pointerdown',e=>{
+ e.preventDefault();tAct(9,+d.dataset.v,0);},{passive:false}));
 function tuiRender(m){
+ document.querySelectorAll('#tVws .vw').forEach(d=>d.classList.toggle('on',+d.dataset.v===m.view));
  const play=$('tPlay');play.textContent=m.play?'■':'▶';play.classList.toggle('on',!!m.play);
  $('tPat').textContent=m.pat;
  if(m.prj)$('tPrj').textContent=(m.prj.d?'● ':'')+'MEHR';$('tBpm').textContent=m.bpm+' BPM'+(m.song?' · SONG':'');
@@ -676,14 +686,14 @@ function tuiRender(m){
     tParDrag(d,i);pr.appendChild(d);});}
   ps.forEach((p,i)=>{const d=pr.children[i];if(!d||d.dataset.drag)return;
    d.querySelector('.nm').textContent=p.n;d.querySelector('.vl').textContent=p.t;
-   d.querySelector('.bar').style.width=Math.round(100*p.v/(p.mx||1))+'%';
+   d.querySelector('.bar').style.width=Math.round(100*(p.v-(p.mn||0))/Math.max(1,(p.mx||1)-(p.mn||0)))+'%';
    const pick=!!(p.opts||p.slots||p.list);
    d.classList.toggle('lk',!!p.lk);d.classList.toggle('sel',pick);
    if(pick)d.querySelector('.bar').style.width='0';});
  }
  // Seiten
  const pb=$('tPages');
- $('tBot').classList.toggle('hide',m.pages<2);
+ $('tPages').classList.toggle('hide',m.pages<2);   // nur die Seitenreihe; die Leiste traegt auch MEHR
  if(pb.childElementCount!==m.pages){pb.innerHTML='';
   for(let p=0;p<m.pages;p++){const b=document.createElement('div');b.className='tb';b.textContent='P'+(p+1);
    b.addEventListener('pointerdown',e=>{e.preventDefault();tAct(6,p,0);},{passive:false});pb.appendChild(b);}}
@@ -707,16 +717,16 @@ $('tPickX').addEventListener('pointerdown',e=>{e.preventDefault();tPickClose();}
 $('tPick').addEventListener('pointerdown',e=>{if(e.target===$('tPick')||e.target===$('tPickL')){e.preventDefault();tPickClose();}},{passive:false});
 addEventListener('keydown',e=>{if(e.key!=='Escape')return;if(document.body.classList.contains('pick'))tPickClose();else if(document.body.classList.contains('sheet'))tSheetClose();});
 function tParDrag(d,i){
- let id=null,x0=0,v0=0,mx=127,cur=0;
+ let id=null,x0=0,v0=0,mx=127,mn=0,cur=0;
  d.addEventListener('pointerdown',e=>{if(!tm||!tm.params||!tm.params[i])return;e.preventDefault();
-  if(tm.params[i].opts||tm.params[i].slots){tPickOpen(i);return;}   // Auswahlregler: Liste statt Schieber
-  id=e.pointerId;x0=e.clientX;v0=cur=tm.params[i].v;mx=tm.params[i].mx||1;d.dataset.drag='1';d.classList.add('act');
+  if(tm.params[i].opts||tm.params[i].slots||tm.params[i].list){tPickOpen(i);return;}   // Auswahlregler: Liste statt Schieber
+  id=e.pointerId;x0=e.clientX;v0=cur=tm.params[i].v;mx=tm.params[i].mx||1;mn=tm.params[i].mn||0;d.dataset.drag='1';d.classList.add('act');
   try{d.setPointerCapture(id);}catch(err){}},{passive:false});
  d.addEventListener('pointermove',e=>{if(id===null||e.pointerId!==id)return;e.preventDefault();
   const w=d.getBoundingClientRect().width||1;
-  let v=Math.round(v0+(e.clientX-x0)/w*mx);v=Math.max(0,Math.min(mx,v));
+  let v=Math.round(v0+(e.clientX-x0)/w*(mx-mn));v=Math.max(mn,Math.min(mx,v));
   if(v!==cur){cur=v;tAct(11,i,v);
-   d.querySelector('.bar').style.width=Math.round(100*v/mx)+'%';d.querySelector('.vl').textContent=v;}},{passive:false});
+   d.querySelector('.bar').style.width=Math.round(100*(v-mn)/Math.max(1,mx-mn))+'%';d.querySelector('.vl').textContent=v;}},{passive:false});
  const end=e=>{if(id===null||(e&&e.pointerId!==id))return;id=null;delete d.dataset.drag;d.classList.remove('act');};
  d.addEventListener('pointerup',end);d.addEventListener('pointercancel',end);
 }
@@ -730,7 +740,7 @@ function tModeNow(){const c=document.body.classList;return c.contains('song')?4:
 function tSetMode(m){const b=document.body;TMODES.forEach(c=>c&&b.classList.remove(c));
  if(TMODES[m])b.classList.add(TMODES[m]);
  for(let k=0;k<TMODES.length;k++){const e=$('tM'+k);if(e)e.classList.toggle('on',k===m);}
- if(TMODES[m]==='snd'&&tm&&tm.view===0)tAct(9,1,0);
+ if(TMODES[m]==='snd'&&tm&&typeof tm.view!=='number')tAct(9,1,0);   // nur wenn gar keine Listen-Ansicht aktiv ist
  if(TMODES[m]==='keys')tKbBuild();
  if(TMODES[m]==='mix')tMixBuild();
  if(TMODES[m]==='song')tSongBuild();

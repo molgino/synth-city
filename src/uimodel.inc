@@ -172,8 +172,12 @@ static int uiModelJson(char* b, int n) {
             knobText(d, val, vb, sizeof vb, v2It[i].k);
             if (lab[0]) snprintf(vb, sizeof vb, "%.36s", lab);   // Sample- bzw. Zielname statt der Nummer (wie in der Liste am Geraet)
             for (char* c = vb; *c; c++) if (*c == '"' || *c == '\\') *c = '\'';
-            w += snprintf(b + w, n - w, "%s{\"n\":\"%s\",\"v\":%d,\"t\":\"%s\",\"mx\":%d,\"bip\":%d,\"lk\":%d",
-                          i > from ? "," : "", d.name, val, vb, d.max > 0 ? d.max : 1, d.kind == K_BIP ? 1 : 0, lk ? 1 : 0);
+            // Tempo ist der Sonderfall: MST_DEFS fuehrt BPM mit max 0 (das Geraet rechnet in curMax),
+            // ohne Bereich waere der Schieber am Handy ein 0/1-Schalter.
+            int mn = 0, mx = d.max > 0 ? d.max : 1;
+            if (page == PAGE_MST && v2It[i].k == MS_BPM) { mn = 30; mx = 300; }
+            w += snprintf(b + w, n - w, "%s{\"n\":\"%s\",\"v\":%d,\"t\":\"%s\",\"mn\":%d,\"mx\":%d,\"bip\":%d,\"lk\":%d",
+                          i > from ? "," : "", d.name, val, vb, mn, mx, d.kind == K_BIP ? 1 : 0, lk ? 1 : 0);
             if (d.kind == K_SMPL) {   // Samples: die Plaetze, die das Projekt geladen hat (die Bibliothek
                 w += snprintf(b + w, n - w, ",\"slots\":[{\"v\":%d,\"n\":\"---\"}", SMP_NONE);   // waere zu lang fuers Modell)
                 for (int k = 0; k < PREVIEW_SLOT && w < n - 140; k++) {

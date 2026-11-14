@@ -22,8 +22,22 @@ function check(ok, what, extra) { if (ok) { pass++; console.log('  OK     ' + wh
   const tapPad = i => pg.evaluate(n => { const p = [...document.querySelectorAll('.tp')][n]; const r = p.getBoundingClientRect();
     p.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, pointerId: 21, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2}));
     p.dispatchEvent(new PointerEvent('pointerup', {bubbles: true, pointerId: 21})); }, i);
-  const tapSel = sel => pg.evaluate(s => { const e = document.querySelector(s); const r = e.getBoundingClientRect();
-    e.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2})); }, sel);
+  // Ein dispatchEvent trifft auch unsichtbare Knoepfe - genau so ist der MEHR-Knopf durchgerutscht,
+  // der in einer ausgeblendeten Leiste sass. Jeder Tap prueft darum erst, ob die Flaeche wirklich frei liegt.
+  const frei = sel => pg.evaluate(s => { const e = document.querySelector(s);
+    if (!e) return 'fehlt';
+    const b = e.getBoundingClientRect();
+    if (b.width < 1 || b.height < 1) return 'unsichtbar';
+    if (b.top < 0 || b.left < 0 || b.bottom > innerHeight || b.right > innerWidth) return 'ausserhalb des Schirms';
+    const t = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2);
+    return (t === e || e.contains(t)) ? '' : 'verdeckt von ' + (t ? (t.id || t.className || t.tagName) : '?'); }, sel);
+  const goView = async v => { await tapSel(`#tVws .vw[data-v="${v}"]`); await pg.waitForTimeout(700); };
+  const tapSel = async sel => {
+    const bad = await frei(sel);
+    if (bad) check(false, `${sel} ist bedienbar`, bad);
+    await pg.evaluate(s => { const e = document.querySelector(s); const r = e.getBoundingClientRect();
+      e.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2})); }, sel);
+  };
 
   let m = await model();
   check(!!m && m.tracks && m.tracks.length === 8, 'Modell kommt an (8 Spuren)', m ? JSON.stringify(m).slice(0, 80) : 'keins');
@@ -70,6 +84,7 @@ function check(ok, what, extra) { if (ok) { pass++; console.log('  OK     ' + wh
   // Klang schrauben: Umschalten, Gruppe waehlen, Regler ziehen
   await tapSel('#tM1');
   await pg.waitForTimeout(900);
+  await goView(1);   // Ansicht KLANG (die Liste kann auch auf SEQUENZ/EFFEKTE/MASTER stehen)
   let snd = await pg.evaluate(() => ({snd: document.body.classList.contains('snd'),
     grps: document.querySelectorAll('#tGrps .tg').length, rows: document.querySelectorAll('#tPar .tr').length}));
   check(snd.snd && snd.grps > 3 && snd.rows > 0, 'SOUND zeigt Gruppen und Regler', `${snd.grps} Gruppen, ${snd.rows} Regler`);
@@ -111,10 +126,16 @@ function check(ok, what, extra) { if (ok) { pass++; console.log('  OK     ' + wh
   await drag(0.1, 0.7); await pg.waitForTimeout(900);
   const locked = await pg.evaluate(() => ({v: tm.params[0].v, lk: tm.params[0].lk, step: tm.steps[5]}));
   check(locked.lk === 1 && locked.v !== patBase, 'im Lock-Modus wird der Wert als Lock geschrieben', `${patBase} -> ${locked.v}, lk=${locked.lk}`);
-  check(locked.step > 0, 'der Step traegt den Lock (Trig oder trigless)', 'on=' + locked.step);
+  // Der Step wird erst beim BEENDEN des Lock-Modus zum Traeger (leer + Wert = trigless). Vorher stand
+  // hier die Pruefung mitten im Halten - sie ging nur durch, weil ein frueherer Lauf den Step hinterlassen hatte.
+  // FERTIG gibt es nur WAEHREND des Haltens - ein zweiter Tap darauf traf vorher einen
+  // unsichtbaren Knopf (der Test lief nur durch, weil dispatchEvent das nicht merkt).
   await tapSel('#tLockE'); await pg.waitForTimeout(900);
-  const after = await pg.evaluate(() => ({hold: tm.hold, v: tm.params[0].v, lk: tm.params[0].lk}));
+  const after = await pg.evaluate(() => ({hold: tm.hold, v: tm.params[0].v, lk: tm.params[0].lk,
+    step: tm.steps[5], eW: Math.round(document.querySelector('#tLockE').getBoundingClientRect().width)}));
+  check(after.step > 0, 'nach FERTIG traegt der Step den Lock (Trig oder trigless)', 'on=' + after.step);
   check(after.hold < 0 && after.v === patBase && !after.lk, 'FERTIG beendet den Lock-Modus, der Pattern-Wert bleibt', `hold=${after.hold}, Wert ${after.v}`);
+  check(after.eW < 1, 'und FERTIG ist danach weg', 'Breite=' + after.eW);
 
   // Auswahl-Regler (ENGINE): antippen oeffnet eine Liste statt eines Schiebers
   await pg.evaluate(() => { const g = [...document.querySelectorAll('#tGrps .tg')].find(x => /MAKRO/.test(x.textContent));
@@ -183,6 +204,8 @@ function check(ok, what, extra) { if (ok) { pass++; console.log('  OK     ' + wh
     check(picked !== smp.v, 'der gewaehlte Platz landet auf der Spur', `${smp.v} -> ${picked}`);
   }
 
+  await pg.evaluate(() => { if (document.body.classList.contains('pick')) tPickClose(); });
+  await pg.waitForTimeout(300);
   // Gemeldet: "die Sequencer-Seite kann ich nicht zuverlaessig abrufen" - der Modus war EIN Knopf
   // im Kreis, der das Ziel statt des Zustands zeigte. Jetzt drei Knoepfe: jeder Modus mit einem Tipp.
   for (const [from, to, cls] of [['#tM1', '#tM0', 'tui'], ['#tM2', '#tM0', 'tui'], ['#tM3', '#tM0', 'tui'], ['#tM0', '#tM2', 'tui keys'], ['#tM1', '#tM2', 'tui keys'], ['#tM2', '#tM1', 'tui snd'], ['#tM0', '#tM3', 'tui mix'], ['#tM3', '#tM4', 'tui song']]) {
@@ -195,7 +218,7 @@ function check(ok, what, extra) { if (ok) { pass++; console.log('  OK     ' + wh
   check(marked.filter(Boolean).length === 1, 'genau ein Modus ist markiert', JSON.stringify(marked));
 
   // Lange Listen (LFO-Ziel): stehen einmal je Modell unter lists, der Regler verweist darauf
-  await tapSel('#tM1'); await pg.waitForTimeout(600);
+  await tapSel('#tM1'); await pg.waitForTimeout(600); await goView(1);
   const gi = await pg.evaluate(() => tm.grps.findIndex(g => /LFO 1/.test(g)));
   check(gi >= 0, 'Gruppe LFO 1 ist da');
   await pg.evaluate(i => tAct(10, i, 0), gi); await pg.waitForTimeout(900);
@@ -203,7 +226,12 @@ function check(ok, what, extra) { if (ok) { pass++; console.log('  OK     ' + wh
     return {i, n: i >= 0 ? tm.params[i].n : '', v: i >= 0 ? tm.params[i].v : -1, len: tm.lists && tm.lists.dest ? tm.lists.dest.length : 0}; });
   check(dst.i >= 0 && dst.len > 50, 'LFO-Ziel bietet die lange Liste an', `${dst.n}, ${dst.len} Eintraege`);
   if (dst.i >= 0) {
-    await pg.evaluate(i => tPickOpen(i), dst.i); await pg.waitForTimeout(500);
+    // ueber die Zeile, nicht ueber tPickOpen: genau dort fehlte der Fall "lange Liste" und am Handy
+    // passierte beim Antippen nichts
+    await pg.evaluate(i => { const d = [...document.querySelectorAll('#tPar .tr')][i], b = d.getBoundingClientRect();
+      d.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, pointerId: 44, clientX: b.left + b.width / 2, clientY: b.top + b.height / 2}));
+      d.dispatchEvent(new PointerEvent('pointerup', {bubbles: true, pointerId: 44})); }, dst.i);
+    await pg.waitForTimeout(500);
     const wide = await pg.evaluate(() => ({open: document.body.classList.contains('pick'),
       wide: document.getElementById('tPickL').classList.contains('wide'),
       zeilen: document.querySelectorAll('#tPickL .pk').length}));
@@ -346,6 +374,37 @@ function check(ok, what, extra) { if (ok) { pass++; console.log('  OK     ' + wh
     check(!(await pg.evaluate(() => document.body.classList.contains('sheet'))), 'das Blatt laesst sich schliessen');
   }
 
+  // Gemeldet: "master kann ich nicht editieren, also das tempo" - am Handy gab es nur die Ansicht KLANG.
+  // Damit fehlten Tempo/Skala/Kompressor, die drei Effekt-Busse UND die Sequenzer-Regler (NOTE, VEL, COND, ARP).
+  {
+    await tapSel('#tM1'); await pg.waitForTimeout(600);
+    const erwartet = [[0, /TRIG/], [1, /MAKROS|KLANG/], [2, /EFFEKT-BUS A/], [3, /MASTER/]];
+    for (const [v, re] of erwartet) {
+      await goView(v);
+      const g = await pg.evaluate(() => ({view: tm.view, grps: tm.grps.join(',')}));
+      check(g.view === v && re.test(g.grps), `Ansicht ${v} ist erreichbar`, JSON.stringify(g));
+    }
+    const markiert = await pg.evaluate(() => [...document.querySelectorAll('#tVws .vw')].filter(d => d.classList.contains('on')).length);
+    check(markiert === 1, 'genau eine Ansicht ist markiert', String(markiert));
+    // Tempo in MASTER wirklich verstellen
+    await goView(3);
+    const bi = await pg.evaluate(() => tm.params.findIndex(p => p.n === 'BPM'));
+    const bpmP = await pg.evaluate(i => tm.params[i], bi);
+    check(bi >= 0 && bpmP.mn === 30 && bpmP.mx === 300, 'BPM hat einen echten Bereich (30-300)', JSON.stringify(bpmP));
+    const b0 = await pg.evaluate(() => tm.bpm);
+    await pg.evaluate(i => { const d = [...document.querySelectorAll('#tPar .tr')][i], b = d.getBoundingClientRect();
+      d.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, pointerId: 55, clientX: b.left + b.width * 0.5, clientY: b.top + 10}));
+      d.dispatchEvent(new PointerEvent('pointermove', {bubbles: true, pointerId: 55, clientX: b.left + b.width * 0.58, clientY: b.top + 10}));
+      d.dispatchEvent(new PointerEvent('pointerup', {bubbles: true, pointerId: 55})); }, bi);
+    await pg.waitForTimeout(900);
+    const b1 = await pg.evaluate(() => tm.bpm);
+    check(b1 > b0 && b1 <= 300, 'das Tempo laesst sich am Handy einstellen', `${b0} -> ${b1}`);
+    // zurueck auf den Ausgangswert, damit der naechste Lauf gleich startet
+    await pg.evaluate(a => tAct(11, a.i, a.v), {i: bi, v: b0}); await pg.waitForTimeout(600);
+    check((await pg.evaluate(() => tm.bpm)) === b0, 'und wieder zurueckstellen');
+    await goView(1);
+  }
+
   // Mixer: acht Spuren nebeneinander, dieselben Zeilen wie die MIX-Seite am Geraet
   await tapSel('#tM3'); await pg.waitForTimeout(900);
   const mx = await pg.evaluate(() => ({cls: document.body.className.trim(),
@@ -416,6 +475,24 @@ function check(ok, what, extra) { if (ok) { pass++; console.log('  OK     ' + wh
     return Math.round(100 * u / (innerWidth * innerHeight)); });
   check(area >= 60, `Bedienflaeche nutzt den Schirm (${area} %)`);
   check(errs.length === 0, 'keine JS-Fehler', errs.join(' | '));
+
+  // Gemeldet: "die MEHR-Seite gibt es auch nicht" - sie sass in einer Leiste, die bei nur einer
+  // Page ausgeblendet wurde. Darum: jeder Knopf der Leisten muss in jeder Groesse wirklich dasein.
+  {
+    const groessen = [[852, 393], [393, 852], [667, 375], [360, 640]];
+    for (const [w, h] of groessen) {
+      await pg.setViewportSize({width: w, height: h});
+      await pg.waitForTimeout(700);
+      const schlecht = [];
+      for (const id of ['#tPlay', '#tPatD', '#tPatU', '#tM0', '#tM1', '#tM2', '#tM3', '#tM4', '#tView', '#tPrj']) {
+        const bad = await frei(id);
+        if (bad) schlecht.push(id + ': ' + bad);
+      }
+      check(schlecht.length === 0, `alle Knoepfe bedienbar bei ${w}x${h}`, schlecht.join(' | '));
+    }
+    await pg.setViewportSize({width: 852, height: 393});
+    await pg.waitForTimeout(600);
+  }
 
   await ctx.close();
 

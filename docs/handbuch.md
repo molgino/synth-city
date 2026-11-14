@@ -108,6 +108,10 @@ Was Stufe 1 kann:
 * **Spur wählen und stummschalten**: die Spurspalte zeigt Nummer, Engine und Farbe; das **M** rechts schaltet stumm.
 * **Transport**: Play/Stop, Pattern vor und zurück, Seiten (P1, P2 …) bei längeren Spuren.
 
+**Die vier Ansichten am Handy.** Über den Reglern steht eine Leiste **SEQUENZ · KLANG · EFFEKTE · MASTER** – dieselben vier Ansichten, die am Gerät mit L2/R2 kommen. SEQUENZ sind Trigs, Länge, Richtung und Bedingungen, KLANG der Sound der Spur, EFFEKTE die drei Send-Busse, MASTER Tempo, Swing, Summe, Skala und Kompressor. Das **Tempo** stellst du also in MASTER ein: Zeile BPM waagerecht ziehen (30–300).
+
+**Lange Listen am Handy.** Regler mit Namen statt Zahlen (ENGINE, Filtertyp, SAMPLE, LFO-Ziel, Trig-Bedingung …) öffnen beim Antippen eine **Liste** statt eines Schiebers – auf 114 Modulationsziele mit dem Finger zu zielen wäre nicht zu machen. Daneben tippen oder **ABBRECHEN** schließt sie wieder.
+
 **Klang schrauben (Stufe 2).** Der Knopf **SOUND** schaltet von den Pads auf die Regler um. Oben wischst du durch die Gruppen (KLANG, FILTER, VERSTÄRKER, LFO …), darunter steht jeder Regler als breite Zeile mit Name und Wert. **Waagerecht über die Zeile ziehen** ändert den Wert – die ganze Zeilenbreite deckt den ganzen Bereich ab, du musst also nicht zielen. Gelb heißt: Der Wert ist für diesen Step gelockt. **STEPS** führt zurück zu den Pads.
 
 **P-Locks am Handy.** Ein Pad **lange gedrückt halten** hält den Step fest – die Oberfläche springt zu den Reglern, und was du jetzt änderst, gilt nur für diesen einen Step (die Werte stehen gelb). Oben steht, welcher Step hängt; **FERTIG** beendet, **LOCKS WEG** räumt sie wieder ab. War der Step leer, wird er dabei zu einem trigless Step – die Werte wirken also, ohne dass neu angeschlagen wird. Kurz antippen bleibt wie gehabt: Trig an und aus.
