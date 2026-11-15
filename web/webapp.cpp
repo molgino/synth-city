@@ -140,6 +140,9 @@ int usbAudioChannels() { return 2; }
 void usbAudioPushMulti(const float*, int) {}
 void usbAudioSetEngineRate(int) {}
 bool pcInStart() { return false; }
+bool pcInStartSrc(bool) { return false; }   // eigener Eingang: in der App gibt es keinen
+bool micInAvailable() { return false; }
+bool pcInIsMic() { return false; }
 void pcInStop() {}
 bool pcInActive() { return false; }
 int pcInStatus() { return 0; }
