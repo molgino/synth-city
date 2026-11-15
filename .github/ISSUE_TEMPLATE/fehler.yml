@@ -1,0 +1,21 @@
+name: Fehler melden / Bug report
+description: Etwas funktioniert auf dem R36S, am Desktop oder in der Handy-App nicht.
+labels: [bug]
+body:
+  - type: dropdown
+    id: where
+    attributes:
+      label: Wo?
+      options: [SYNTH CITY OS (R36S), ArkOS (R36S), Linux-Desktop, Handy-App / Browser, Bauen / CI]
+    validations: {required: true}
+  - type: input
+    id: version
+    attributes:
+      label: Version / Build
+      placeholder: z. B. nightly vom 15.11.2026 (SET → Info)
+  - type: textarea
+    id: what
+    attributes:
+      label: Was ist passiert, was hättest du erwartet?
+      description: Schritte zum Nachstellen; Bildschirmfoto oder Log (Web-Seite → Logs) helfen sehr.
+    validations: {required: true}

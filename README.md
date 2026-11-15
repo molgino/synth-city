@@ -1,5 +1,7 @@
 # SYNTH CITY – Groovebox für den R36S
 
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-noxend-FF5E5B?logo=ko-fi&logoColor=white)](https://ko-fi.com/noxend) [![Lizenz: MIT](https://img.shields.io/badge/Lizenz-MIT-blue)](LICENSE)
+
 Groovebox für die Hosentasche: Step-Sequencer mit Parameter-Locks, 13 Klangerzeuger, Sampler mit Chops und Time-Warp, 3 Effekt-Busse und ein USB-Audio-Interface – auf dem Handheld R36S (eigenes SYNTH CITY OS oder ArkOS 2.0; läuft auch auf dem Linux-Desktop). Neo-Noir-Optik in Neon-Magenta und Cyan.
 
 ## 📖 Handbuch
@@ -24,6 +26,18 @@ Technische Daten: [docs/SPECS.md](docs/SPECS.md).
 3. **SELECT antippen** = Seitenkarte, **L2/R2** = Seite, **L1/R1** = Regler, **X/Y** = Wert, **SELECT halten** = Hilfe.
 
 Alles Weitere steht im Handbuch.
+
+## Mitmachen
+
+SYNTH CITY ist Open Source, Mitentwickeln ist ausdrücklich erwünscht. Fehler und Ideen bitte als [Issue](../../issues/new/choose), Code als Pull Request gegen `main`; wie das läuft und welche Tests grün sein müssen, steht in [CONTRIBUTING.md](CONTRIBUTING.md). Auch ohne Programmieren hilfst du: auf deinem R36S (oder Klon) testen und berichten.
+
+## Unterstützen
+
+SYNTH CITY ist kostenlos und bleibt es. Wenn dir die Groovebox Spaß macht, freue ich mich über einen Kaffee: **[ko-fi.com/noxend](https://ko-fi.com/noxend)**
+
+## Lizenz
+
+Der Quellcode von SYNTH CITY steht unter der [MIT-Lizenz](LICENSE). Das SYNTH-CITY-OS-Image enthält zusätzlich fremde Komponenten mit eigenen Lizenzen (Linux-Kernel und U-Boot unter GPL-2.0, Debian-Pakete, SDL2, ALSA …); Übersicht und Pflichten beim Weitergeben in [docs/THIRD_PARTY.md](docs/THIRD_PARTY.md). R36S und andere genannte Geräte sind Namen ihrer Hersteller; keine Verbindung zu diesen.
 
 ## Für Entwickler
 
