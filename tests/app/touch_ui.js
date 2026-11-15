@@ -452,6 +452,37 @@ function check(ok, what, extra) { if (ok) { pass++; console.log('  OK     ' + wh
     // Sampler im selben Blatt: Quelle, Aufnahme, Hoeren, Sichern
     await tapSel('#tPrj'); await pg.waitForTimeout(500);
     const sb = await pg.evaluate(() => [...document.querySelectorAll('#tShB .big')].map(e => e.textContent));
+  {   // Pattern kopieren/einfuegen am Handy (am Geraet: PRJ-Seite KOPIEREN/EINFÜGEN) - das Blatt ist offen
+    const vor = await pg.evaluate(() => ({pat: tm.pat, steps: tm.steps.slice(0, 16)}));
+    const kopf = await pg.evaluate(() => ({p: tm.prj.p, c: tm.prj.c}));
+    check(kopf.p === vor.pat, 'das Blatt nennt das offene Pattern', kopf.p);
+    const bigTap = t => pg.evaluate(re => { const d = [...document.querySelectorAll('#tShB .big')].find(e => new RegExp(re).test(e.textContent));
+      if (!d) return false; const r = d.getBoundingClientRect();
+      const o = {bubbles: true, pointerId: 61, clientX: r.left + 10, clientY: r.top + 10};
+      d.dispatchEvent(new PointerEvent('pointerdown', o)); d.dispatchEvent(new PointerEvent('pointerup', o)); return true; }, t);
+    check(await bigTap('KOPIEREN'), 'das Blatt hat einen Knopf zum Pattern-Kopieren');
+    await pg.waitForTimeout(800);
+    check((await pg.evaluate(() => tm.prj.c)) === vor.pat, 'KOPIEREN legt das Pattern in die Ablage', 'Ablage ' + (await pg.evaluate(() => tm.prj.c)));
+    // Blatt zu, ein Pattern weiter, Blatt wieder auf - die Kopfzeile liegt sonst unter dem Blatt
+    await pg.evaluate(() => tSheetClose()); await pg.waitForTimeout(400);
+    await tapSel('#tPatU'); await pg.waitForTimeout(900);
+    const ziel = await pg.evaluate(() => tm.pat);
+    check(ziel !== vor.pat, 'Pattern gewechselt', `${vor.pat} -> ${ziel}`);
+    await tapSel('#tPrj'); await pg.waitForTimeout(600);
+    check(await bigTap('EINFÜGEN'), 'und einen zum Einfuegen');
+    await pg.waitForTimeout(1000);
+    const nach = await pg.evaluate(() => ({pat: tm.pat, steps: tm.steps.slice(0, 16)}));
+    check(nach.pat === ziel && JSON.stringify(nach.steps) === JSON.stringify(vor.steps),
+          'EINFÜGEN bringt die Steps des kopierten Patterns her', JSON.stringify(nach.steps).slice(0, 60));
+    // aufraeumen: das Zielpattern wieder leeren und zurueck, sonst startet der naechste Lauf woanders
+    await pg.evaluate(() => tSheetClose()); await pg.waitForTimeout(300);
+    await pg.evaluate(() => { for (let i = 0; i < 16; i++) if (tm.steps[i]) tAct(1, i, 0); });
+    await pg.waitForTimeout(700);
+    await tapSel('#tPatD'); await pg.waitForTimeout(900);
+    check((await pg.evaluate(() => tm.pat)) === vor.pat, 'und zurueck auf das Ausgangs-Pattern', vor.pat);
+    await tapSel('#tPrj'); await pg.waitForTimeout(600);
+  }
+
     check(sb.includes('QUELLE') && sb.some(t => /AUFNAHME|STOPP/.test(t)) && sb.includes('HÖREN') && sb.includes('SAMPLE SICHERN'),
           'der Sampler steht im selben Blatt', JSON.stringify(sb));
     {   // Quelle umstellen - und wieder zurueck, damit der naechste Lauf gleich startet

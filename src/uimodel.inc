@@ -171,7 +171,10 @@ static int uiModelJson(char* b, int n) {
     {   // Projekt: Name, ungespeicherte Aenderungen, Liste zum Laden
         static char pl[UPRJ_MAX][64];
         int pn = uiProjects(pl);
-        w += snprintf(b + w, n - w, ",\"prj\":{\"n\":\"%.40s\",\"d\":%d,\"l\":[", cfg.project, projDirtyCached() ? 1 : 0);
+        // "c" = Pattern in der Ablage (leer = nichts kopiert), "p" = das offene Pattern:
+        // damit kann das Handy Pattern kopieren/einfuegen wie die PRJ-Seite am Geraet.
+        w += snprintf(b + w, n - w, ",\"prj\":{\"n\":\"%.40s\",\"d\":%d,\"p\":\"%s\",\"c\":\"%s\",\"l\":[",
+                      cfg.project, projDirtyCached() ? 1 : 0, PN(curPi()), haveClip && clipFrom >= 0 ? PN(clipFrom) : "");
         for (int i = 0; i < pn && w < n - 90; i++) {
             char nm[64]; snprintf(nm, sizeof nm, "%.56s", pl[i]);
             for (char* c = nm; *c; c++) if (*c == '"' || *c == '\\') *c = '\'';
@@ -369,7 +372,7 @@ static void uiActionsRun() {   // Hauptthread: Aktionen aus der Touch-Oberflaech
             if (e.b != SONG_EMPTY && (e.b < 0 || e.b >= NPATTERNS)) break;
             lockA(); J.row[r].pat[t] = (uint8_t)e.b; unlockA();
         } break;
-        case UA_PRJ: {   // 0 speichern, 1 laden (b = Zeile der Liste), 2 neues Projekt mit freiem Namen
+        case UA_PRJ: {   // 0 speichern, 1 laden (b = Zeile der Liste), 2 neues Projekt, 3 Pattern kopieren, 4 einfuegen
             if (e.a == 0) { toast(saveProject() ? TR("PROJEKT GESPEICHERT", "PROJECT SAVED") : TR("SPEICHERN FEHLGESCHLAGEN", "SAVING FAILED")); break; }
             if (e.a == 1) {
                 static char pl[UPRJ_MAX][64];
@@ -378,6 +381,15 @@ static void uiActionsRun() {   // Hauptthread: Aktionen aus der Touch-Oberflaech
             } else if (e.a == 2) {
                 char nm[64]; freeProjectName(TR("Projekt", "Project"), nm, sizeof nm);
                 doNewProject(nm);
+            } else if (e.a == 3) {   // Pattern kopieren - dieselbe Ablage wie KOPIEREN auf der PRJ-Seite
+                clip = curP(); haveClip = true; clipFrom = curPi();
+                toast(TR("PATTERN %s KOPIERT", "PATTERN %s COPIED"), PN(curPi()));
+            } else if (e.a == 4) {   // in das OFFENE Pattern einfuegen (Rueckgaengig steht bereit)
+                if (!haveClip) { toast(TR("ERST EIN PATTERN KOPIEREN", "COPY A PATTERN FIRST")); break; }
+                int to = curPi();
+                undoTrack(SDL_GetTicks());
+                lockA(); eng.proj.pat[to] = clip; eng.proj.pat[to].used = 1; unlockA();
+                toast(TR("PATTERN %s EINGEFÜGT", "PATTERN %s PASTED"), PN(to));
             }
         } break;
         case UA_TRKP: {   // Mixer: Wert einer beliebigen Spur setzen (a = Spur*16 + Zeile)

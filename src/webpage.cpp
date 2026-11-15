@@ -871,6 +871,15 @@ function tSheetFill(){const b=$('tShB');if(!tm||!tm.prj)return;const p=tm.prj;
  const nw=document.createElement('div');nw.className='big';nw.textContent='NEUES PROJEKT';
  tTap(nw,()=>{tAct(16,2,0);setTimeout(()=>{tSheetFill();tSheetClose();},700);});
  row.appendChild(sv);row.appendChild(nw);b.appendChild(row);
+ // Pattern kopieren/einfuegen - dieselbe Ablage wie KOPIEREN/EINFÜGEN auf der PRJ-Seite am Geraet
+ const pl2=document.createElement('div');pl2.className='lbl';pl2.style.marginTop='6px';
+ pl2.textContent='Pattern '+(p.p||'')+(p.c?'  ·  Ablage: '+p.c:'  ·  Ablage leer');b.appendChild(pl2);
+ const pr=document.createElement('div');pr.className='row';
+ const pc=document.createElement('div');pc.className='big';pc.textContent='PATTERN '+(p.p||'')+' KOPIEREN';
+ tTap(pc,()=>{tAct(16,3,0);setTimeout(tSheetFill,400);});
+ const pp=document.createElement('div');pp.className='big'+(p.c?' go':'');pp.textContent=p.c?('EINFÜGEN IN '+(p.p||'')):'EINFÜGEN';
+ tTap(pp,()=>{tAct(16,4,0);setTimeout(tSheetFill,500);});
+ pr.appendChild(pc);pr.appendChild(pp);b.appendChild(pr);
  const lb=document.createElement('div');lb.className='lbl';lb.textContent='Laden ('+(p.l?p.l.length:0)+')';b.appendChild(lb);
  const pl=document.createElement('div');pl.className='pl';
  (p.l||[]).forEach((nm,i)=>{const d=document.createElement('div');d.textContent=nm;if(nm===p.n)d.className='on';
