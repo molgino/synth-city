@@ -161,6 +161,12 @@ body.song #tMain{display:none}
 #tPat{font-size:18px;font-weight:bold;color:var(--cy);min-width:62px;text-align:center}
 #tBpm{color:var(--dim);font-size:13px}
 #tMsg{color:var(--acc);font-size:12px;flex:1;text-align:right;overflow:hidden;white-space:nowrap}
+/* Meldungen des Geraets als kurze Einblendung: in der Kopfzeile ist am Handy kein Platz dafuer
+   (#tMsg ist unter 560 px ausgeblendet), und so stand nirgends, WARUM etwas nicht ging. */
+#tToast{position:fixed;left:50%;transform:translateX(-50%);bottom:max(14px,env(safe-area-inset-bottom));
+ z-index:12;background:#1b1d24f2;border:1px solid var(--acc);color:var(--acc);border-radius:10px;
+ padding:10px 16px;font-size:13px;max-width:86vw;text-align:center;opacity:0;transition:opacity .2s;pointer-events:none}
+#tToast.on{opacity:1}
 #tMain{display:grid;grid-template-columns:minmax(96px,18%) minmax(0,1fr);gap:6px;min-height:0}
 #tTracks{display:grid;grid-auto-rows:minmax(0,1fr);gap:4px;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none}
 .ttr{display:flex;align-items:center;gap:4px;background:var(--panel);border:1px solid var(--line);
@@ -317,6 +323,7 @@ body.nopad #scr{grid-column:1 !important}
  <div id="tMix"></div>
  <div id="tSong"><div id="tSgBar"><button class="tb" id="tSgOn">SONG AN</button><button class="tb" id="tSgAdd">+ ZEILE</button><span id="tSgI" style="color:var(--dim);font-size:12px"></span></div><div id="tSgL"></div></div>
  <div id="tWait">warte auf die Groovebox …</div>
+ <div id="tToast"></div>
  <div id="tPick"><div id="tPickH"><span id="tPickT"></span>
   <span style="flex:1"></span><button class="tb" id="tPickX">ABBRECHEN</button></div><div id="tPickL"></div></div>
  <div id="tBot"><div id="tPages" style="display:flex;gap:6px;flex-wrap:wrap"></div><span style="flex:1"></span><button class="tb" id="tPrj">MEHR</button></div>
@@ -373,6 +380,12 @@ function tuiPoll(){if(!tuiOn)return;
  if(window.GB_LOCAL&&GB_LOCAL.model){const j=GB_LOCAL.model();if(j)tuiModel(j);}else tSend('M');
  setTimeout(tuiPoll,window.GB_LOCAL?90:1500);}
 function tAct(k,a,b){tSend('k '+k+' '+(a|0)+' '+(b|0));}
+let tMsgLast='',tMsgT=0;
+function tToast(msg){if(msg===tMsgLast)return;tMsgLast=msg;
+ const e=$('tToast');if(!e)return;
+ if(!msg){e.classList.remove('on');return;}
+ e.textContent=msg;e.classList.add('on');
+ clearTimeout(tMsgT);tMsgT=setTimeout(()=>e.classList.remove('on'),3000);}
 function tuiModel(j){let m;try{m=typeof j==='string'?JSON.parse(j):j;}catch(e){return;}tm=m;window.tm=m;/* Tests lesen den Zustand hier */
  document.body.classList.remove('twait');tuiRender(m);}
 document.querySelectorAll('#tVws .vw').forEach(d=>d.addEventListener('pointerdown',e=>{
@@ -383,6 +396,7 @@ function tuiRender(m){
  $('tPat').textContent=m.pat;
  if(m.prj)$('tPrj').textContent=(m.prj.d?'● ':'')+'MEHR';$('tBpm').textContent=m.bpm+' BPM'+(m.song?' · SONG':'');
  $('tMsg').textContent=m.msg||'';
+ tToast(m.msg||'');
  document.body.classList.toggle('hold',m.hold>=0);
  if(document.body.classList.contains('keys')){tKbMark(m.note);
   $('tNoteT').textContent=(m.hold>=0?'Step '+(m.hold+1)+': ':'')+tNoteName(m.note)+(m.drum?' · Drum-Engine: Tonhöhe wirkt kaum':'');}
@@ -396,8 +410,7 @@ function tuiRender(m){
  if(key!==tLastKey){tLastKey=key;tr.innerHTML='';tTrks=[];
   m.tracks.forEach((t,i)=>{const d=document.createElement('div');d.className='ttr';
    d.innerHTML='<span class="tnr" style="color:var(--dim);font-size:11px"></span><span class="tn"></span><span class="tm">M</span>';
-   d.addEventListener('pointerdown',e=>{e.preventDefault();
-    if(e.target.classList.contains('tm'))tAct(3,i,0);else tAct(2,i,0);},{passive:false});
+   tTap(d,e=>{if(e&&e.target&&e.target.classList.contains('tm'))tAct(3,i,0);else tAct(2,i,0);});   // Spurspalte scrollt: click zaehlt mit
    tr.appendChild(d);tTrks.push(d);});}
  m.tracks.forEach((t,i)=>{const d=tTrks[i];if(!d)return;
   d.style.borderLeftColor=t.c;d.classList.toggle('sel',i===m.track);
@@ -431,7 +444,7 @@ function tuiRender(m){
   const gb=$('tGrps');
   if(gb.childElementCount!==m.grps.length||gb.dataset.v!=m.view){gb.dataset.v=m.view;gb.innerHTML='';
    m.grps.forEach((g,i)=>{const d=document.createElement('div');d.className='tg';d.textContent=g;
-    d.addEventListener('pointerdown',e=>{e.preventDefault();tAct(10,i,0);},{passive:false});gb.appendChild(d);});}
+    tTap(d,()=>tAct(10,i,0));gb.appendChild(d);});}   // Gruppenleiste scrollt quer: click zaehlt mit
   [...gb.children].forEach((d,i)=>{const on=i===m.grp;d.classList.toggle('on',on);
    if(on&&!gb.dataset.scr){gb.dataset.scr=1;d.scrollIntoView({block:'nearest',inline:'center'});setTimeout(()=>delete gb.dataset.scr,400);}});
   const pr=$('tPar'),ps=m.params||[];
@@ -462,13 +475,20 @@ function tuiRender(m){
 // die Auswahlliste liess sich darum nicht scrollen, und mit 114 Zielen war alles unter dem ersten
 // Schirm unerreichbar (gemeldet "LFO-Ziele kann ich nicht waehlen, die Liste ist nicht scrollbar").
 // Darum erst beim Abheben handeln, und nur, wenn der Finger praktisch stehen geblieben ist.
-function tTap(el,fn){let id=null,x0=0,y0=0;
+// Gemeldet: "Projektauswahl funktioniert nicht, Aufnahme kann nicht gestartet werden". Beides steht im
+// Blatt, also in einem Bereich mit touch-action:pan-y - und genau dort bricht der Browser die
+// Zeigerereignisse ab (pointercancel), sobald er die Beruehrung fuer ein Scrollen haelt: der Finger
+// wandert beim Tippen ein, zwei Pixel, und der Tap kam nie an. Darum zaehlt zusaetzlich **click**,
+// das der Browser nach einem Tap trotzdem schickt (und nach einem echten Wisch eben nicht).
+// Die 400-ms-Sperre verhindert, dass beide Wege denselben Tap doppelt ausloesen.
+function tTap(el,fn){let id=null,x0=0,y0=0,last=0;
+ const go=e=>{const t=Date.now();if(t-last<400)return;last=t;if(e&&e.cancelable)e.preventDefault();fn(e);};
  el.addEventListener('pointerdown',e=>{id=e.pointerId;x0=e.clientX;y0=e.clientY;},{passive:true});
  el.addEventListener('pointerup',e=>{if(id===null||e.pointerId!==id)return;id=null;
   if(Math.abs(e.clientX-x0)>12||Math.abs(e.clientY-y0)>12)return;   // gewischt = gescrollt, nicht gewaehlt
-  e.preventDefault();fn(e);},{passive:false});
+  go(e);},{passive:false});
  el.addEventListener('pointercancel',()=>{id=null;});
- el.addEventListener('pointerleave',()=>{id=null;});}
+ el.addEventListener('click',go);}
 function tPickOpen(i){const p=tm.params[i];document.body.classList.add('pick');
  $('tPickT').textContent=p.n;const l=$('tPickL');l.innerHTML='';
  const shared=p.list&&tm.lists?tm.lists[p.list]:null;   // lange Listen stehen einmal je Modell
@@ -561,18 +581,18 @@ function tSongBuild(){const L=$('tSgL');if(!tm||!tm.sng)return;const S=tm.sng;
  L.innerHTML='';
  S.rows.forEach((r,i)=>{const d=document.createElement('div');d.className='sgr';d.dataset.i=i;
   const nr=document.createElement('div');nr.className='nr';nr.textContent=(i+1);
-  nr.addEventListener('pointerdown',e=>{e.preventDefault();tAct(17,1,i);},{passive:false});d.appendChild(nr);
+  tTap(nr,()=>tAct(17,1,i));d.appendChild(nr);
   const cs=document.createElement('div');cs.className='cs';
   for(let t=0;t<8;t++){const c=document.createElement('div');c.className='cl';c.dataset.t=t;
-   c.addEventListener('pointerdown',e=>{e.preventDefault();tSgPick(i,t);},{passive:false});cs.appendChild(c);}
+   tTap(c,()=>tSgPick(i,t));cs.appendChild(c);}
   d.appendChild(cs);
   const rp=document.createElement('div');rp.className='rp';
-  const m=document.createElement('div');m.textContent='−';m.addEventListener('pointerdown',e=>{e.preventDefault();tAct(17,5,i);},{passive:false});
+  const m=document.createElement('div');m.textContent='−';tTap(m,()=>tAct(17,5,i));
   const v=document.createElement('div');v.className='v';
-  const p=document.createElement('div');p.textContent='+';p.addEventListener('pointerdown',e=>{e.preventDefault();tAct(17,4,i);},{passive:false});
+  const p=document.createElement('div');p.textContent='+';tTap(p,()=>tAct(17,4,i));
   rp.appendChild(m);rp.appendChild(v);rp.appendChild(p);d.appendChild(rp);
   const x=document.createElement('div');x.className='del';x.textContent='✕';
-  x.addEventListener('pointerdown',e=>{e.preventDefault();tAct(17,3,i);},{passive:false});d.appendChild(x);
+  tTap(x,()=>tAct(17,3,i));d.appendChild(x);
   L.appendChild(d);});
  if(!S.rows.length){const e=document.createElement('div');e.className='lbl';e.style.color='var(--dim)';
   e.textContent='Noch keine Zeilen – "+ ZEILE" legt die erste an.';L.appendChild(e);}
