@@ -1,77 +1,80 @@
-# SYNTH CITY – Groovebox für den R36S
+# SYNTH CITY – a groovebox for the R36S
 
-[![Ko-fi](https://img.shields.io/badge/Ko--fi-noxend-FF5E5B?logo=ko-fi&logoColor=white)](https://ko-fi.com/noxend) [![Lizenz: MIT](https://img.shields.io/badge/Lizenz-MIT-blue)](LICENSE)
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-noxend-FF5E5B?logo=ko-fi&logoColor=white)](https://ko-fi.com/noxend) [![Licence: MIT](https://img.shields.io/badge/Licence-MIT-blue)](LICENSE)
 
-Groovebox für die Hosentasche: Step-Sequencer mit Parameter-Locks, 13 Klangerzeuger, Sampler mit Chops und Time-Warp, 3 Effekt-Busse und ein USB-Audio-Interface – auf dem Handheld R36S (eigenes SYNTH CITY OS oder ArkOS 2.0; läuft auch auf dem Linux-Desktop). Neo-Noir-Optik in Neon-Magenta und Cyan.
+A pocket groovebox: step sequencer with parameter locks, 15 sound engines, a sampler with chops and time-warp, 3 effect buses and a USB audio interface – on the R36S handheld (its own SYNTH CITY OS or ArkOS 2.0; it also runs on the Linux desktop and as a phone/browser app). Neo-noir look in neon magenta and cyan.
 
-## 📖 Handbuch
+> **How this was made:** SYNTH CITY is vibecoded. It was built with an AI coding assistant (Claude) and tested on real R36S hardware by the author. Reviews and fixes from people who know DSP, embedded Linux or C++ are very welcome.
 
-**[SYNTH-CITY-Handbuch.pdf](https://github.com/molgino/synth-city/releases/download/nightly/SYNTH-CITY-Handbuch.pdf)** – mit Bildern, wird bei jedem Build automatisch aus [docs/handbuch.md](docs/handbuch.md) erzeugt (Test-Branches: im jeweiligen Test-Release).
-Technische Daten: [docs/SPECS.md](docs/SPECS.md).
+## 📖 Manual
 
-## Auf einen Blick
+**[SYNTH-CITY-Handbuch.pdf](https://github.com/molgino/synth-city/releases/download/nightly/SYNTH-CITY-Handbuch.pdf)** (German) – with pictures, generated on every build from [docs/handbuch.md](docs/handbuch.md) (test branches: in their own test release).
+Technical data: [docs/SPECS.md](docs/SPECS.md).
 
-* **8 Spuren**, 16 Patterns mit bis zu 128 Steps, Parameter-Locks, Trigless Locks, Trig-Bedingungen, Mikrotiming, Euklid- und Zufalls-Generator, Arpeggiator und Akkorde
-* **13 Engines**: Kick, Snare, Hat, Clap, Tom, Rim, Shaker, Analog-Synth, FM (4 Operatoren), Wavetable (auch eigene/gezeichnete), Sample-Player, Chopper, Granulator – mit **Time-Warp** für Samples
-* **Modulation**: 3 Hüllkurven und 3 LFOs je Spur mit je 3 Zielen
-* **Effekte**: Insert je Spur, 3 frei wählbare Effekt-Busse (Delay, Tape, Reverb, Spring, Chorus), Kompressor mit Sidechain
-* **Sampler**: Aufnahme von USB, Master oder einzelner Spur, Chops (gleich oder an Transienten), direkt in die Spur
-* **Song-Modus** als Clip-Matrix mit WAV-Export, LIVE-Seite mit Mutes, FILL und Aufnahme
-* **USB**: Audio-Interface (bis 18 Kanäle) und MIDI zum PC/Handy, USB-Host für Keyboards/DACs, Fernbedienung und Ton im Browser
+## At a glance
 
-## Schnellstart
+* **8 tracks**, 128 patterns in 8 banks (A–H) with up to 128 steps, parameter locks, trigless locks, trig conditions, microtiming, Euclidean and random generators, arpeggiator, chords and up to four notes per step
+* **15 engines**: kick, snare, hat, clap, tom, rim, shaker, percussion, analogue synth, FM (4 operators), wavetable (also your own or hand-drawn), sample player, chopper, granulator and drone – with **time-warp** for samples
+* **Modulation**: 3 envelopes and 3 LFOs per track with 3 destinations each
+* **Effects**: insert per track, 3 freely assignable effect buses (delay, tape, reverb, spring, chorus, shimmer, cloud), compressor with sidechain
+* **Sampler**: record from USB, the master, a single track or the built-in mic/input, chops (even or on transients), straight into a track
+* **Song mode** as a clip matrix with WAV export, LIVE page with mutes, FILL and recording
+* **USB**: audio interface (up to 18 channels) and MIDI to computer/phone, USB host for keyboards/DACs, remote control, touch interface and audio in the browser
+* **English and German** user interface
 
-1. **Groovebox-OS**: Image aus dem Release *os-nightly* auf eine microSD-Karte schreiben – oder **ArkOS**: `r36s-groovebox-arkos.zip` aus dem Release *nightly* nach `ports/` kopieren.
-2. Starten: Der Demo-Song „Neon Nights“ ist geladen, **START** spielt ihn ab.
-3. **SELECT antippen** = Seitenkarte, **L2/R2** = Seite, **L1/R1** = Regler, **X/Y** = Wert, **SELECT halten** = Hilfe.
+## Quick start
 
-Alles Weitere steht im Handbuch.
+1. **SYNTH CITY OS**: write the image from the release *os-nightly* to a microSD card – or **ArkOS**: copy `r36s-groovebox-arkos.zip` from the release *nightly* into `ports/`.
+2. Start it: you begin with an empty project. **A** sets a trig, **START** plays. The demo song "Neon Nights" is on the **PRJ** page → "DEMO SONG".
+3. **L2/R2** = view, **▲▼** = control, **L1/R1** = track, **X/Y** = value, **tap SELECT** = MORE menu, **hold SELECT** = key help, **SELECT + B** = undo.
 
-## Mitmachen
+Everything else is in the manual.
 
-SYNTH CITY ist Open Source, Mitentwickeln ist ausdrücklich erwünscht. Fehler und Ideen bitte als [Issue](../../issues/new/choose), Code als Pull Request gegen `main`; wie das läuft und welche Tests grün sein müssen, steht in [CONTRIBUTING.md](CONTRIBUTING.md). Auch ohne Programmieren hilfst du: auf deinem R36S (oder Klon) testen und berichten.
+## Contributing
 
-## Unterstützen
+SYNTH CITY is open source and contributions are very welcome. Please report bugs and ideas as an [issue](../../issues/new/choose) and send code as a pull request against `main`; [CONTRIBUTING.md](CONTRIBUTING.md) explains how and which tests need to pass. You can help without coding too: test on your R36S (or a clone) and report back.
 
-SYNTH CITY ist kostenlos und bleibt es. Wenn dir die Groovebox Spaß macht, freue ich mich über einen Kaffee: **[ko-fi.com/noxend](https://ko-fi.com/noxend)**
+## Support
 
-## Lizenz
+SYNTH CITY is free and will stay free. If you enjoy the groovebox, a coffee is much appreciated: **[ko-fi.com/noxend](https://ko-fi.com/noxend)**
 
-Der Quellcode von SYNTH CITY steht unter der [MIT-Lizenz](LICENSE). Das SYNTH-CITY-OS-Image enthält zusätzlich fremde Komponenten mit eigenen Lizenzen (Linux-Kernel und U-Boot unter GPL-2.0, Debian-Pakete, SDL2, ALSA …); Übersicht und Pflichten beim Weitergeben in [docs/THIRD_PARTY.md](docs/THIRD_PARTY.md). R36S und andere genannte Geräte sind Namen ihrer Hersteller; keine Verbindung zu diesen.
+## Licence
 
-## Für Entwickler
+The SYNTH CITY source code is under the [MIT licence](LICENSE). The SYNTH CITY OS image also contains third-party components with their own licences (Linux kernel and U-Boot under GPL-2.0, Debian packages, SDL2, ALSA …); see [docs/THIRD_PARTY.md](docs/THIRD_PARTY.md) for the overview and the obligations when passing the image on. R36S and other devices mentioned are names of their manufacturers; no affiliation.
 
-### Automatischer Build (GitHub Actions)
+## For developers
 
-Jeder Push auf `main` baut das Programm für den R36S und legt das Paket als Release **nightly** ab. Genau das holt `deploy.ps1`.
-Ein Tag wie `v1.0` erzeugt ein festes Versions-Release.
+### Automatic build (GitHub Actions)
 
-### Selbst bauen
+Every push to `main` builds the program for the R36S and publishes the package as the **nightly** release. That is what `deploy.ps1` fetches.
+A tag such as `v1.0` creates a fixed version release.
+
+### Building it yourself
 
 ```bash
-# Desktop (zum Testen)
+# Desktop (for testing)
 sudo apt install libsdl2-dev libasound2-dev && make && ./groovebox --windowed
 
-# Cross-Build für den R36S (auf x86-Linux) und Paket
+# Cross build for the R36S (on x86 Linux) and package
 sudo apt install g++-aarch64-linux-gnu curl zip && ./tools/cross-build.sh && ./tools/package.sh
 ```
 
-Der Cross-Build lädt einen kleinen Ubuntu-18.04-arm64-Sysroot (glibc 2.27, SDL 2.0.8 Header) nach `.sysroot`.
-Dadurch läuft das Programm auf ArkOS und nutzt dort dessen eigene SDL2 mit KMS/DRM.
-Der Code benutzt bewusst keine libstdc++ und hängt nur von libSDL2, libasound, libm und libc ab. All diese Bibliotheken bringt ArkOS mit.
+The cross build downloads a small Ubuntu 18.04 arm64 sysroot (glibc 2.27, SDL 2.0.8 headers) into `.sysroot`.
+That way the program runs on ArkOS and uses its own SDL2 with KMS/DRM there.
+The code deliberately avoids libstdc++ and only depends on libSDL2, libasound, libm and libc, all of which ArkOS ships.
 
-Weitere Kommandozeilen-Optionen:
+More command-line options:
 
-* `--render out.wav 8`: Das aktuelle Projekt offline als WAV rendern.
-* `--shot bild.bmp [seite]`: einen Screenshot erzeugen.
-* `--buffer N`: die Puffergröße der SYS-Seite übersteuern.
+* `--render out.wav 8`: render the current project offline to WAV.
+* `--shot picture.bmp [page]`: take a screenshot.
+* `--buffer N`: override the buffer size from the SYS page.
 
-### Aufbau
+### Layout
 
-* `src/engine.*`: Sequencer (sampelgenau in 16-Sample-Blöcken, Swing, Retrigs, Polymetrie), Stimmen, Delay, Freeverb-Reverb, DJ-Filter, Limiter
-* `src/params.h`: alle Parameterdefinitionen und Wertanzeigen
-* `src/samples.*`: WAV-Lader und Sample-Bibliothek
-* `src/midi.*`: MIDI-Thread (ALSA-Sequencer mit automatischem Verbinden bzw. rawmidi) und lock-freie Queues zum Audio-Thread
-* `src/input.*`: Gamepad mit lernbarer Belegung, SDL-GameController und Tastatur
-* `src/main.cpp`: Oberfläche (640×480) und Bedienlogik
-* `src/font.h`: Bitmap-Schrift, erzeugt mit `tools/genfont.py` aus DejaVu Sans Mono
+* `src/engine.*`: sequencer (sample-accurate, swing, retrigs, polymeter), voices, effect buses, DJ filter, limiter
+* `src/params.h`: all parameter definitions and value displays
+* `src/samples.*`: WAV loader and sample library
+* `src/midi.*`: MIDI thread (ALSA sequencer with auto-connect or rawmidi) and lock-free queues to the audio thread
+* `src/input.*`: gamepad with learnable mapping, SDL game controller and keyboard
+* `src/main.cpp`: user interface (640×480) and controls
+* `src/font.h`: bitmap font, generated by `tools/genfont.py` from DejaVu Sans Mono

@@ -1,9 +1,9 @@
-name: Idee / Feature request
-description: Vorschlag für eine neue Funktion.
+name: Feature request / Idee
+description: Suggest a new feature.
 labels: [enhancement]
 body:
   - type: textarea
     id: idea
     attributes:
-      label: Was wünschst du dir, und wofür brauchst du es?
+      label: What would you like, and what do you need it for?
     validations: {required: true}

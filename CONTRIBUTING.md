@@ -1,30 +1,32 @@
-# Mitmachen bei SYNTH CITY
+# Contributing to SYNTH CITY
 
-Danke fürs Mithelfen! Deutsch oder Englisch – beides ist willkommen.
+Thanks for helping! English or German – both are welcome.
 
-## Fehler melden
-[Issue anlegen](https://github.com/molgino/synth-city/issues/new/choose): wo (SYNTH CITY OS, ArkOS, Desktop, Handy-App), welcher Build (SET → Info), Schritte zum Nachstellen. Bildschirmfotos und Logs (Web-Seite des Geräts → Logs) helfen sehr.
+## Reporting bugs
+[Open an issue](https://github.com/molgino/synth-city/issues/new/choose): where (SYNTH CITY OS, ArkOS, desktop, phone app), which build (SET → Info), steps to reproduce. Screenshots and logs (device web page → Logs) help a lot.
 
-## Code beitragen
-1. Fork anlegen, Branch erstellen (neue Funktionen gern als `ui-…`-Branch: CI baut dafür ein eigenes Test-Release).
-2. Am Linux-Desktop bauen und testen:
+## Contributing code
+1. Fork the repository and create a branch (new features ideally on a `ui-…` branch: CI builds a separate test release for it).
+2. Build and test on the Linux desktop:
    ```sh
    sudo apt install libsdl2-dev libasound2-dev
    make && ./groovebox --windowed
-   make test                      # Engine-Tests
-   ./groovebox --selftest 20      # Bedien-Szenarien
-   tools/test-all.sh              # alles auf einmal, Bericht in dist/testbericht.md
+   make test                      # engine tests
+   ./groovebox --selftest 20      # UI scenarios
+   tools/test-all.sh              # everything at once, report in dist/testbericht.md
    ```
-   Vor größeren Änderungen bitte auch `make SAN=1` mit `--selftest 60` laufen lassen – mehrere Fehler fielen nur unter den Sanitizern auf.
-3. Pull Request gegen `main`. GitHub Actions baut für den R36S und führt die Tests aus.
+   Before bigger changes please also run `make SAN=1` with `--selftest 60` – several bugs only showed up under the sanitizers.
+3. Open a pull request against `main`. GitHub Actions builds for the R36S and runs the tests.
 
-## Regeln
-- **Jeder gemeldete Fehler bekommt ein Szenario** im Selbsttest, das am alten Stand rot ist.
-- **Projektformat:** Strukturänderungen erhöhen die Version und bekommen eine Migration in `Engine::load`; alte Projekte müssen gleich klingen.
-- **Enums nur hinten anfügen** (Engines, Filtertypen, Seiten …).
-- **Echtzeit:** im Audio-Thread keine Speicheranforderung, keine Sperren, keine Datei-Zugriffe.
-- **R36S-Cross-Build ohne libstdc++:** nur C-Header, keine Exceptions/RTTI.
-- **Neue Texte** immer mit `TR(de, en)`.
-- **Keine fremden Marken, Samples oder Logos**; eigene Klänge.
+The project is vibecoded (built with an AI coding assistant and tested on hardware), so careful reviews of existing code are just as welcome as new features.
 
-Mit einem Pull Request stimmst du zu, dass dein Beitrag unter der [MIT-Lizenz](LICENSE) steht.
+## Rules
+- **Every reported bug gets a scenario** in the self-test that fails on the old code.
+- **Project format:** structural changes bump the version and get a migration in `Engine::load`; old projects must sound the same.
+- **Only append to enums** (engines, filter types, pages …).
+- **Real time:** no memory allocation, no locks, no file access in the audio thread.
+- **R36S cross build without libstdc++:** C headers only, no exceptions or RTTI.
+- **New texts** always with `TR(de, en)`.
+- **No third-party trademarks, samples or logos**; own sounds only.
+
+By opening a pull request you agree that your contribution is licensed under the [MIT licence](LICENSE).
