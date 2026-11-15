@@ -141,7 +141,8 @@ function check(ok, what, extra) { if (ok) { pass++; console.log('  OK     ' + wh
   const held = await pg.evaluate(() => ({hold: tm.hold, cls: document.body.classList.contains('hold')}));
   check(held.hold === 5 && held.cls, 'Pad lange druecken haelt den Step fest (P-Lock)', 'hold=' + held.hold);
   await pg.evaluate(() => { const g = [...document.querySelectorAll('#tGrps .tg')].find(x => x.textContent === 'FILTER');
-    if (g) { const r = g.getBoundingClientRect(); g.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, clientX: r.left + 10, clientY: r.top + r.height / 2})); } });
+    if (g) { const r = g.getBoundingClientRect(); const o = {bubbles: true, pointerId: 81, clientX: r.left + 10, clientY: r.top + r.height / 2};
+      g.dispatchEvent(new PointerEvent('pointerdown', o)); g.dispatchEvent(new PointerEvent('pointerup', o)); } });
   await pg.waitForTimeout(800);
   const patBase = await pg.evaluate(() => tm.params[0].v);
   await drag(0.1, 0.7); await pg.waitForTimeout(900);
@@ -175,7 +176,8 @@ function check(ok, what, extra) { if (ok) { pass++; console.log('  OK     ' + wh
 
   // Auswahl-Regler (ENGINE): antippen oeffnet eine Liste statt eines Schiebers
   await pg.evaluate(() => { const g = [...document.querySelectorAll('#tGrps .tg')].find(x => /MAKRO/.test(x.textContent));
-    if (g) { const r = g.getBoundingClientRect(); g.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, clientX: r.left + 10, clientY: r.top + r.height / 2})); } });
+    if (g) { const r = g.getBoundingClientRect(); const o = {bubbles: true, pointerId: 81, clientX: r.left + 10, clientY: r.top + r.height / 2};
+      g.dispatchEvent(new PointerEvent('pointerdown', o)); g.dispatchEvent(new PointerEvent('pointerup', o)); } });
   await pg.waitForTimeout(800);
   const ei = await pg.evaluate(() => tm.params.findIndex(p => p.n === 'ENGINE'));
   check(ei >= 0, 'ENGINE ist in den Makros');
@@ -252,6 +254,19 @@ function check(ok, what, extra) { if (ok) { pass++; console.log('  OK     ' + wh
   }
   const marked = await pg.evaluate(() => [0, 1, 2, 3, 4].map(k => document.getElementById('tM' + k).classList.contains('on')));
   check(marked.filter(Boolean).length === 1, 'genau ein Modus ist markiert', JSON.stringify(marked));
+
+  {   // dasselbe fuer die Spurspalte: auch sie scrollt, auch dort darf ein abgebrochener Tap nicht verpuffen
+    const t0 = await pg.evaluate(() => tm.track);
+    const ziel = (t0 + 3) % 8;
+    await pg.evaluate(i => { const d = [...document.querySelectorAll('.ttr')][i], r = d.getBoundingClientRect();
+      const o = {bubbles: true, pointerId: 73, clientX: r.left + 20, clientY: r.top + r.height / 2};
+      d.dispatchEvent(new PointerEvent('pointerdown', o));
+      d.dispatchEvent(new PointerEvent('pointercancel', o));
+      d.dispatchEvent(new MouseEvent('click', {bubbles: true, cancelable: true, clientX: o.clientX, clientY: o.clientY})); }, ziel);
+    await pg.waitForTimeout(800);
+    check((await pg.evaluate(() => tm.track)) === ziel, 'Spur waehlen geht auch bei abgebrochener Geste', `${t0 + 1} -> ${ziel + 1}`);
+    await pg.evaluate(i => tAct(2, i, 0), t0); await pg.waitForTimeout(500);
+  }
 
   // Lange Listen (LFO-Ziel): stehen einmal je Modell unter lists, der Regler verweist darauf
   await tapSel('#tM1'); await pg.waitForTimeout(600); await goView(1);
@@ -518,6 +533,44 @@ function check(ok, what, extra) { if (ok) { pass++; console.log('  OK     ' + wh
         const _o = {bubbles: true, clientX: r.left + 5, clientY: r.top + 5}; d.dispatchEvent(new PointerEvent('pointerdown', _o)); d.dispatchEvent(new PointerEvent('pointerup', _o)); }, q0);
       await pg.waitForTimeout(700);
     }
+    // Gemeldet: "Projektauswahl funktioniert nicht, Aufnahme kann nicht gestartet werden". Beides steht
+    // im Blatt (touch-action:pan-y) - dort bricht der Browser die Zeigerereignisse ab, sobald er die
+    // Beruehrung fuer ein Scrollen haelt. Dann kommt nur noch ein click, und der muss reichen.
+    {
+      await pg.evaluate(() => tAct(19, 3, 1)); await pg.waitForTimeout(700);   // Quelle MASTER: die geht ohne USB-Modus
+      const r0 = await pg.evaluate(() => tm.smp.rec);
+      const abgebrochen = sel => pg.evaluate(re => {
+        const d = [...document.querySelectorAll('#tShB .big')].find(e => new RegExp(re).test(e.textContent));
+        if (!d) return false;
+        const r = d.getBoundingClientRect(), o = {bubbles: true, pointerId: 71, clientX: r.left + 10, clientY: r.top + 10};
+        d.dispatchEvent(new PointerEvent('pointerdown', o));
+        d.dispatchEvent(new PointerEvent('pointercancel', o));   // der Browser nimmt die Geste fuers Scrollen
+        d.dispatchEvent(new MouseEvent('click', {bubbles: true, cancelable: true, clientX: o.clientX, clientY: o.clientY}));
+        return true; }, sel);
+      check(await abgebrochen('AUFNAHME|STOPP'), 'der Aufnahme-Knopf ist da');
+      await pg.waitForTimeout(900);
+      check((await pg.evaluate(() => tm.smp.rec)) !== r0, 'AUFNAHME geht auch, wenn der Browser die Geste abbricht',
+            `rec ${r0} -> ${await pg.evaluate(() => tm.smp.rec)}`);
+      await abgebrochen('AUFNAHME|STOPP'); await pg.waitForTimeout(900);
+      check((await pg.evaluate(() => tm.smp.rec)) === r0, 'und wieder zurueck', 'rec ' + r0);
+      // ein echter Wisch darf dagegen nichts ausloesen (kein click)
+      const v2 = await pg.evaluate(() => tm.smp.rec);
+      await pg.evaluate(() => { const d = [...document.querySelectorAll('#tShB .big')].find(e => /AUFNAHME|STOPP/.test(e.textContent));
+        const r = d.getBoundingClientRect(), o = y => ({bubbles: true, pointerId: 72, clientX: r.left + 10, clientY: r.top + 10 + y});
+        d.dispatchEvent(new PointerEvent('pointerdown', o(0)));
+        d.dispatchEvent(new PointerEvent('pointerup', o(-60))); });
+      await pg.waitForTimeout(700);
+      check((await pg.evaluate(() => tm.smp.rec)) === v2, 'ein Wisch ueber den Knopf loest nichts aus', 'rec ' + v2);
+      await pg.evaluate(q => tAct(19, 3, q), 0); await pg.waitForTimeout(500);   // Quelle wieder wie vorher
+    }
+    {   // und die Meldung des Geraets muss am Handy zu sehen sein - in der Kopfzeile ist dafuer kein Platz
+      await pg.evaluate(() => tToast(''));
+      await pg.evaluate(() => tAct(19, 2, 0));   // SAMPLE SICHERN ohne Aufnahme -> Meldung
+      await pg.waitForTimeout(1200);
+      const t = await pg.evaluate(() => ({on: document.getElementById('tToast').classList.contains('on'),
+                                          txt: document.getElementById('tToast').textContent}));
+      check(t.on && t.txt.length > 3, 'Meldungen erscheinen als Einblendung', JSON.stringify(t));
+    }
     await pg.evaluate(() => tSheetClose()); await pg.waitForTimeout(300);
     check(!(await pg.evaluate(() => document.body.classList.contains('sheet'))), 'das Blatt laesst sich schliessen');
   }
@@ -597,7 +650,8 @@ function check(ok, what, extra) { if (ok) { pass++; console.log('  OK     ' + wh
   // fuer den Scroll-Fall eine moeglichst volle Gruppe nehmen (MAKROS hat 9 Regler, FILTER nur 5)
   await pg.evaluate(() => {
     const g = [...document.querySelectorAll('#tGrps .tg')].find(x => /MAKRO/.test(x.textContent));
-    if (g) { const r = g.getBoundingClientRect(); g.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, clientX: r.left + 10, clientY: r.top + r.height / 2})); }
+    if (g) { const r = g.getBoundingClientRect(); const o = {bubbles: true, pointerId: 81, clientX: r.left + 10, clientY: r.top + r.height / 2};
+      g.dispatchEvent(new PointerEvent('pointerdown', o)); g.dispatchEvent(new PointerEvent('pointerup', o)); }
   });
   await pg.waitForTimeout(900);
   const sc = await pg.evaluate(() => {
